@@ -2,6 +2,20 @@
 // badges; the Hall of Fame starts it over. Rules are in logic.js (dayCareTick, eggStep).
 
 function depositKey(key) { depositInDayCare(key) }
+
+/** Breeder's notes mark: has this Pokémon's Egg species been hatched (for the +2% bonus)? */
+function hatchMark(key) {
+	const eggs = eggSpecies(speciesOf(key), DITTO)
+	if (formOf(key) || !eggs) return `<span class="pk-done">no Eggs</span>`
+	return eggs.every(id => player.d.hatched[id]) ? `🥚 hatched` : `<span class="pk-missing">🥚 new</span>`
+}
+
+function breederNotesHtml() {
+	return `<h3>Breeder's notes (${hatchedSpecies()}/${HATCHABLE.length})</h3><br><small>Every species hatched gives +2% Research Points for good. Unhatched ones are dark.</small><br><div class="pk-dex">${HATCHABLE.map(id => {
+		const done = player.d.hatched[id]
+		return `<span class="pk-dex-entry ${done ? "" : "pk-unseen"}" title="${speciesName(id)}${done ? ` (hatched ${done})` : " (not hatched yet)"}">${pkSprite(id, false, 48)}<br><small>${done ? speciesName(id) : "???"}</small></span>`
+	}).join("")}</div>`
+}
 function withdrawKey(key) { withdrawFromDayCare(key) }
 
 function dayCareSlotsHtml() {
@@ -22,7 +36,8 @@ function dayCareStatusHtml() {
 		const why = slots.some(formOf) ? "One of them is a one-of-a-kind form" : "They don't seem to like each other"
 		return html + `<br><i>${why}: no Eggs.</i> <small>(Eggs need the same family with a male and a female, or Ditto. Legendaries don't breed.)</small>`
 	}
-	html += `<br>The two seem to get along! Their Eggs hatch into ${eggs.map(speciesName).join(" or ")}.`
+	const fresh = eggs.filter(id => !player.d.hatched[id])
+	html += `<br>The two seem to get along! Their Eggs hatch into ${eggs.map(speciesName).join(" or ")}${fresh.length ? ` <span class="pk-missing">(new to your breeder's notes: +2% Research Points)</span>` : " (already in your breeder's notes)"}.`
 	if (slots.some(isShiny)) html += ` <small>(A shiny parent: shiny Eggs twice as likely.)</small>`
 	return html
 }
@@ -39,7 +54,7 @@ function depositListHtml() {
 	if (!keys.length) return ""
 	return `<h3>Leave a Pokémon</h3><br><div class="pk-dex">${keys.map(key => {
 		const lonely = player.t.party.length === 1 && player.t.party[0] === key
-		return `<button class="pk-dex-entry pk-button" ${lonely ? "disabled title='Your only party Pokémon'" : `onclick="depositKey('${key}')"`}>${pkKeySprite(key, 48)}<br><small>${keyName(key)}<br>Lv. ${player.t.box[key].level}</small></button>`
+		return `<button class="pk-dex-entry pk-button" ${lonely ? "disabled title='Your only party Pokémon'" : `onclick="depositKey('${key}')"`}>${pkKeySprite(key, 48)}<br><small>${keyName(key)}<br>Lv. ${player.t.box[key].level}<br>${hatchMark(key)}</small></button>`
 	}).join("")}</div>`
 }
 
@@ -57,6 +72,7 @@ addLayer("c", {
 		slots: [],
 		eggs: [],
 		eggProgress: 0,
+		autoTimer: 0,
 	}},
 	branches: ["t"],
 	layerShown() { return player.t.starter > 0 && dayCareOpen() },
@@ -65,7 +81,12 @@ addLayer("c", {
 	doReset(resettingLayer) {
 		if (resettingLayer === "h") freshLayerData("c")
 	},
-	update(diff) { dayCareTick(diff) },
+	update(diff) {
+		dayCareTick(diff)
+		player.c.autoTimer = (player.c.autoTimer || 0) + diff
+		if (player.c.autoTimer >= 2) { player.c.autoTimer = 0; autoEggsTick() }
+	},
+	buyables: Object.fromEntries(Object.entries(DAY_CARE_BUYABLES).map(([id, def]) => [id, rpBuyable("c", id, def)])),
 	bars: {
 		egg: {
 			direction: RIGHT,
@@ -100,8 +121,12 @@ addLayer("c", {
 		"blank",
 		["display-text", () => `Species hatched (for good): <b>${hatchedSpecies()}</b> · Research Points +${2 * hatchedSpecies()}%`],
 		"blank",
+		"buyables",
+		"blank",
 		"upgrades",
 		"blank",
 		["display-text", () => depositListHtml()],
+		"blank",
+		["display-text", () => breederNotesHtml()],
 	],
 })

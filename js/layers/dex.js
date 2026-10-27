@@ -6,7 +6,7 @@ function dexHtml() {
 		const seen = player.d.seen[id], caught = player.d.caught[id], shiny = player.d.shiny[id]
 		const cls = caught ? "" : seen ? "pk-seen" : "pk-unseen"
 		const title = seen ? `#${id} ${speciesName(id)}${caught ? ` (caught ${caught})` : " (seen)"}${shiny ? ` ★${shiny}` : ""}` : `#${id} ???`
-		html += `<span class="pk-dex-entry ${cls}" title="${title}">${pkSprite(id, !!shiny, 56)}<br><small>${id}${shiny ? " ★" : ""}</small></span>`
+		html += `<span class="pk-dex-entry ${cls}" title="${title}">${pkSprite(id, !!shiny, 56)}<br><small>${id}${shiny ? " ★" : ""}${player.d.hatched[id] ? " 🥚" : ""}</small></span>`
 	}
 	return html + "</div>"
 }

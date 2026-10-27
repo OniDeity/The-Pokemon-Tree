@@ -139,6 +139,21 @@ function fieldBuyableDef(id) {
 	}
 }
 
+/** A repeatable Research Point buyable for a side layer (Day Care, Safari Zone). */
+function rpBuyable(layer, id, def) {
+	return {
+		title: def.title,
+		cost() { return buyableCost(def, getBuyableAmount(layer, id).toNumber()) },
+		display() { return `${def.text}<br><br>Level ${formatWhole(getBuyableAmount(layer, id))}<br>Cost: ${format(this.cost())} Research Points` },
+		canAfford() { return player.points.gte(this.cost()) },
+		buy() {
+			player.points = player.points.sub(this.cost())
+			addBuyables(layer, id, 1)
+		},
+		style: { width: "170px", height: "120px" },
+	}
+}
+
 function fieldUpgradeDef(id) {
 	const def = FIELD_UPGRADES[id]
 	return {
@@ -205,6 +220,7 @@ addLayer("f", {
 	},
 	update(diff) {
 		searchTick(diff)
+		autoBuyTick()
 	},
 	clickables: {
 		11: {

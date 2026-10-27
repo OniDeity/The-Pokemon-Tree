@@ -11,6 +11,19 @@ function dexHtml() {
 	return html + "</div>"
 }
 
+/** The anime's forms: caught ones in color, the rest as silhouettes; then the form milestones. */
+function formsHtml() {
+	let html = `Forms caught: <b>${formsCaught()}</b>/${ALL_FORMS.length}<br><small>Forms come from the anime places and events, which open with Hall of Fame entries.</small><br><br><div class="pk-dex">`
+	for (const k of ALL_FORMS) {
+		const id = parseInt(k), form = k.slice(k.indexOf("-") + 1)
+		const caught = player.d.forms[k]
+		html += `<span class="pk-dex-entry ${caught ? "" : "pk-unseen"}" title="${caught ? formName(id, form) : "???"}">${pkSprite(id, false, 56, "", form)}<br><small>${caught ? FORMS[form].name : "???"}</small></span>`
+	}
+	html += "</div><br><h3>Form milestones</h3><br>"
+	html += FORM_MILESTONES.map(([n, text]) => `<div class="pk-trainer ${formMilestone(n) ? "" : "pk-done"}"><b>${n} forms</b>: ${text}${formMilestone(n) ? " ✓" : ""}</div>`).join("")
+	return html
+}
+
 addLayer("d", {
 	name: "Pokédex",
 	symbol: "D",
@@ -25,6 +38,7 @@ addLayer("d", {
 		seen: {},
 		caught: {},
 		shiny: {},
+		forms: {},
 	}},
 	layerShown() { return player.t.starter > 0 },
 	tooltip() { return `${caughtCount()}/151 caught` },
@@ -43,6 +57,10 @@ addLayer("d", {
 			],
 		},
 		Milestones: { content: ["milestones"] },
+		Forms: {
+			content: [["display-text", () => formsHtml()]],
+			unlocked() { return hofEntries() >= 1 || formsCaught() > 0 },
+		},
 	},
 })
 

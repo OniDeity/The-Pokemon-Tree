@@ -20,16 +20,21 @@ function freshLayerData(layer, keep = []) {
 /** Writes to the encounter log (and pops up the special ones). */
 function pkLog(text, kind, enc, shiny) {
 	if (!player.f) return
-	player.f.log.unshift({ text, kind, id: enc ? enc.id : null, shiny: !!shiny })
+	player.f.log.unshift({ text, kind, id: enc ? enc.id : null, form: enc?.form || null, shiny: !!shiny })
 	if (player.f.log.length > LOG_SIZE) player.f.log.length = LOG_SIZE
 	const popups = { new: ["Pokédex", "#F8D030"], evolve: ["Evolution!", "#78C850"], league: ["Pokémon League", "#A040A0"] }
 	const popup = shiny ? ["Shiny!", "#F8D030"] : popups[kind]
 	if (popup) doPopup("none", text, popup[0], 3, popup[1])
 }
 
-function pkSprite(id, shiny, size = 48, extra = "") {
-	return `<img src="${spriteOf(id, shiny)}" width="${size}" height="${size}" class="pk-sprite" ${extra} alt="${speciesName(id)}">`
+/** A Pokémon's sprite: forms with their own image use it; others are drawn over the species'. */
+function pkSprite(id, shiny, size = 48, extra = "", form = null) {
+	const f = form ? FORMS[form] : null
+	const style = f?.filter ? `style="filter:${f.filter}"` : ""
+	const img = `<img src="${spriteOf(id, shiny, form)}" width="${size}" height="${size}" class="pk-sprite" ${style} ${extra} alt="${formName(id, form)}">`
+	return f?.accessory ? `<span class="pk-accessory-wrap">${img}<span class="pk-accessory">${f.accessory}</span></span>` : img
 }
+function pkKeySprite(key, size = 48) { return pkSprite(speciesOf(key), isShiny(key), size, "", formOf(key)) }
 
 function setZone(id) {
 	const zone = zoneById(id)
@@ -40,6 +45,7 @@ function zoneListHtml() {
 	const b = badges()
 	const areas = {}
 	for (const z of ZONES) {
+		if (z.anime) continue
 		if (z.postGame && !isChampion()) continue
 		if (z.badges > b) continue
 		const label = z.postGame ? "After the League" : z.badges === 0 ? "Before Brock" : `${z.badges} badge${z.badges > 1 ? "s" : ""}`
@@ -58,7 +64,28 @@ function zoneListHtml() {
 		}
 		html += "</div>"
 	}
-	return html
+	return html + animeListHtml()
+}
+
+/** The anime's places: tiers open with Hall of Fame entries, then with badges. */
+function animeListHtml() {
+	if (hofEntries() < 1) return `<div class="pk-area"><b>Anime places</b><br><small>Enter the Hall of Fame to start finding places from the anime.</small></div>`
+	const b = badges()
+	let html = `<div class="pk-area"><b>Anime places</b> <small>(${formsCaught()}/${ALL_FORMS.length} forms caught)</small><br>`
+	const nextTier = ZONES.filter(z => z.anime && z.hof > hofEntries()).reduce((m, z) => Math.min(m, z.hof), Infinity)
+	for (const z of ZONES.filter(z => z.anime && z.hof <= hofEntries())) {
+		const open = zoneOpen(z)
+		const species = zoneSpecies(z, b)
+		const caught = species.filter(id => player.d.caught[id]).length
+		const cls = player.f.zone === z.id ? "pk-zone pk-zone-on" : open ? "pk-zone pk-zone-anime" : "pk-zone pk-zone-locked"
+		const why = z.postGame ? "After the League" : `${z.badges} badge${z.badges === 1 ? "" : "s"}`
+		html += `<button class="${cls}" ${open ? `onclick="setZone('${z.id}')"` : "disabled"} title="${z.blurb}">${z.name}<br><small>${open ? `${caught}/${species.length} caught` : why}</small></button>`
+	}
+	if (nextTier < Infinity) {
+		const more = ZONES.filter(z => z.anime && z.hof === nextTier).length
+		html += `<br><small>${more} more place${more > 1 ? "s" : ""} after ${nextTier} Hall of Fame entr${nextTier > 1 ? "ies" : "y"}.</small>`
+	}
+	return html + "</div>"
 }
 
 function zoneDetailHtml() {
@@ -69,20 +96,22 @@ function zoneDetailHtml() {
 		const entries = zone.pools[pool]
 		const total = entries.reduce((s, e) => s + e[1], 0)
 		html += `<div class="pk-pool"><b>${POOL_NAMES[pool]}</b><br>`
-		for (const [id, w, min, max] of entries) {
-			const seen = player.d.seen[id], caught = player.d.caught[id]
-			html += `<span class="pk-mon ${caught ? "" : seen ? "pk-seen" : "pk-unseen"}" title="${seen ? speciesName(id) : "???"}">${pkSprite(id, false, 72)}<br><small>${seen ? speciesName(id) : "???"}<br>Lv. ${min === max ? min : `${min}-${max}`} · ${Math.round(100 * w / total)}%</small></span>`
+		for (const [id, w, min, max, form] of entries) {
+			const seen = player.d.seen[id], caught = form ? player.d.forms[`${id}-${form}`] : player.d.caught[id]
+			const name = seen ? formName(id, form) : "???"
+			html += `<span class="pk-mon ${caught ? "" : seen ? "pk-seen" : "pk-unseen"}" title="${name}">${pkSprite(id, false, 72, "", form)}<br><small>${name}<br>Lv. ${min === max ? min : `${min}-${max}`} · ${Math.round(100 * w / total)}%</small></span>`
 		}
 		html += "</div>"
 	}
 	const locked = Object.keys(zone.pools).filter(p => !zonePools(zone, b).includes(p))
 	if (locked.length) html += `<br><small>More here later: ${locked.map(p => POOL_NAMES[p]).join(", ")}.</small>`
+	if (zone.anime) html += `<br><small>A place from the anime: it doesn't count toward Gym surveys.</small>`
 	return html
 }
 
 function logHtml() {
 	if (!player.f.log.length) return "<i>Nothing found yet.</i>"
-	return player.f.log.map(e => `<div class="pk-log pk-log-${e.kind}">${e.id ? pkSprite(e.id, e.shiny, 48) : ""} ${e.text}</div>`).join("")
+	return player.f.log.map(e => `<div class="pk-log pk-log-${e.kind}">${e.id ? pkSprite(e.id, e.shiny, 48, "", e.form) : ""} ${e.text}</div>`).join("")
 }
 
 function fieldBuyableDef(id) {
@@ -127,7 +156,7 @@ function specialsHtml() {
 			const done = player.t.specials[s.id]
 			const cost = specialCost(s)
 			const action = kind === "legendary" ? "Battle" : kind === "trade" ? "Trade" : cost.gt(0) ? `Buy (${format(cost)} RP)` : "Take"
-			html += `<div class="pk-special ${done ? "pk-done" : ""}">${pkSprite(s.species, false, 80)}<br><b>${speciesName(s.species)}</b> Lv. ${s.level}<br><small>${s.place}</small><br><small><i>${s.text}</i></small><br>
+			html += `<div class="pk-special ${done ? "pk-done" : ""}">${pkSprite(s.species, false, 80, "", s.form)}<br><b>${formName(s.species, s.form)}</b>${s.anime ? ` <small>(anime)</small>` : ""} Lv. ${s.level}<br><small>${s.place}</small><br><small><i>${s.text}</i></small><br>
 				${done ? "<b>Done</b>" : `<button class="pk-button" ${status.ok ? `onclick="takeSpecialById('${s.id}')"` : "disabled"}>${status.ok ? action : status.why}</button>`}</div>`
 		}
 		html += "</div>"

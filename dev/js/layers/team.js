@@ -36,6 +36,7 @@ function xpBar(key, entry) {
 }
 
 function evolutionButtons(key) {
+	if (formOf(key)) return ""
 	return itemEvolutions(speciesOf(key), badges()).map(e => {
 		const cost = itemEvolutionCost(e)
 		const label = `${evolutionLabel(e)} → ${speciesName(e.into)}${cost.gt(0) ? ` (${format(cost)} RP)` : ""}`
@@ -51,11 +52,11 @@ function monCard(key, inParty) {
 	const s = SPECIES[speciesOf(key)]
 	const lvEvo = s.evolutions.find(e => e.method === "level" && e.level)
 	return `<div class="pk-card ${inParty ? "pk-card-party" : ""}">
-		${pkSprite(speciesOf(key), isShiny(key), 96)}<br>
+		${pkKeySprite(key, 96)}<br>
 		<b>${keyName(key)}</b> Lv. ${entry.level}<br>
 		<small>${s.types.map(t => `<span class="pk-type pk-type-${t}">${t}</span>`).join(" ")}</small>
 		${xpBar(key, entry)}
-		${lvEvo ? `<small>${canEvolveInto(key, lvEvo.into) ? `Evolves at Lv. ${lvEvo.level}` : `Won't evolve: you have ${keyName(boxKey(lvEvo.into, variantOf(key)))}`}</small><br>` : ""}
+		${formOf(key) ? `<small>${FORMS[formOf(key)].text}</small><br>` : lvEvo ? `<small>${canEvolveInto(key, lvEvo.into) ? `Evolves at Lv. ${lvEvo.level}` : `Won't evolve: you have ${keyName(boxKey(lvEvo.into, variantOf(key)))}`}</small><br>` : ""}
 		${inParty
 			? `${player.t.party[0] === key ? "<small><b>Lead</b></small>" : `<button class="pk-button" onclick="moveToLead('${key}')">Lead</button>`}
 			   <button class="pk-button" ${player.t.party.length > 1 ? `onclick="togglePartyMember('${key}')"` : "disabled"}>To box</button>`

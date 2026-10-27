@@ -57,7 +57,7 @@ function fieldBuyableCost(id, amount = fieldBuyable(id)) {
 }
 
 function rpMult() {
-	let m = Math.pow(BADGE_RP_BOOST, badges()) * (1 + 0.25 * hofBuyable(11))
+	let m = Math.pow(BADGE_RP_BOOST, badges()) * (1 + 0.25 * hofBuyable(11)) * (inChallenge(31) ? 0.25 : 1)
 	if (hasFieldUpgrade(13)) m *= 1 + caughtCount() / 50
 	if (dexMilestone(10)) m *= 1.5
 	if (dexMilestone(80)) m *= 2
@@ -86,7 +86,7 @@ function searchTime() {
 	return t
 }
 function catchMult() {
-	let m = (1 + fieldBuyableStep(12, 0.15) * fieldBuyable(12)) * (1 + 0.1 * hofBuyable(15))
+	let m = (1 + fieldBuyableStep(12, 0.15) * fieldBuyable(12)) * (1 + 0.1 * hofBuyable(15)) * (inChallenge(33) ? 0.1 : 1)
 	if (dexMilestone(25)) m *= 1.25
 	if (formMilestone(10)) m *= 1.25
 	if (wardenMilestone(50)) m *= 1.1
@@ -235,12 +235,13 @@ function migrateBox() {
 }
 
 /** Adds a Pokémon to the box. The box keeps one of each species and look: the higher level. */
-function addToBox(id, level, variant = "normal") {
+function addToBox(id, level, variant = "normal", origin = null) {
 	const key = boxKey(id, variant)
 	const old = player.t.box[key]
 	dexCatch(id, isShiny(key), formOf(key))
 	if (old && old.level >= level) return false
-	player.t.box[key] = { level, xp: xpForLevel(SPECIES[id].growth, level), variant }
+	// origin: "egg" or "safari" where it matters (the Hatchling Run and Poacher's Net exempt them).
+	player.t.box[key] = { level, xp: xpForLevel(SPECIES[id].growth, level), variant, ...(origin ? { origin } : {}) }
 	if (!old && player.t.party.length < partySize() && canJoinParty(key)) player.t.party.push(key)
 	return true
 }
@@ -292,7 +293,8 @@ function partyBattlers() {
 		const lead = i === 0 ? (inChallenge(13) ? LONE_PARTNER_BOOST : 1) * (beatChallenge(13) ? 1.2 : 1) : 1
 		const typed = (inChallenge(12) ? MONOTYPE_BOOST : 1) * (beatChallenge(12) && sharesStarterType(key) ? 1.15 : 1)
 		const form = FORMS[formOf(key)] || {}
-		return battler(speciesOf(key), player.t.box[key].level, atk * lead * typed * (form.atk || 1), def * lead * (form.def || 1))
+		const handicap = challengeHandicap(player.t.box[key])
+		return battler(speciesOf(key), player.t.box[key].level, atk * lead * typed * (form.atk || 1) * handicap, def * lead * (form.def || 1) * handicap)
 	})
 }
 
@@ -526,6 +528,21 @@ const CHALLENGES = {
 		rules: "No Field Notebook, Quality Traps or Training Weights.",
 		reward: "The Field Notebook, Quality Traps and Training Weights are 25% stronger.",
 	},
+	31: {
+		name: "Shoestring Budget",
+		rules: "Research Points ×0.25.",
+		reward: "Auto-buy: Field equipment, routes, and the Day Care's and Safari Zone's buyables.",
+	},
+	32: {
+		name: "Hatchling Run",
+		rules: "Your Pokémon's Attack and Defense are halved, except Pokémon hatched from Eggs.",
+		reward: "The Day Care Lady: keeps the Day Care laying Eggs of new species.",
+	},
+	33: {
+		name: "Poacher's Net",
+		rules: "Catch chance in the Field ×0.1, and your Pokémon fight at 60% strength, except those caught in the Safari Zone.",
+		reward: "The Warden's Pass: free Safari trips that start on their own, with the best strategy for each Pokémon.",
+	},
 	22: {
 		name: "Underleveled",
 		rules: "Level caps are 5 lower.",
@@ -619,10 +636,10 @@ function inDayCare(key) { return !!player.c && player.c.slots.includes(key) }
 
 /** Experience per second for each Pokémon in the Day Care: grows with the level cap. */
 function dayCareXpRate() {
-	return 0.02 * Math.pow(currentCap(), 2.5) * xpMult() * (hasDayCareUpgrade(11) ? 3 : 1)
+	return 0.02 * Math.pow(currentCap(), 2.5) * xpMult() * (hasDayCareUpgrade(11) ? 3 : 1) * (1 + 0.5 * dayCareBuyable(11))
 }
-function eggSeconds() { return EGG_SECONDS / (hasDayCareUpgrade(12) ? 2 : 1) }
-function eggBattles() { return Math.ceil(EGG_BATTLES / (hasDayCareUpgrade(13) ? 2 : 1)) }
+function eggSeconds() { return EGG_SECONDS / (hasDayCareUpgrade(12) ? 2 : 1) / (1 + 0.15 * dayCareBuyable(12)) }
+function eggBattles() { return Math.max(1, Math.ceil(EGG_BATTLES / (hasDayCareUpgrade(13) ? 2 : 1) / (1 + 0.1 * dayCareBuyable(13)))) }
 function maxEggs() { return MAX_EGGS + (hasDayCareUpgrade(14) ? 2 : 0) }
 
 /** What the two Pokémon in the Day Care's Eggs hatch into (species ids), or null. */
@@ -671,7 +688,7 @@ function eggStep() {
 		const shiny = rand() < egg.shinyBoost / shinyOdds()
 		const isNew = !player.d.hatched[egg.species]
 		player.d.hatched[egg.species] = (player.d.hatched[egg.species] || 0) + 1
-		addToBox(egg.species, 5, shiny ? "shiny" : "normal")
+		addToBox(egg.species, 5, shiny ? "shiny" : "normal", "egg")
 		pkLog(`Oh? The Egg hatched into ${shiny ? "★ " : ""}${speciesName(egg.species)}!`, isNew || shiny ? "new" : "catch", { id: egg.species }, shiny)
 	}
 	player.c.eggs = player.c.eggs.filter(e => e.battles > 0)
@@ -713,14 +730,15 @@ function safariCaught() { return player.d.safari || 0 }
 function wardenMilestone(n) { return safariCaught() >= n }
 
 function safariTripCost() { return new Decimal(1000).times(Decimal.pow(2, badges())) }
-function safariBallsPerTrip() { return SAFARI_BALLS + (hasSafariUpgrade(11) ? 15 : 0) + (wardenMilestone(10) ? 5 : 0) }
+function safariBallsPerTrip() { return SAFARI_BALLS + (hasSafariUpgrade(11) ? 15 : 0) + (wardenMilestone(10) ? 5 : 0) + 5 * safariBuyable(11) }
 function safariTime() {
-	return searchTime() * 2 / (hasSafariUpgrade(12) ? 2 : 1) / (wardenMilestone(100) ? 2 : 1)
+	return searchTime() * 2 / (hasSafariUpgrade(12) ? 2 : 1) / (wardenMilestone(100) ? 2 : 1) / (1 + 0.2 * safariBuyable(12))
 }
 
 function startSafariTrip() {
-	if (!safariOpen() || player.s.balls > 0 || player.points.lt(safariTripCost())) return false
-	player.points = player.points.sub(safariTripCost())
+	const free = automationOn("safari")
+	if (!safariOpen() || player.s.balls > 0 || (!free && player.points.lt(safariTripCost()))) return false
+	if (!free) player.points = player.points.sub(safariTripCost())
 	player.s.balls = safariBallsPerTrip()
 	player.s.trips++
 	return true
@@ -730,14 +748,14 @@ function startSafariTrip() {
 function safariFleeChance(id) { return Math.min(0.9, SPECIES[id].stats[5] / 300) }
 /** Chance a Safari Ball catches it (rarer Pokémon are harder; Rocks help, Bait hurts). */
 function safariCatchChance(id, strategy = SAFARI_STRATEGIES.balls) {
-	return Math.min(1, Math.pow(SPECIES[id].catchRate / 255, 0.6) * SAFARI_CATCH * strategy.catch * (wardenMilestone(50) ? 1.1 : 1))
+	return Math.min(1, Math.pow(SPECIES[id].catchRate / 255, 0.6) * SAFARI_CATCH * strategy.catch * (wardenMilestone(50) ? 1.1 : 1) * (1 + 0.08 * safariBuyable(13)))
 }
 
 /** One Safari encounter: a strategy's opening move, then balls until it's caught or runs. */
 function safariEncounter(rng) {
 	const enc = rollEncounter(safariZone(), badges(), rng)
 	const shiny = rand(rng) < 1 / shinyOdds()
-	const strategy = SAFARI_STRATEGIES[player.s.strategy] || SAFARI_STRATEGIES.balls
+	const strategy = SAFARI_STRATEGIES[automationOn("safari") ? bestSafariStrategy(enc.id) : player.s.strategy] || SAFARI_STRATEGIES.balls
 	const name = `${shiny ? "★ " : ""}${speciesName(enc.id)} (Lv. ${enc.level})`
 	dexSee(enc.id)
 	const catchP = safariCatchChance(enc.id, strategy)
@@ -751,7 +769,7 @@ function safariEncounter(rng) {
 		player.s.balls--
 		if (rand(rng) < catchP) {
 			const isNew = !player.d.caught[enc.id]
-			addToBox(enc.id, enc.level, shiny ? "shiny" : "normal")
+			addToBox(enc.id, enc.level, shiny ? "shiny" : "normal", "safari")
 			player.d.safari = safariCaught() + 1
 			safariLog(`Caught ${name}!${isNew ? " New in the Pokédex!" : ""}`, isNew || shiny ? "new" : "catch", enc, shiny)
 			return
@@ -773,12 +791,108 @@ function safariLog(text, kind, enc, shiny) {
 function safariTick(diff, rng) {
 	if (!player.s || !safariOpen()) return
 	if (player.s.balls <= 0) {
-		if (hasSafariUpgrade(13)) startSafariTrip()
+		if (hasSafariUpgrade(13) || automationOn("safari")) startSafariTrip()
 		if (player.s.balls <= 0) { player.s.progress = 0; return }
 	}
 	player.s.progress += diff / safariTime()
 	let n = Math.min(Math.floor(player.s.progress), MAX_ENCOUNTERS_PER_TICK)
 	player.s.progress -= Math.floor(player.s.progress)
 	for (let i = 0; i < n && player.s.balls > 0; i++) safariEncounter(rng)
-	if (player.s.balls <= 0 && hasSafariUpgrade(13)) startSafariTrip()
+	if (player.s.balls <= 0 && (hasSafariUpgrade(13) || automationOn("safari"))) startSafariTrip()
+}
+
+// ---- Day Care and Safari buyables (Research Points, bought again each run) ----
+
+const DAY_CARE_BUYABLES = {
+	11: { title: "Day Care Training", base: 500, growth: 1.8, text: "+50% Day Care experience per level." },
+	12: { title: "Incubator", base: 1000, growth: 1.9, text: "Eggs come 15% faster per level." },
+	13: { title: "Warm Blanket", base: 2000, growth: 1.9, text: "Eggs hatch in 10% fewer battles per level." },
+}
+const SAFARI_BUYABLES = {
+	11: { title: "Ball Pouch", base: 5000, growth: 1.8, text: "+5 Safari Balls per trip per level." },
+	12: { title: "Quiet Steps", base: 8000, growth: 1.9, text: "Safari Pokémon turn up 20% faster per level." },
+	13: { title: "Safari Ball Polish", base: 12000, growth: 2, text: "+8% Safari catch chance per level." },
+}
+function dayCareBuyable(id) { return player.c ? new Decimal(player.c.buyables?.[id] ?? 0).toNumber() : 0 }
+function safariBuyable(id) { return player.s ? new Decimal(player.s.buyables?.[id] ?? 0).toNumber() : 0 }
+function buyableCost(def, amount) { return new Decimal(def.base).times(Decimal.pow(def.growth, amount)) }
+
+// ---- Automations ----
+// Rewards of the automation challenges (31-33), each with an on/off switch in player.h.auto.
+
+const AUTOMATIONS = {
+	buy: { challenge: 31, name: "Auto-buy", text: "Buys Field equipment, opens routes, and buys the Day Care's and Safari Zone's buyables when you can afford them (cheapest first)." },
+	eggs: { challenge: 32, name: "Day Care Lady", text: "Keeps the Day Care's pair laying Eggs, choosing pairs whose Eggs hatch into species you haven't hatched yet." },
+	safari: { challenge: 33, name: "Warden's Pass", text: "Safari trips are free and start on their own, and each Pokémon gets the strategy most likely to catch it." },
+}
+/** Hatchling Run and Poacher's Net weaken your Pokémon, except those hatched or caught in the Safari. */
+function challengeHandicap(entry) {
+	if (inChallenge(32) && entry.origin !== "egg") return 0.5
+	if (inChallenge(33) && entry.origin !== "safari") return 0.6
+	return 1
+}
+function automationUnlocked(id) { return beatChallenge(AUTOMATIONS[id].challenge) }
+function automationOn(id) { return automationUnlocked(id) && player.h.auto?.[id] !== false }
+function toggleAutomation(id) {
+	if (!player.h.auto) player.h.auto = {}
+	player.h.auto[id] = !automationOn(id)
+}
+
+/** Auto-buy: everything affordable, cheapest first, a few purchases per tick. */
+function autoBuyTick() {
+	if (!automationOn("buy")) return
+	for (let guard = 0; guard < 10; guard++) {
+		const options = []
+		const next = nextFrontierZone()
+		if (next) options.push([next.cost, () => unlockNextZone()])
+		for (const id in FIELD_BUYABLES) {
+			if (badges() < FIELD_BUYABLES[id].badges || !fieldBuyableAllowed(id)) continue
+			const cost = fieldBuyableCost(id)
+			options.push([cost, () => { player.points = player.points.sub(cost); player.f.buyables[id] = new Decimal(fieldBuyable(id) + 1) }])
+		}
+		if (dayCareOpen()) for (const id in DAY_CARE_BUYABLES) {
+			const cost = buyableCost(DAY_CARE_BUYABLES[id], dayCareBuyable(id))
+			options.push([cost, () => { player.points = player.points.sub(cost); player.c.buyables[id] = new Decimal(dayCareBuyable(id) + 1) }])
+		}
+		if (safariOpen()) for (const id in SAFARI_BUYABLES) {
+			const cost = buyableCost(SAFARI_BUYABLES[id], safariBuyable(id))
+			options.push([cost, () => { player.points = player.points.sub(cost); player.s.buyables[id] = new Decimal(safariBuyable(id) + 1) }])
+		}
+		options.sort((a, b) => a[0].cmp(b[0]))
+		if (!options.length || player.points.lt(options[0][0])) return
+		options[0][1]()
+	}
+}
+
+/**
+ * The Day Care Lady: when the Day Care isn't laying Eggs of a new species, she swaps in the box
+ * pair (outside the party) whose Eggs hatch into a species not yet hatched, else any laying pair.
+ */
+function autoEggsTick() {
+	if (!automationOn("eggs") || !dayCareOpen()) return
+	const current = dayCareEggs()
+	if (current && current.some(id => !player.d.hatched[id])) return
+	const keys = Object.keys(player.t.box).filter(k => !player.t.party.includes(k) && !formOf(k))
+	let best = null
+	for (let i = 0; i < keys.length && !(best && best.fresh); i++) for (let j = i + 1; j < keys.length; j++) {
+		const eggs = eggSpecies(speciesOf(keys[i]), speciesOf(keys[j]))
+		if (!eggs) continue
+		const fresh = eggs.some(id => !player.d.hatched[id])
+		if (!best || (fresh && !best.fresh)) best = { pair: [keys[i], keys[j]], fresh }
+		if (fresh) break
+	}
+	if (!best || (current && !best.fresh)) return
+	for (const k of [...player.c.slots]) withdrawFromDayCare(k)
+	for (const k of best.pair) { player.t.party = player.t.party.filter(p => p !== k); player.c.slots.push(k) }
+}
+
+/** The Warden's Pass: the strategy with the best chance of catching this Pokémon. */
+function bestSafariStrategy(id) {
+	let best = "balls", bestP = -1
+	for (const [k, st] of Object.entries(SAFARI_STRATEGIES)) {
+		const p = safariCatchChance(id, st), f = Math.min(0.95, safariFleeChance(id) * st.flee)
+		const success = (k === "balls" ? 1 : 1 - f) * p / (p + (1 - p) * f)
+		if (success > bestP) { bestP = success; best = k }
+	}
+	return best
 }

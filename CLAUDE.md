@@ -57,6 +57,9 @@ Sister project: OniDeity/idle-pokemon (its data is the source of ours).
 - Trainer strength multiplies both attack and bulk, so it acts roughly squared.
 - TMT's `layerDataReset` merges start data into objects and arrays instead of replacing them;
   reset layers with `freshLayerData` (field.js) or the box, routes and gifts survive the reset.
+- Automation challenges (31-33) unlock `AUTOMATIONS` (toggles in `player.h.auto`). Hatchling Run
+  and Poacher's Net weaken Pokémon except hatched/Safari ones (`challengeHandicap`, box entries'
+  `origin`); the simulator can't breed or go on Safari, so it only shows their worst case.
 - Challenges must stay beatable by the simulator: Battle Gear is most of a team's power, so no
   challenge takes it away, and Lone Partner doubles its one Pokémon (`LONE_PARTNER_BOOST`).
 - Box and party entries are keyed by species and look: `boxKey(id, look)` gives "15", "15-shiny",

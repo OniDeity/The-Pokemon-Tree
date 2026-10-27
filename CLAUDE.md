@@ -47,8 +47,14 @@ Sister project: OniDeity/idle-pokemon (its data is the source of ours).
   Lucky Machine); prize Pokémon (`PRIZE_COINS`) cost coins, not RP; jackpots in `player.d.jackpots`
   count for good), `y` Shiny hunting (row 2; a target species' chain multiplies its shiny odds,
   `chainBonus`/`huntStep`, the Lure through `rollEncounter`'s `lure`; shiny species in
-  `player.d.shiny` give +1% RP each and `SHINY_MILESTONES`), side layers `d` Pokédex and `a`
-  Achievements.
+  `player.d.shiny` give +1% RP each and `SHINY_MILESTONES`), `r` Rocket Hideout (row 2, under
+  the Game Corner: `ROCKET_TRAINERS` in order, Grunts drop coins, Giovanni the Silph Scope;
+  `player.d.rockets` counts for good), side layers `d` Pokédex and `a` Achievements.
+- Popups go through `pkPopup(kind, ...)` / `pkLog`, and `notifyOn(kind)` reads the player's
+  switches (`NOTIFY_KINDS`, kept in TMT's `options.pkNotify`; the settings page draws
+  `pk-notify-settings`, and `game.js`'s `shouldNotify` checks `glow`). Long lists of Pokémon get a
+  `["pk-search", field]` box and `filterBar(layer, field, modes)`; their fields live in the layer
+  and survive its reset.
 - Hall of Fame and challenge rules (`HOF_*`, `CHALLENGES`, `fameGain`) live in `logic.js` with
   the rest, so the simulator plays them: `SIM_RUNS=n` replays n runs buying Fame upgrades,
   `SIM_CHALLENGE=id` plays the runs after the first under a challenge.
@@ -86,7 +92,7 @@ Sister project: OniDeity/idle-pokemon (its data is the source of ours).
   seen there wait for Johto. Pinkan and Valencian forms belong to the Orange Islands.
 - Next: side systems that each add a node and a bonus, in the owner's order: Day Care (done,
   v0.5), Safari Zone (done, v0.6), automation challenges (v0.7), Game Corner (done, v0.8), shiny
-  hunting (done, v0.9). The simulator buys coins for prizes but doesn't play the slots.
+  hunting (done, v0.9), Rocket Hideout (done, v0.10). The simulator buys coins for prizes but doesn't play the slots.
 - Later regions follow the same pattern, gated by Hall of Fame entries.
 - Albino and Melanistic Pokémon (the owner's idea, unlocked around Gen 3): Albino has the same
   base odds as Shiny but its own items and hunting methods to lower them; Melanistic is Shiny

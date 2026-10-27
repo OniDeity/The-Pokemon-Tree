@@ -66,9 +66,10 @@ addLayer("g", {
 	onPrestige() {
 		const gym = nextGym()
 		winGymBattle()
-		doPopup("none", `${gym.rewardText}`, `${gym.badge} earned!`, 5, "#B8A038")
+		pkPopup("badge", `${gym.rewardText}`, `${gym.badge} earned!`, 5, "#B8A038")
 	},
 	tooltip() { return `${badges()} badge${badges() === 1 ? "" : "s"}` },
+	milestonePopups() { return notifyOn("milestone") },
 	milestones: {
 		0: {
 			requirementDescription: "Boulder Badge",

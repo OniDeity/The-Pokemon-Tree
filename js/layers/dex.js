@@ -1,8 +1,21 @@
 // The Pokédex ("d") and Achievements ("a"): side layers, never reset.
 
+const DEX_FILTERS = { all: "All", caught: "Caught", missing: "Not caught", seen: "Seen only", shiny: "Shiny", hatched: "Hatched" }
+function dexMatches(id) {
+	const d = player.d, mode = d.dexFilter
+	// Unseen species can't be searched by name.
+	if (d.dexSearch && !(d.seen[id] && searchMatches(d.dexSearch, id)) && String(id) !== d.dexSearch.trim()) return false
+	if (mode === "caught") return !!d.caught[id]
+	if (mode === "missing") return !d.caught[id]
+	if (mode === "seen") return !!d.seen[id] && !d.caught[id]
+	if (mode === "shiny") return !!d.shiny[id]
+	if (mode === "hatched") return !!d.hatched[id]
+	return true
+}
 function dexHtml() {
 	let html = `<div class="pk-dex">`
 	for (let id = 1; id <= 151; id++) {
+		if (!dexMatches(id)) continue
 		const seen = player.d.seen[id], caught = player.d.caught[id], shiny = player.d.shiny[id]
 		const cls = caught ? "" : seen ? "pk-seen" : "pk-unseen"
 		const title = seen ? `#${id} ${speciesName(id)}${caught ? ` (caught ${caught})` : " (seen)"}${shiny ? ` ★${shiny}` : ""}` : `#${id} ???`
@@ -43,10 +56,14 @@ addLayer("d", {
 		safari: 0,
 		jackpots: 0,
 		bestChain: 0,
+		rockets: 0,
+		dexSearch: "",
+		dexFilter: "all",
 	}},
 	layerShown() { return player.t.starter > 0 },
 	tooltip() { return `${caughtCount()}/151 caught` },
 	update() { player.d.points = new Decimal(caughtCount()) },
+	milestonePopups() { return notifyOn("milestone") },
 	milestones: Object.fromEntries(DEX_MILESTONES.map(([n, text], i) => [i, {
 		requirementDescription: `${n} species caught`,
 		effectDescription: text,
@@ -57,6 +74,8 @@ addLayer("d", {
 			content: [
 				["display-text", () => `Seen: <b>${seenCount()}</b> · Caught: <b>${caughtCount()}</b>/151 · Shiny: <b>${Object.keys(player.d.shiny).length}</b><br><small>Every species caught gives Research Points over time. Shiny odds: 1/${format(shinyOdds())}.</small>`],
 				"blank",
+				["display-text", () => filterBar("d", "dexFilter", DEX_FILTERS)],
+				["pk-search", "dexSearch"],
 				["display-text", () => dexHtml()],
 			],
 		},
@@ -78,6 +97,7 @@ addLayer("a", {
 	startData() { return { unlocked: true, points: new Decimal(0) } },
 	layerShown() { return true },
 	tooltip() { return `${player.a.achievements.length} achievements` },
+	achievementPopups() { return notifyOn("achievement") },
 	achievements: {
 		11: { name: "A new journey", tooltip: "Choose your starter.", done() { return player.t.starter > 0 } },
 		12: { name: "Gotta catch 'em", tooltip: "Catch a wild Pokémon.", done() { return caughtCount() >= 2 } },
@@ -102,6 +122,7 @@ addLayer("a", {
 		52: { name: "Prize collector", tooltip: "Trade coins for every prize Pokémon in one run.", done() { return SPECIALS.filter(isPrize).every(s => player.t.specials[s.id]) } },
 		53: { name: "Shiny hunter", tooltip: "Catch 10 shiny species.", done() { return shinySpecies() >= 10 } },
 		54: { name: "Chain reaction", tooltip: "Build a chain of 100.", done() { return (player.d.bestChain || 0) >= 100 } },
+		55: { name: "Blasting off again", tooltip: "Beat Giovanni in the Rocket Hideout.", done() { return giovanniBeaten() } },
 		45: { name: "Familiar faces", tooltip: "Enshrine 30 species in the Hall of Fame.", done() { return Object.keys(player.h.enshrined).length >= 30 } },
 	},
 	tabFormat: ["achievements"],

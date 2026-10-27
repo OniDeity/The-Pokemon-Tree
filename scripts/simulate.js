@@ -40,6 +40,7 @@ var player = {
 	d: { seen: {}, caught: {}, shiny: {}, forms: {}, hatched: {} },
 	c: { slots: [], eggs: [], eggProgress: 0, upgrades: [] },
 	k: { points: new Decimal(0), upgrades: [], buyables: {}, spinning: false },
+	r: { beaten: 0 },
 }
 // The game's chooseStarter, without the UI.
 function startRun(id) {
@@ -61,6 +62,7 @@ function hallOfFameReset(challenge) {
 	player.g = { points: new Decimal(0) }
 	player.l = { beaten: 0, champion: false, hallOfFame: [] }
 	player.k = { points: new Decimal(startingCoins()), upgrades: [], buyables: {}, spinning: false }
+	player.r = { beaten: 0 }
 	return fame
 }
 // Spends Fame greedily, cheapest first.
@@ -188,6 +190,8 @@ while (t < LIMIT) {
 			})()`)
 			chooseParty(); chooseZone()
 		}
+		// The Rocket Hideout: battle on whenever the forecast wins.
+		while (run(`challengeRocket()`)) if (run(`giovanniBeaten()`)) console.log(`  Giovanni beaten at ${(t / 3600).toFixed(2)} h (badges ${run("badges()")})`)
 		for (let k = 0; k < 5; k++) if (run(`canChallengeLeague(player.l.beaten) && !(inChallenge(11) && leaguePrediction(player.l.beaten).fainted > (player.l.beaten === 4 ? 6 : 1)) && challengeLeague(player.l.beaten)`)) {
 			console.log(`League: ${run("player.l.beaten")} beaten at ${(t / 3600).toFixed(2)} h`)
 		}

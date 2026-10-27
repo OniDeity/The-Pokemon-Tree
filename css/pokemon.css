@@ -71,3 +71,7 @@
 .pk-log-egg { color: #F8A0C0; }
 .pk-card-empty { border-style: dashed; opacity: 0.6; }
 .pk-egg { font-size: 48px; line-height: 64px; }
+
+/* Filters over long lists. */
+.pk-search { background: #1a1a1a; color: var(--color); border: 1px solid #555; border-radius: 6px; padding: 4px 8px; width: 260px; margin: 4px; font-family: inherit; }
+.pk-rocket { display: inline-block; vertical-align: top; margin: 4px 12px; white-space: nowrap; }

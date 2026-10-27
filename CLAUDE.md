@@ -39,7 +39,9 @@ Sister project: OniDeity/idle-pokemon (its data is the source of ours).
   `t` Team (row 0, kept through badges, reset by the Hall of Fame), `g` Gyms (row 1, custom prestige: one badge per
   reset, needs the survey done and a winning battle forecast), `l` League (row 2), `h` Hall of
   Fame (row 3, custom prestige for Fame; resets everything but the Pokédex, achievements and
-  itself; holds the Fame shop and TMT challenges), side layers `d` Pokédex and `a` Achievements.
+  itself; holds the Fame shop and TMT challenges), `c` Day Care (row 1 beside the Gyms; kept
+  through badges, reset by the Hall of Fame; rules `dayCareTick`/`eggStep`/`eggSpecies`, breeding
+  needs `SPECIES[id].gender`), side layers `d` Pokédex and `a` Achievements.
 - Hall of Fame and challenge rules (`HOF_*`, `CHALLENGES`, `fameGain`) live in `logic.js` with
   the rest, so the simulator plays them: `SIM_RUNS=n` replays n runs buying Fame upgrades,
   `SIM_CHALLENGE=id` plays the runs after the first under a challenge.
@@ -72,8 +74,8 @@ Sister project: OniDeity/idle-pokemon (its data is the source of ours).
   `buildData.py` turns Idle Pokémon's anime zones into zones with `anime` and `hof` (the Hall of
   Fame entries they need, by badge tier), and its one-of-a-kind ids into forms. Gen 2 species
   seen there wait for Johto. Pinkan and Valencian forms belong to the Orange Islands.
-- Next: side systems that each add a node and a bonus (Day Care breeding, Safari Zone, Game
-  Corner, shiny hunting).
+- Next: side systems that each add a node and a bonus, in the owner's order: Day Care (done,
+  v0.5), Safari Zone, Game Corner, shiny hunting.
 - Later regions follow the same pattern, gated by Hall of Fame entries.
 - Albino and Melanistic Pokémon (the owner's idea, unlocked around Gen 3): Albino has the same
   base odds as Shiny but its own items and hunting methods to lower them; Melanistic is Shiny

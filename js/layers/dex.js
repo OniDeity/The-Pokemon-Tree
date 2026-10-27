@@ -40,6 +40,7 @@ addLayer("d", {
 		shiny: {},
 		forms: {},
 		hatched: {},
+		safari: 0,
 	}},
 	layerShown() { return player.t.starter > 0 },
 	tooltip() { return `${caughtCount()}/151 caught` },

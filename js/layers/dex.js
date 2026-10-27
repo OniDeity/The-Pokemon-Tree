@@ -1,0 +1,77 @@
+// The Pokédex ("d") and Achievements ("a"): side layers, never reset.
+
+function dexHtml() {
+	let html = `<div class="pk-dex">`
+	for (let id = 1; id <= 151; id++) {
+		const seen = player.d.seen[id], caught = player.d.caught[id], shiny = player.d.shiny[id]
+		const cls = caught ? "" : seen ? "pk-seen" : "pk-unseen"
+		const title = seen ? `#${id} ${speciesName(id)}${caught ? ` (caught ${caught})` : " (seen)"}${shiny ? ` ★${shiny}` : ""}` : `#${id} ???`
+		html += `<span class="pk-dex-entry ${cls}" title="${title}">${pkSprite(id, !!shiny, 56)}<br><small>${id}${shiny ? " ★" : ""}</small></span>`
+	}
+	return html + "</div>"
+}
+
+addLayer("d", {
+	name: "Pokédex",
+	symbol: "D",
+	row: "side",
+	position: 0,
+	color: "#E3350D",
+	type: "none",
+	resource: "species caught",
+	startData() { return {
+		unlocked: true,
+		points: new Decimal(0),
+		seen: {},
+		caught: {},
+		shiny: {},
+	}},
+	layerShown() { return player.t.starter > 0 },
+	tooltip() { return `${caughtCount()}/151 caught` },
+	update() { player.d.points = new Decimal(caughtCount()) },
+	milestones: Object.fromEntries(DEX_MILESTONES.map(([n, text], i) => [i, {
+		requirementDescription: `${n} species caught`,
+		effectDescription: text,
+		done() { return caughtCount() >= n },
+	}])),
+	tabFormat: {
+		"Pokédex": {
+			content: [
+				["display-text", () => `Seen: <b>${seenCount()}</b> · Caught: <b>${caughtCount()}</b>/151 · Shiny: <b>${Object.keys(player.d.shiny).length}</b><br><small>Every species caught gives Research Points over time. Shiny odds: 1/${format(shinyOdds())}.</small>`],
+				"blank",
+				["display-text", () => dexHtml()],
+			],
+		},
+		Milestones: { content: ["milestones"] },
+	},
+})
+
+addLayer("a", {
+	name: "Achievements",
+	symbol: "A",
+	row: "side",
+	position: 1,
+	color: "#F8D030",
+	type: "none",
+	startData() { return { unlocked: true, points: new Decimal(0) } },
+	layerShown() { return true },
+	tooltip() { return `${player.a.achievements.length} achievements` },
+	achievements: {
+		11: { name: "A new journey", tooltip: "Choose your starter.", done() { return player.t.starter > 0 } },
+		12: { name: "Gotta catch 'em", tooltip: "Catch a wild Pokémon.", done() { return caughtCount() >= 2 } },
+		13: { name: "It's evolving!", tooltip: "Evolve a Pokémon.", done() { return player.t.evolved > 0 } },
+		14: { name: "Rock-hard determination", tooltip: "Earn the Boulder Badge.", done() { return badges() >= 1 } },
+		15: { name: "Full party", tooltip: "Have six Pokémon in your party.", done() { return player.t.party.length >= 6 } },
+		21: { name: "Field researcher", tooltip: "Catch 50 species.", done() { return caughtCount() >= 50 } },
+		22: { name: "Halfway there", tooltip: "Earn four badges.", done() { return badges() >= 4 } },
+		23: { name: "Legendary", tooltip: "Catch a legendary Pokémon.", done() { return [144, 145, 146, 150, 151].some(id => player.d.caught[id]) } },
+		24: { name: "Something shiny", tooltip: "Catch a shiny Pokémon.", done() { return Object.keys(player.d.shiny).length > 0 } },
+		25: { name: "Eight badges", tooltip: "Earn the Earth Badge.", done() { return badges() >= 8 } },
+		31: { name: "Pokémon Master", tooltip: "Become the Champion.", done() { return isChampion() } },
+		32: { name: "Nearly complete", tooltip: "Catch 150 species.", done() { return caughtCount() >= 150 } },
+		33: { name: "The original", tooltip: "Catch Mewtwo.", done() { return !!player.d.caught[150] } },
+		34: { name: "Mythical", tooltip: "Catch Mew.", done() { return !!player.d.caught[151] } },
+		35: { name: "Level 100", tooltip: "Raise a Pokémon to level 100.", done() { return Object.values(player.t.box).some(e => e.level >= 100) } },
+	},
+	tabFormat: ["achievements"],
+})

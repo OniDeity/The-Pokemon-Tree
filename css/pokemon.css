@@ -1,0 +1,62 @@
+/* The Pokémon Tree's own pieces: sprites, cards, the map and the Pokédex. */
+.pk-sprite { image-rendering: pixelated; vertical-align: middle; }
+.pk-seen .pk-sprite { opacity: 0.45; }
+.pk-unseen .pk-sprite { filter: brightness(0); opacity: 0.35; }
+
+.pk-button {
+	background: #2a2a2a; color: var(--color); border: 1px solid #555; border-radius: 6px;
+	padding: 3px 8px; margin: 2px; cursor: pointer; font-family: inherit;
+}
+.pk-button:hover:not([disabled]) { border-color: #F08030; }
+.pk-button[disabled] { opacity: 0.5; cursor: not-allowed; }
+.pk-on { border-color: #F08030; background: #4a3020; }
+.pk-big { font-size: 16px; padding: 8px 16px; }
+
+.pk-area { margin: 8px auto; max-width: 720px; }
+.pk-zone {
+	background: #1f2f1f; color: var(--color); border: 2px solid #3f5f3f; border-radius: 8px;
+	width: 150px; min-height: 48px; margin: 3px; cursor: pointer; font-family: inherit;
+}
+.pk-zone-on { border-color: #78C850; background: #2f4f2f; }
+.pk-zone-locked { opacity: 0.4; cursor: not-allowed; }
+
+.pk-pool { margin: 8px auto; max-width: 720px; }
+.pk-mon { display: inline-block; width: 96px; vertical-align: top; margin: 2px; }
+
+.pk-log { margin: 1px auto; max-width: 520px; text-align: left; }
+.pk-log-lose { color: #c08070; }
+.pk-log-new { color: #F8D030; }
+.pk-log-league { color: #C080C0; }
+.pk-log-evolve { color: #78C850; }
+
+.pk-cards { display: flex; flex-wrap: wrap; justify-content: center; max-width: 900px; margin: auto; }
+.pk-card {
+	width: 150px; margin: 4px; padding: 6px; border: 2px solid #444; border-radius: 10px; background: #1a1a1a;
+}
+.pk-card-party { border-color: #F08030; }
+.pk-xp { height: 5px; background: #333; border-radius: 3px; margin: 4px 0; overflow: hidden; }
+.pk-xp div { height: 100%; }
+
+.pk-type { padding: 0 4px; border-radius: 4px; color: #fff; text-transform: capitalize; font-size: 11px; }
+.pk-type-normal { background: #A8A878; } .pk-type-fire { background: #F08030; } .pk-type-water { background: #6890F0; }
+.pk-type-grass { background: #78C850; } .pk-type-electric { background: #C8A800; } .pk-type-ice { background: #78C8C8; }
+.pk-type-fighting { background: #C03028; } .pk-type-poison { background: #A040A0; } .pk-type-ground { background: #C0A050; }
+.pk-type-flying { background: #A890F0; } .pk-type-psychic { background: #F85888; } .pk-type-bug { background: #A8B820; }
+.pk-type-rock { background: #B8A038; } .pk-type-ghost { background: #705898; } .pk-type-dragon { background: #7038F8; }
+.pk-type-dark { background: #705848; } .pk-type-steel { background: #B8B8D0; } .pk-type-fairy { background: #EE99AC; }
+
+.pk-specials { display: flex; flex-wrap: wrap; justify-content: center; max-width: 900px; margin: auto; }
+.pk-special { width: 200px; margin: 4px; padding: 6px; border: 1px solid #444; border-radius: 10px; }
+.pk-done { opacity: 0.5; }
+
+.pk-badges { margin: 8px; }
+.pk-badges img { margin: 2px; }
+.pk-badge-empty { display: inline-block; width: 36px; height: 36px; margin: 2px; border: 2px dashed #555; border-radius: 50%; vertical-align: middle; }
+
+.pk-trainer { margin: 8px auto; padding: 8px; max-width: 600px; border: 1px solid #555; border-radius: 10px; }
+
+.pk-dex { display: flex; flex-wrap: wrap; justify-content: center; max-width: 900px; margin: auto; }
+.pk-dex-entry { width: 60px; margin: 1px; }
+
+/* TMT colors bought and affordable upgrades alike; mark the bought ones. */
+.upg.bought { filter: saturate(0.5) brightness(0.8); cursor: default; }

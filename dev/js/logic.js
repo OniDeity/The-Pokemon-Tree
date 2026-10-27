@@ -69,6 +69,7 @@ function rpMult() {
 	if (jackpotMilestone(5)) m *= 1.1
 	m *= 1 + 0.01 * shinySpecies()
 	if (rocketMilestone(10)) m *= 1.1
+	if (rivalMilestone(15)) m *= 1.1
 	return m
 }
 function wildRpMult() { return rpMult() * (hasFieldUpgrade(21) ? 1.5 : 1) }
@@ -81,6 +82,7 @@ function xpMult() {
 	if (dexMilestone(60)) m *= 2
 	if (formMilestone(ALL_FORMS.length)) m *= 1.5
 	m *= 1 + 0.1 * gameCornerBuyable(13)
+	if (rivalMilestone(3)) m *= 1.2
 	return m
 }
 function searchTime() {
@@ -104,11 +106,14 @@ function atkMult() {
 	if (hasFieldUpgrade(22)) m *= 1.25
 	if (dexMilestone(120)) m *= 1.2
 	if (rocketMilestone(40)) m *= 1.1
+	if (hasDiploma()) m *= 1.1
 	return m
 }
 function defMult() {
 	let m = gearMult() * Math.pow(BADGE_STAT_BOOST, badges()) * (1 + 0.05 * hofBuyable(13))
 	if (dexMilestone(120)) m *= 1.2
+	if (rivalMilestone(7)) m *= 1.1
+	if (hasDiploma()) m *= 1.1
 	return m
 }
 function shinyOdds() {
@@ -344,6 +349,7 @@ function doEncounter(rng) {
 	}
 	player.f.wins++
 	itemfinderFind(rng)
+	missingnoCheck(zone, enc, rng)
 	releaseFainted(result)
 	const rp = researchYield(enc.id, enc.level) * wildRpMult()
 	player.points = player.points.add(rp)
@@ -357,7 +363,13 @@ function doEncounter(rng) {
 		pkLog(`Beat a wild ${name}.`, "win", enc, shiny)
 		return { ...enc, shiny, win: true, caught: false, rp }
 	}
-	const caught = rand(rng) < catchChance(enc.id, catchMult() * speciesCatchMult(enc.id), enc.form)
+	let caught = rand(rng) < catchChance(enc.id, catchMult() * speciesCatchMult(enc.id), enc.form)
+	// Silph Co.'s Master Ball: the next new Pokémon beaten is caught for sure.
+	if (!caught && player.r?.masterBall && !player.d.caught[enc.id]) {
+		caught = true
+		player.r.masterBall = false
+		pkLog(`You threw the Master Ball!`, "story", enc)
+	}
 	if (caught) {
 		const isNew = !player.d.caught[enc.id] || (enc.form && !player.d.forms[`${enc.id}-${enc.form}`])
 		addToBox(enc.id, enc.level, look)
@@ -404,7 +416,7 @@ function gymPrediction() {
 }
 function canChallengeGym() {
 	const p = gymPrediction()
-	return !!p && p.win && surveyStatus().done
+	return !!p && p.win && surveyStatus().done && !gymStoryGate(badges())
 }
 /** Earning a badge: in a Nuzlocke, the Pokémon that fell in the Gym battle are released. */
 function winGymBattle() {
@@ -420,7 +432,7 @@ function leaguePrediction(k) {
 	return battle(partyBattlers(), trainerBattlers(t, t.strength))
 }
 function canChallengeLeague(k) {
-	return badges() >= 8 && !isChampion() && k < leagueTrainers().length && player.l.beaten === k && surveyStatus().done && leaguePrediction(k).win
+	return badges() >= 8 && !isChampion() && k < leagueTrainers().length && player.l.beaten === k && surveyStatus().done && !leagueStoryGate() && leaguePrediction(k).win
 }
 function challengeLeague(k) {
 	if (!canChallengeLeague(k)) return false
@@ -458,6 +470,8 @@ function specialStatus(s) {
 	if (player.t.specials[s.id]) return { ok: false, why: "Done" }
 	if (!specialOpen(s)) return { ok: false, why: s.postGame ? "After the League" : `${s.badgesRequired} badges` }
 	if (s.keyItem && !hasKeyItem(s.keyItem, badges())) return { ok: false, why: `Needs the ${KEY_ITEMS[s.keyItem].name}` }
+	if (specialStoryGate(s)) return { ok: false, why: `Clear ${specialStoryGate(s).name}` }
+	if (dojoChoiceTaken(s)) return { ok: false, why: "You chose the other" }
 	if (s.kind === "trade" && !ownsSpecies(s.wants)) return { ok: false, why: `Show a ${speciesName(s.wants)}` }
 	if (s.kind === "legendary" && !legendaryPrediction(s).win) return { ok: false, why: "Too strong for now" }
 	if (player.points.lt(specialCost(s))) return { ok: false, why: `${format(specialCost(s))} RP` }
@@ -1085,59 +1099,188 @@ function huntStep(enc, win) {
 	}
 }
 
-// ---- The Rocket Hideout ----
-// The "r" layer, under the Game Corner: four floors of Team Rocket, Giovanni at the bottom. Battles
-// go in order; each Grunt drops coins from the Game Corner's takings and Giovanni the Silph Scope
-// (Ghost Pokémon twice as easy to catch this run). Kept through badges, reset by the Hall of Fame.
-// Rockets beaten count for good (player.d.rockets) toward its milestones. Giovanni's team is FRLG's;
-// the Grunts' are in the spirit of the games' (Idle Pokémon has no Hideout data).
+// ---- Kanto's story: Team Rocket, the rival, the S.S. Anne and the Fighting Dojo ----
+// Each chapter is a place with trainers fought in order (player.r.progress[chapter] for Team
+// Rocket's, player.v.progress for the Trainers node's). A cleared chapter gives its reward and can
+// open a Gym (`gate`, the badge index it gates). Kept through badges, reset by the Hall of Fame.
+// Giovanni's teams follow FireRed/LeafGreen and the rival's their structure; Grunts', Scientists'
+// and gauntlet trainers' teams are close to the games' (Idle Pokémon has no data for them).
 
-const ROCKET_FLOORS = [
-	{ name: "B1F", trainers: [{ team: [[19, 20], [20, 20]] }, { team: [[41, 20], [23, 20], [41, 20]] }] },
-	{ name: "B2F", trainers: [{ team: [[96, 21], [66, 21]] }, { team: [[109, 21], [20, 21]] }] },
-	{ name: "B3F", trainers: [{ team: [[24, 22], [41, 22]] }, { team: [[66, 21], [96, 22], [66, 21]] }] },
-	{ name: "B4F", trainers: [{ team: [[109, 23], [109, 23]] }, { team: [[42, 23], [24, 23]] },
-		{ name: "Giovanni", boss: true, team: [[95, 25], [111, 24], [115, 29]], quote: "So! I must say, I am impressed you got here." }] },
+/** The rival takes the starter strong against yours, plus the two that cover his weaknesses. */
+const RIVAL_LINES = { 1: [4, 5, 6], 4: [7, 8, 9], 7: [1, 2, 3], 25: [133, 133, 135], 133: [25, 25, 26] }
+const RIVAL_EXTRAS = { 4: [[129, 130, 130], [102, 102, 103]], 7: [[58, 58, 59], [102, 102, 103]], 1: [[58, 58, 59], [129, 130, 130]] }
+function rivalLine() { return RIVAL_LINES[player.t.starter] || RIVAL_LINES[1] }
+function rivalExtras() { return RIVAL_EXTRAS[rivalLine()[0]] || RIVAL_EXTRAS[1] }
+/** A rival team at story stage `s` (0-2 for the evolution stage). */
+function rivalTeam(stage) {
+	const [s0, s1, s2] = rivalLine(), [[a0, a1, a2], [b0, b1, b2]] = rivalExtras()
+	return [
+		[[s0, 5]],
+		[[16, 9], [s0, 8]],
+		[[16, 17], [63, 16], [19, 15], [s0, 18]],
+		[[17, 19], [20, 16], [64, 18], [s1, 20]],
+		[[17, 25], [a0 === 129 ? 130 : a1, 23], [64, 20], [b1, 22], [s1, 25]],
+		[[18, 37], [a2, 38], [65, 35], [b2, 35], [s2, 40]],
+		[[18, 47], [111, 45], [a2, 45], [b2, 47], [65, 47], [s2, 53]],
+	][stage]
+}
+const RIVAL = stage => ({ name: "Rival Blue", rival: true, team: () => rivalTeam(stage), quote: "Smell ya later!" })
+const GRUNT = (team, extra = {}) => ({ name: "Team Rocket Grunt", rocket: true, team, ...extra })
+const JESSIE_JAMES = team => ({ name: "Jessie & James", rocket: true, team, quote: "Prepare for trouble... and make it double!" })
+
+const STORY_CHAPTERS = [
+	// The Trainers node ("v").
+	{ id: "oakLab", layer: "v", name: "Oak's Lab", badges: 0, strength: 1, trainers: [RIVAL(0)], reward: "Your rival's first lesson: Research Points." },
+	{ id: "route22", layer: "v", name: "Route 22", badges: 0, strength: 1.2, trainers: [RIVAL(1)], reward: "Research Points." },
+	{ id: "ceruleanRival", layer: "v", name: "Cerulean City", badges: 1, strength: 2.2, trainers: [RIVAL(2)], reward: "Research Points." },
+	{ id: "ssAnne", layer: "v", name: "S.S. Anne", badges: 2, strength: 3.2, gate: 2, reward: "The Captain teaches you Cut: the way to Lt. Surge's Gym opens.",
+		trainers: [{ name: "Sailor", team: [[66, 18], [72, 18]] }, { name: "Gentleman", team: [[58, 18], [52, 18]] }, { name: "Lass", team: [[16, 18], [35, 18]] },
+			{ name: "Fisherman", team: [[118, 17], [129, 17], [118, 17]] }, { ...RIVAL(3) }, { name: "The Captain", team: [[66, 21], [90, 21], [72, 21]] }] },
+	{ id: "dojo", layer: "v", name: "Fighting Dojo", badges: 4, strength: 4.5, reward: "The Karate Master lets you choose Hitmonlee or Hitmonchan.",
+		trainers: [{ name: "Black Belt", team: [[66, 31], [67, 31]] }, { name: "Black Belt", team: [[56, 32], [57, 32]] }, { name: "Black Belt", team: [[67, 34]] },
+			{ name: "Karate Master", team: [[57, 37], [106, 37], [107, 37]] }] },
+	{ id: "route22Final", layer: "v", name: "Route 22 again", badges: 8, strength: 10, gateLeague: true, trainers: [RIVAL(6)], reward: "Your rival steps aside: Victory Road and the League open." },
+	// Team Rocket ("r").
+	{ id: "mtMoon", layer: "r", name: "Mt. Moon", badges: 1, strength: 2.8, gate: 1, reward: "The way through Mt. Moon to Cerulean City (and Misty's Gym) opens.",
+		trainers: [GRUNT([[19, 13], [41, 13]]), GRUNT([[27, 11], [19, 11], [41, 11]]), JESSIE_JAMES([[23, 14], [109, 14]]), GRUNT([[41, 12], [23, 12]])] },
+	{ id: "nuggetBridge", layer: "r", name: "Nugget Bridge", badges: 1, strength: 2.4, nugget: true, reward: "A Nugget: a lump of Research Points.",
+		trainers: [GRUNT([[23, 15], [41, 15]], { quote: "Join Team Rocket! ...No? Then I'll take you down!" })] },
+	{ id: "hideout", layer: "r", name: "Rocket Hideout", badges: 3, needGameCorner: true, strength: 3.2, reward: "The Silph Scope: Ghost Pokémon twice as easy to catch this run, and the Pokémon Tower's ghosts unmasked.",
+		trainers: [
+			GRUNT([[19, 20], [20, 20]], { floor: "B1F", coins: 150 }), GRUNT([[41, 20], [23, 20], [41, 20]], { floor: "B1F", coins: 150 }),
+			GRUNT([[96, 21], [66, 21]], { floor: "B2F", coins: 300 }), GRUNT([[109, 21], [20, 21]], { floor: "B2F", coins: 300 }),
+			GRUNT([[24, 22], [41, 22]], { floor: "B3F", coins: 450 }), GRUNT([[66, 21], [96, 22], [66, 21]], { floor: "B3F", coins: 450 }),
+			GRUNT([[109, 23], [109, 23]], { floor: "B4F", coins: 600 }), GRUNT([[42, 23], [24, 23]], { floor: "B4F", coins: 600 }),
+			{ name: "Giovanni", rocket: true, boss: true, floor: "B4F", strength: 5.5, team: [[95, 25], [111, 24], [115, 29]], quote: "So! I must say, I am impressed you got here." },
+		] },
+	{ id: "pokemonTower", layer: "r", name: "Pokémon Tower", badges: 4, needs: "hideout", strength: 7, gate: 4, reward: "Mr. Fuji is free and gives you the Poké Flute: Snorlax can be woken, and Koga's Gym opens.",
+		trainers: [{ ...RIVAL(4), floor: "2F" }, { name: "Ghost (Marowak)", floor: "6F", team: [[105, 30]], quote: "Begone... Intruders..." },
+			GRUNT([[41, 25], [41, 25], [42, 25]], { floor: "7F" }), GRUNT([[109, 26], [96, 26]], { floor: "7F" }), JESSIE_JAMES([[24, 27], [110, 27], [52, 27]]),
+			GRUNT([[41, 23], [19, 23], [20, 23], [41, 23]], { floor: "7F" })] },
+	{ id: "silphCo", layer: "r", name: "Silph Co.", badges: 5, needs: "pokemonTower", strength: 5.6, gate: 5, reward: "The Master Ball (the next new Pokémon you beat is caught for sure), Lapras, and Sabrina's Gym opens.",
+		trainers: [
+			GRUNT([[19, 29], [20, 29], [41, 29]], { floor: "2F" }), { name: "Scientist", rocket: true, floor: "2F", team: [[81, 29], [100, 29]] },
+			GRUNT([[23, 31], [24, 31]], { floor: "3F" }), GRUNT([[109, 31], [42, 31]], { floor: "4F" }), { name: "Scientist", rocket: true, floor: "5F", team: [[100, 30], [81, 30], [101, 30]] },
+			GRUNT([[52, 32], [96, 32]], { floor: "6F" }), { ...RIVAL(5), floor: "7F" }, GRUNT([[66, 33], [67, 33]], { floor: "8F" }),
+			JESSIE_JAMES([[24, 31], [110, 31], [52, 31]]), { name: "Scientist", rocket: true, floor: "10F", team: [[82, 33], [110, 33]] }, GRUNT([[42, 34], [24, 34]], { floor: "11F" }),
+			{ name: "Giovanni", rocket: true, boss: true, floor: "11F", strength: 6.6, team: [[33, 37], [115, 35], [111, 37], [31, 41]], quote: "Ah, we meet again. I am not going to let you ruin this deal!" },
+		] },
 ]
-const ROCKET_TRAINERS = ROCKET_FLOORS.flatMap((floor, f) => floor.trainers.map(t => ({ name: "Team Rocket Grunt", ...t, floor: floor.name, coins: 150 * (f + 1) })))
-const ROCKET_STRENGTH = 2.6
-const GIOVANNI_STRENGTH = 5
 const ROCKET_MILESTONES = [
 	[5, "Rocket loot: Grunts drop twice as many coins."],
 	[10, "Research Points ×1.1."],
 	[20, "+10% catch chance everywhere."],
 	[40, "Your party's Attack ×1.1."],
 ]
+const RIVAL_MILESTONES = [
+	[3, "Experience ×1.2."],
+	[7, "Your party's Defense ×1.1."],
+	[15, "Research Points ×1.1."],
+]
 
-function rocketOpen() { return gameCornerOpen() }
-function rocketsBeaten() { return player.d.rockets || 0 }
-function rocketMilestone(n) { return rocketsBeaten() >= n }
-function nextRocket() { return player.r ? ROCKET_TRAINERS[player.r.beaten] || null : null }
-function giovanniBeaten() { return !!player.r && player.r.beaten >= ROCKET_TRAINERS.length }
-function hasSilphScope() { return giovanniBeaten() }
-function rocketPrediction() {
-	const t = nextRocket()
-	if (!t) return null
-	return battle(partyBattlers(), trainerBattlers(t, t.boss ? GIOVANNI_STRENGTH : ROCKET_STRENGTH))
-}
-function canChallengeRocket() {
-	const p = rocketPrediction()
-	return rocketOpen() && !!p && p.win && !(inChallenge(11) && p.fainted > 0)
-}
-function challengeRocket() {
-	if (!canChallengeRocket()) return false
-	const t = nextRocket()
-	releaseFainted(rocketPrediction())
-	player.r.beaten++
-	player.d.rockets = rocketsBeaten() + 1
-	if (t.boss) {
-		pkLog(`Giovanni: "I'll withdraw for now..." He left the Silph Scope behind!`, "rocket")
-	} else {
-		const coins = t.coins * (rocketMilestone(5) ? 2 : 1)
-		addCoins(coins)
-		pkLog(`Beat a Rocket Grunt on ${t.floor}: found ${formatCoins(coins)} coins.`, "win")
-	}
+// Gift rules from the story: the Dojo's choice and Silph Co.'s Lapras, Snorlax's Poké Flute.
+const SPECIAL_STORY = { hitmonlee: "dojo", hitmonchan: "dojo", lapras: "silphCo", snorlax: "pokemonTower" }
+const DOJO_CHOICE = ["hitmonlee", "hitmonchan"]
+for (const s of SPECIALS) if (s.id === "hitmonchan") s.text = "...or the punching fiend. You may choose only one."
+
+function chapterById(id) { return STORY_CHAPTERS.find(c => c.id === id) }
+function storyState(ch) { return player[ch.layer] }
+function chapterProgress(ch) { return storyState(ch)?.progress?.[ch.id] || 0 }
+function chapterCleared(id) { const ch = chapterById(id); return !!ch && chapterProgress(ch) >= ch.trainers.length }
+function chapterOpen(ch) {
+	if (!storyState(ch)) return false
+	if (badges() < ch.badges) return false
+	if (ch.needs && !chapterCleared(ch.needs)) return false
+	if (ch.needGameCorner && !gameCornerOpen()) return false
 	return true
 }
+function nextStoryTrainer(ch) { return ch.trainers[chapterProgress(ch)] || null }
+function trainerTeam(t) { return typeof t.team === "function" ? t.team() : t.team }
+function storyPrediction(ch) {
+	const t = nextStoryTrainer(ch)
+	if (!t) return null
+	return battle(partyBattlers(), trainerBattlers({ team: trainerTeam(t) }, t.strength || ch.strength))
+}
+function canStoryBattle(ch) {
+	if (!chapterOpen(ch)) return false
+	const p = storyPrediction(ch)
+	return !!p && p.win && !(inChallenge(11) && p.fainted > 0)
+}
+/** Research Points for beating a story trainer: three wild battles' worth of its team. */
+function storyRp(t) { return trainerTeam(t).reduce((s, [id, lv]) => s + researchYield(id, lv), 0) * 3 * rpMult() }
+function storyBattle(id) {
+	const ch = typeof id === "string" ? chapterById(id) : id
+	if (!ch || !canStoryBattle(ch)) return false
+	const t = nextStoryTrainer(ch)
+	releaseFainted(storyPrediction(ch))
+	const state = storyState(ch)
+	state.progress = { ...state.progress, [ch.id]: chapterProgress(ch) + 1 }
+	if (t.rocket) player.d.rockets = rocketsBeaten() + 1
+	if (t.rival) player.d.rivalWins = rivalWins() + 1
+	if (t.coins) {
+		const coins = t.coins * (rocketMilestone(5) ? 2 : 1)
+		addCoins(coins)
+		pkLog(`Beat a ${t.name} on ${t.floor}: found ${formatCoins(coins)} coins.`, "win")
+	} else {
+		const rp = storyRp(t)
+		player.points = player.points.add(rp)
+		pkLog(`Beat ${t.name} at ${ch.name}: ${format(rp)} Research Points.`, "win")
+	}
+	if (chapterCleared(ch.id)) clearChapter(ch)
+	return true
+}
+function clearChapter(ch) {
+	if (ch.nugget) player.points = player.points.add(10000 * PRICE_TO_RP * rpMult() / 10)
+	if (ch.id === "silphCo") player.r.masterBall = true
+	pkLog(`${ch.name} cleared! ${ch.reward}`, ch.layer === "r" ? "rocket" : "story")
+}
+/** Every battle the story can take now, in order (the simulator and the automatic challenges). */
+function storyTick() {
+	let any = false
+	for (const ch of STORY_CHAPTERS) while (canStoryBattle(ch)) { storyBattle(ch); any = true }
+	return any
+}
+
+/** The chapter that must be cleared before Gym `index`, if any isn't. */
+function gymStoryGate(index) { return STORY_CHAPTERS.find(ch => ch.gate === index && !chapterCleared(ch.id)) || null }
+function leagueStoryGate() { return STORY_CHAPTERS.find(ch => ch.gateLeague && !chapterCleared(ch.id)) || null }
+function specialStoryGate(s) {
+	const need = SPECIAL_STORY[s.id]
+	if (need && !chapterCleared(need)) return chapterById(need)
+	return null
+}
+function dojoChoiceTaken(s) { return DOJO_CHOICE.includes(s.id) && DOJO_CHOICE.some(id => id !== s.id && player.t.specials[id]) }
+
+function rocketsBeaten() { return player.d.rockets || 0 }
+function rocketMilestone(n) { return rocketsBeaten() >= n }
+function rivalWins() { return player.d.rivalWins || 0 }
+function rivalMilestone(n) { return rivalWins() >= n }
+function giovanniBeaten() { return chapterCleared("hideout") }
+function hasSilphScope() { return chapterCleared("hideout") }
 /** Species-specific catch help: the Silph Scope unmasks Ghost Pokémon. */
 function speciesCatchMult(id) { return hasSilphScope() && SPECIES[id].types.includes("ghost") ? 2 : 1 }
+
+/** v0.10 kept the Hideout's progress as a number (player.r.beaten). */
+function migrateStory() {
+	if (player.r && typeof player.r.beaten === "number") {
+		player.r.progress = { ...(player.r.progress || {}), hideout: Math.max(player.r.beaten, player.r.progress?.hideout || 0) }
+		delete player.r.beaten
+	}
+}
+
+// ---- The Game Freak Diploma and Missingno. ----
+
+/** The Diploma: every Kanto species but Mew caught (as in the games). */
+function hasDiploma() { return !!player.d && Object.keys(player.d.caught).filter(id => id >= 1 && id <= 150).length >= 150 }
+
+const MISSINGNO_ZONES = ["route20", "route21"]
+const MISSINGNO_CHANCE = 1 / 1000
+/** Surfing off Cinnabar's coast, once a run, Missingno. turns up and duplicates your coins. */
+function missingnoCheck(zone, enc, rng) {
+	if (!MISSINGNO_ZONES.includes(zone.id) || enc.pool !== "surf" || player.f.missingno || rand(rng) >= MISSINGNO_CHANCE) return
+	player.f.missingno = true
+	player.d.missingno = (player.d.missingno || 0) + 1
+	const bonus = Math.min(coins(), 10000)
+	if (player.k) addCoins(bonus)
+	pkLog(`W̷i̴l̸d̵ M̶i̷s̴s̵i̶n̷g̸n̴o̵.̸ appeared! ...Your coins were duplicated (+${formatCoins(bonus)}).`, "glitch")
+}

@@ -5,7 +5,7 @@ let modInfo = {
 	pointsName: "Research Points",
 	modFiles: [
 		"data/kanto.js", "engine.js", "logic.js",
-		"layers/field.js", "layers/team.js", "layers/gym.js", "layers/daycare.js", "layers/safari.js", "layers/gamecorner.js", "layers/rocket.js", "layers/hunt.js", "layers/hof.js", "layers/dex.js",
+		"layers/field.js", "layers/team.js", "layers/gym.js", "layers/daycare.js", "layers/safari.js", "layers/gamecorner.js", "layers/story.js", "layers/hunt.js", "layers/hof.js", "layers/dex.js",
 		"tree.js",
 	],
 
@@ -17,11 +17,17 @@ let modInfo = {
 
 // Set your version in num and name
 let VERSION = {
-	num: "0.10",
-	name: "Rocket Hideout",
+	num: "0.11",
+	name: "Kanto's story",
 }
 
 let changelog = `<h1>Changelog:</h1><br>
+	<h3>v0.11 Kanto's story</h3><br>
+		- Team Rocket (R) now schemes all over Kanto: Mt. Moon (with Jessie & James), Nugget Bridge, the Rocket Hideout, the Pokémon Tower (the ghost Marowak and Mr. Fuji's Poké Flute) and Silph Co. (Giovanni again, and the Master Ball). About 30 Rockets a run.<br>
+		- A new Trainers node (V): your rival (his team answers your starter), the S.S. Anne (Cut) and the Fighting Dojo (choose Hitmonlee or Hitmonchan).<br>
+		- Story gates: Mt. Moon opens Misty's Gym, the S.S. Anne Lt. Surge's, the Pokémon Tower Koga's, Silph Co. Sabrina's, and your rival's last stand on Route 22 the League. Snorlax needs the Poké Flute and Lapras Silph Co.<br>
+		- Game Freak's Diploma for all 150 Kanto species (Mew not needed): your Pokémon fight ×1.1 for good. And something glitchy off Cinnabar's coast...<br>
+		- Box pages, a setting to hide sprites, and a "No shiny yet" filter.<br>
 	<h3>v0.10 Rocket Hideout</h3><br>
 		- The Rocket Hideout under the Game Corner (opens with it): four floors of Team Rocket Grunts, each dropping coins, then Giovanni and the Silph Scope (Ghost Pokémon twice as easy to catch that run). Rockets beaten count for good toward its milestones.<br>
 		- Notification settings (the gear's settings page): switch off each kind of popup (new Pokédex entries, shinies, evolutions, badges, the League, the Hall of Fame, jackpots, Team Rocket, milestones, achievements) and the glowing nodes.<br>
@@ -127,4 +133,6 @@ function maxTickLength() {
 function fixOldSave(oldVersion){
 	// v0.3: box entries are keyed by species and look; v0.3.1 repairs "4-false" keys (see migrateBox).
 	migrateBox()
+	// v0.11: the Rocket Hideout's progress moved into the story's chapters.
+	migrateStory()
 }

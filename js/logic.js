@@ -62,6 +62,7 @@ function rpMult() {
 	if (dexMilestone(10)) m *= 1.5
 	if (dexMilestone(80)) m *= 2
 	if (dexMilestone(150)) m *= 5
+	if (formMilestone(3)) m *= 1.25
 	return m
 }
 function wildRpMult() { return rpMult() * (hasFieldUpgrade(21) ? 1.5 : 1) }
@@ -72,6 +73,7 @@ function passiveRp() {
 function xpMult() {
 	let m = (1 + fieldBuyableStep(14, 0.25) * fieldBuyable(14)) * (1 + 0.25 * hofBuyable(12))
 	if (dexMilestone(60)) m *= 2
+	if (formMilestone(ALL_FORMS.length)) m *= 1.5
 	return m
 }
 function searchTime() {
@@ -84,6 +86,7 @@ function searchTime() {
 function catchMult() {
 	let m = (1 + fieldBuyableStep(12, 0.15) * fieldBuyable(12)) * (1 + 0.1 * hofBuyable(15))
 	if (dexMilestone(25)) m *= 1.25
+	if (formMilestone(10)) m *= 1.25
 	return m
 }
 function gearMult() { return 1 + 0.15 * fieldBuyable(13) }
@@ -122,12 +125,13 @@ function zoneById(id) { return ZONES.find(z => z.id === id) }
 /** Zones of the area you're surveying now: they open one by one, for Research Points. */
 function frontierZones() {
 	const b = badges()
-	return ZONES.filter(z => z.badges === b && !z.postGame)
+	return ZONES.filter(z => z.badges === b && !z.postGame && !z.anime)
 }
 function zoneUnlockCost(index) {
 	return new Decimal(25).times(Decimal.pow(1.8, index)).times(Decimal.pow(5, badges())).times(hofUpgrade(12) ? 0.5 : 1)
 }
 function zoneOpen(zone) {
+	if (zone.anime) return animeOpen(zone)
 	if (zone.postGame) return isChampion()
 	if (zone.badges < badges()) return true
 	if (zone.badges > badges()) return false
@@ -162,25 +166,30 @@ function surveyStatus() {
 // ---- Pokédex and box ----
 
 function dexSee(id) { player.d.seen[id] = (player.d.seen[id] || 0) + 1 }
-function dexCatch(id, shiny) {
+function dexCatch(id, shiny, form) {
 	if (!player.d.seen[id]) player.d.seen[id] = 1
 	player.d.caught[id] = (player.d.caught[id] || 0) + 1
 	if (shiny) player.d.shiny[id] = (player.d.shiny[id] || 0) + 1
+	if (form) player.d.forms[`${id}-${form}`] = (player.d.forms[`${id}-${form}`] || 0) + 1
 }
 
 // ---- Variants ----
 // A species can come in several looks. Each (species, look) is its own box slot and party key:
-// "15" is a Beedrill, "15-shiny" a shiny one. Albino and Melanistic (shiny and albino at once) are
-// planned as further variants.
-const VARIANTS = ["normal", "shiny"]
-function boxKey(id, variant = "normal") {
-	return typeof variant === "string" && variant && variant !== "normal" ? `${Number(id)}-${variant}` : String(Number(id))
+// "15" is a Beedrill, "15-shiny" a shiny one, "150-clone" a clone (FORMS in engine.js) and
+// "25-clone-shiny" both. Albino and Melanistic (shiny and albino at once) are planned as further
+// looks.
+/** The look part of a key: "" for a plain Pokémon, else its form and/or "shiny". */
+function makeLook(form, shiny) { return [form, shiny ? "shiny" : null].filter(Boolean).join("-") }
+function boxKey(id, look = "") {
+	return typeof look === "string" && look && look !== "normal" ? `${Number(id)}-${look}` : String(Number(id))
 }
 function speciesOf(key) { return parseInt(key) }
-function variantOf(key) { return String(key).split("-")[1] || "normal" }
-function isShiny(key) { return variantOf(key) === "shiny" }
-function ownsSpecies(id) { return VARIANTS.some(v => player.t.box[boxKey(id, v)]) }
-function keyName(key) { return `${isShiny(key) ? "★ " : ""}${speciesName(speciesOf(key))}` }
+function lookOf(key) { return String(key).split("-").slice(1).join("-") }
+function variantOf(key) { return lookOf(key) || "normal" }
+function isShiny(key) { return String(key).split("-").includes("shiny") }
+function formOf(key) { return String(key).split("-").slice(1).find(p => p !== "shiny") || null }
+function ownsSpecies(id) { return Object.keys(player.t.box).some(key => speciesOf(key) === Number(id)) }
+function keyName(key) { return `${isShiny(key) ? "★ " : ""}${formName(speciesOf(key), formOf(key))}` }
 
 /**
  * Saves before v0.3 kept one box entry per species, keyed by the species with a `shiny` flag,
@@ -217,7 +226,7 @@ function migrateBox() {
 function addToBox(id, level, variant = "normal") {
 	const key = boxKey(id, variant)
 	const old = player.t.box[key]
-	dexCatch(id, variant === "shiny")
+	dexCatch(id, isShiny(key), formOf(key))
 	if (old && old.level >= level) return false
 	player.t.box[key] = { level, xp: xpForLevel(SPECIES[id].growth, level), variant }
 	if (!old && player.t.party.length < partySize() && canJoinParty(key)) player.t.party.push(key)
@@ -229,7 +238,10 @@ function addToBox(id, level, variant = "normal") {
  * evolving would merge the two and lose the earlier form. A shiny Kakuna still evolves when you
  * only have a normal Beedrill.
  */
-function canEvolveInto(key, into) { return !player.t.box[boxKey(into, variantOf(key))] }
+function canEvolveInto(key, into) {
+	if (formOf(key)) return false
+	return !player.t.box[boxKey(into, variantOf(key))]
+}
 
 /** Evolves a box Pokémon: it takes the evolution's place in the box (and the party). */
 function evolve(key, into) {
@@ -267,7 +279,8 @@ function partyBattlers() {
 		// Challenge rewards: Lone Partner strengthens the lead, Monotype the starter's type.
 		const lead = i === 0 ? (inChallenge(13) ? LONE_PARTNER_BOOST : 1) * (beatChallenge(13) ? 1.2 : 1) : 1
 		const typed = (inChallenge(12) ? MONOTYPE_BOOST : 1) * (beatChallenge(12) && sharesStarterType(key) ? 1.15 : 1)
-		return battler(speciesOf(key), player.t.box[key].level, atk * lead * typed, def * lead)
+		const form = FORMS[formOf(key)] || {}
+		return battler(speciesOf(key), player.t.box[key].level, atk * lead * typed * (form.atk || 1), def * lead * (form.def || 1))
 	})
 }
 
@@ -289,11 +302,12 @@ function doEncounter(rng) {
 	const zone = currentZone()
 	const enc = rollEncounter(zone, badges(), rng)
 	const shiny = rand(rng) < 1 / shinyOdds()
+	const look = makeLook(enc.form, shiny)
 	dexSee(enc.id)
 	player.f.encounters++
 	const team = partyBattlers()
 	const result = battle(team, [battler(enc.id, enc.level)])
-	const name = `${shiny ? "★ " : ""}${speciesName(enc.id)} (Lv. ${enc.level})`
+	const name = `${shiny ? "★ " : ""}${formName(enc.id, enc.form)} (Lv. ${enc.level})`
 	// Nuzlocke: only the first new species met on each route may be caught (shinies always can).
 	const nuzlocke = inChallenge(11)
 	const firstHere = nuzlocke && !player.t.nuzlocke[zone.id] && !ownsSpecies(enc.id)
@@ -317,10 +331,10 @@ function doEncounter(rng) {
 		pkLog(`Beat a wild ${name}.`, "win", enc, shiny)
 		return { ...enc, shiny, win: true, caught: false, rp }
 	}
-	const caught = rand(rng) < catchChance(enc.id, catchMult())
+	const caught = rand(rng) < catchChance(enc.id, catchMult(), enc.form)
 	if (caught) {
-		const isNew = !player.d.caught[enc.id]
-		addToBox(enc.id, enc.level, shiny ? "shiny" : "normal")
+		const isNew = !player.d.caught[enc.id] || (enc.form && !player.d.forms[`${enc.id}-${enc.form}`])
+		addToBox(enc.id, enc.level, look)
 		pkLog(`Caught ${name}!${isNew ? " New in the Pokédex!" : ""}`, isNew || shiny ? "new" : "catch", enc, shiny)
 	} else {
 		pkLog(`Beat a wild ${name}, but it broke free.`, "win", enc, shiny)
@@ -405,6 +419,7 @@ function specialCost(s) {
 	return new Decimal(s.price ? s.price * PRICE_TO_RP * (hofUpgrade(21) ? 0.25 : 1) : 0)
 }
 function specialOpen(s) {
+	if (s.anime && hofEntries() < s.hof) return false
 	if (s.postGame && !isChampion()) return false
 	return badges() >= s.badgesRequired
 }
@@ -426,8 +441,9 @@ function takeSpecial(s) {
 	player.points = player.points.sub(specialCost(s))
 	player.t.specials[s.id] = true
 	const shiny = rand() < 1 / shinyOdds()
-	addToBox(s.species, s.level, shiny ? "shiny" : "normal")
-	pkLog(s.kind === "legendary" ? `You caught ${speciesName(s.species)}!` : `${speciesName(s.species)} joined you!`, "new", { id: s.species }, shiny)
+	addToBox(s.species, s.level, makeLook(s.form, shiny))
+	const name = formName(s.species, s.form)
+	pkLog(s.kind === "legendary" ? `You caught ${name}!` : `${name} joined you!`, "new", { id: s.species, form: s.form }, shiny)
 	return true
 }
 
@@ -530,6 +546,7 @@ function fameGain() {
 	let fame = 20 + 5 * newFaces().length + Math.floor(caughtCount() / 10)
 	if (anyChallenge()) fame *= CHALLENGE_FAME
 	if (beatChallenge(11)) fame *= 1.25
+	if (formMilestone(20)) fame *= 1.2
 	return Math.floor(fame)
 }
 /** Records the run in the Hall of Fame (the reset itself is TMT's). */
@@ -540,3 +557,28 @@ function enterHallOfFame() {
 }
 
 function starterChoices() { return hofEntries() >= 3 ? [...STARTERS, 25, 133] : STARTERS }
+
+// ---- The anime ----
+// Kanto's anime places open with Hall of Fame entries (zone.hof, by badge tier), then with badges
+// like the games' routes. They aren't part of the Gym surveys. Their forms count in the Pokédex's
+// Forms page, with milestones of their own.
+
+function animeOpen(zone) {
+	if (hofEntries() < zone.hof) return false
+	return zone.postGame ? isChampion() : badges() >= zone.badges
+}
+
+/** Every form Kanto has: "id-form" keys from the anime places and events. */
+const ALL_FORMS = [...new Set([
+	...ZONES.flatMap(z => Object.values(z.pools).flat().filter(e => e[4]).map(e => `${e[0]}-${e[4]}`)),
+	...SPECIALS.filter(s => s.form).map(s => `${s.species}-${s.form}`),
+])].sort((a, b) => parseInt(a) - parseInt(b))
+function formsCaught() { return ALL_FORMS.filter(k => player.d.forms[k]).length }
+
+const FORM_MILESTONES = [
+	[3, "Research Points ×1.25."],
+	[10, "+25% catch chance."],
+	[20, "Fame ×1.2."],
+	[ALL_FORMS.length, "Every form: experience ×1.5."],
+]
+function formMilestone(n) { return formsCaught() >= n }

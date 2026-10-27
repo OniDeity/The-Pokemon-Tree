@@ -39,6 +39,7 @@ var player = {
 	h: { points: new Decimal(0), hall: [], enshrined: {}, upgrades: [], buyables: {}, challenges: {}, activeChallenge: null, resetTime: 0 },
 	d: { seen: {}, caught: {}, shiny: {}, forms: {}, hatched: {} },
 	c: { slots: [], eggs: [], eggProgress: 0, upgrades: [] },
+	k: { points: new Decimal(0), upgrades: [], buyables: {}, spinning: false },
 }
 // The game's chooseStarter, without the UI.
 function startRun(id) {
@@ -59,6 +60,7 @@ function hallOfFameReset(challenge) {
 	player.t = { starter: 0, box: {}, party: [], specials: {}, autoEvolve: true, nuzlocke: {} }
 	player.g = { points: new Decimal(0) }
 	player.l = { beaten: 0, champion: false, hallOfFame: [] }
+	player.k = { points: new Decimal(startingCoins()), upgrades: [], buyables: {}, spinning: false }
 	return fame
 }
 // Spends Fame greedily, cheapest first.
@@ -145,6 +147,11 @@ function shop() {
 				options.push([cost, () => { player.points = player.points.sub(cost); player.f.buyables[id] = new Decimal(fieldBuyable(id) + 1) }])
 			}
 			for (const s of SPECIALS) if (specialStatus(s).ok) options.push([specialCost(s), () => takeSpecial(s)])
+			// Game Corner prizes: buy the coins they still need, then trade them in.
+			for (const s of SPECIALS) if (isPrize(s) && !player.t.specials[s.id] && gameCornerOpen() && specialOpen(s)) {
+				const need = Math.max(0, prizeCoins(s) - coins())
+				if (need > 0) options.push([coinsCost(need), () => { buyCoins(need); takeSpecial(s) }])
+			}
 			for (const key of Object.keys(player.t.box)) for (const e of itemEvolutions(speciesOf(key), badges()))
 				if (canItemEvolve(key, e)) options.push([itemEvolutionCost(e), () => itemEvolve(key, e.into)])
 			options.sort((a, b) => a[0].cmp(b[0]))

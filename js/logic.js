@@ -65,6 +65,8 @@ function rpMult() {
 	if (formMilestone(3)) m *= 1.25
 	m *= 1 + 0.02 * hatchedSpecies()
 	if (wardenMilestone(25)) m *= 1.2
+	m *= 1 + 0.1 * gameCornerBuyable(12)
+	if (jackpotMilestone(5)) m *= 1.1
 	return m
 }
 function wildRpMult() { return rpMult() * (hasFieldUpgrade(21) ? 1.5 : 1) }
@@ -76,6 +78,7 @@ function xpMult() {
 	let m = (1 + fieldBuyableStep(14, 0.25) * fieldBuyable(14)) * (1 + 0.25 * hofBuyable(12))
 	if (dexMilestone(60)) m *= 2
 	if (formMilestone(ALL_FORMS.length)) m *= 1.5
+	m *= 1 + 0.1 * gameCornerBuyable(13)
 	return m
 }
 function searchTime() {
@@ -333,6 +336,7 @@ function doEncounter(rng) {
 		return { ...enc, shiny, win: false }
 	}
 	player.f.wins++
+	itemfinderFind(rng)
 	releaseFainted(result)
 	const rp = researchYield(enc.id, enc.level) * wildRpMult()
 	player.points = player.points.add(rp)
@@ -431,6 +435,7 @@ function challengeLeague(k) {
 const PRICE_TO_RP = 2
 
 function specialCost(s) {
+	if (isPrize(s)) return new Decimal(0)
 	return new Decimal(s.price ? s.price * PRICE_TO_RP * (hofUpgrade(21) ? 0.25 : 1) : 0)
 }
 function specialOpen(s) {
@@ -449,11 +454,13 @@ function specialStatus(s) {
 	if (s.kind === "trade" && !ownsSpecies(s.wants)) return { ok: false, why: `Show a ${speciesName(s.wants)}` }
 	if (s.kind === "legendary" && !legendaryPrediction(s).win) return { ok: false, why: "Too strong for now" }
 	if (player.points.lt(specialCost(s))) return { ok: false, why: `${format(specialCost(s))} RP` }
+	if (isPrize(s) && coins() < prizeCoins(s)) return { ok: false, why: `${formatCoins(prizeCoins(s))} coins` }
 	return { ok: true }
 }
 function takeSpecial(s) {
 	if (!specialStatus(s).ok) return false
 	player.points = player.points.sub(specialCost(s))
+	if (isPrize(s)) addCoins(-prizeCoins(s))
 	player.t.specials[s.id] = true
 	const shiny = rand() < 1 / shinyOdds()
 	addToBox(s.species, s.level, makeLook(s.form, shiny))
@@ -821,7 +828,7 @@ function buyableCost(def, amount) { return new Decimal(def.base).times(Decimal.p
 // Rewards of the automation challenges (31-33), each with an on/off switch in player.h.auto.
 
 const AUTOMATIONS = {
-	buy: { challenge: 31, name: "Auto-buy", text: "Buys Field equipment, opens routes, and buys the Day Care's and Safari Zone's buyables when you can afford them (cheapest first)." },
+	buy: { challenge: 31, name: "Auto-buy", text: "Buys Field equipment, opens routes, and buys the Day Care's, Safari Zone's and Game Corner's buyables when you can afford them (cheapest first)." },
 	eggs: { challenge: 32, name: "Day Care Lady", text: "Keeps the Day Care's pair laying Eggs, choosing pairs whose Eggs hatch into species you haven't hatched yet." },
 	safari: { challenge: 33, name: "Warden's Pass", text: "Safari trips are free and start on their own, and each Pokémon gets the strategy most likely to catch it." },
 }
@@ -859,8 +866,14 @@ function autoBuyTick() {
 			options.push([cost, () => { player.points = player.points.sub(cost); player.s.buyables[id] = new Decimal(safariBuyable(id) + 1) }])
 		}
 		options.sort((a, b) => a[0].cmp(b[0]))
-		if (!options.length || player.points.lt(options[0][0])) return
-		options[0][1]()
+		if (options.length && player.points.gte(options[0][0])) { options[0][1](); continue }
+		// The prize counter's buyables cost coins.
+		if (!gameCornerOpen()) return
+		const coinOptions = Object.keys(GAME_CORNER_BUYABLES).map(id => [buyableCost(GAME_CORNER_BUYABLES[id], gameCornerBuyable(id)).toNumber(), id]).sort((a, b) => a[0] - b[0])
+		if (!coinOptions.length || coins() < coinOptions[0][0]) return
+		const [cost, id] = coinOptions[0]
+		addCoins(-cost)
+		player.k.buyables[id] = new Decimal(gameCornerBuyable(id) + 1)
 	}
 }
 
@@ -895,4 +908,109 @@ function bestSafariStrategy(id) {
 		if (success > bestP) { bestP = success; best = k }
 	}
 	return best
+}
+
+// ---- The Celadon Game Corner ----
+// The "k" layer: coins (player.k.points), bought with Research Points or won at the slots, buy
+// the prize Pokémon and the prize counter's buyables. Kept through badges, reset by the Hall of
+// Fame like the Day Care. Jackpots (player.d.jackpots) count for good toward its milestones.
+
+/** Research Points per coin (₽20 a coin in the games, at PRICE_TO_RP, a little cheaper). */
+const COIN_RP = 20
+/** The prize counter's coin prices (Red/Blue's). */
+const PRIZE_COINS = { gameCorner63: 180, gameCorner35: 500, gameCorner30: 1200, gameCorner147: 2800, gameCorner123: 5500, gameCorner127: 5500, gameCorner137: 9999 }
+const SPIN_SECONDS = 3
+const BASE_BET = 3
+/** Slot results as [name, chance, payout in bets]: 0.9 of the bet back on average before upgrades. */
+const SLOT_RESULTS = [
+	["7 7 7", 0.002, 100],
+	["BAR BAR BAR", 0.005, 30],
+	["Pikachu ×3", 0.02, 8],
+	["Magnemite ×3", 0.015, 5],
+	["Shellder ×3", 0.015, 5],
+	["Cherries", 0.12, 2],
+]
+const GAME_CORNER_UPGRADES = {
+	11: { title: "Lucky Machine", cost: 300, text: "The slots pay 25% more (more than you bet, on average)." },
+	12: { title: "Coin Case", cost: 1000, text: "The slots spin twice as fast." },
+	13: { title: "Itemfinder", cost: 600, text: "Wild battles sometimes turn up coins someone dropped." },
+}
+const GAME_CORNER_BUYABLES = {
+	11: { title: "High Roller", base: 200, growth: 3, text: "Bet twice as many coins per spin per level." },
+	12: { title: "Amulet Coin", base: 400, growth: 2.2, text: "+10% Research Points per level." },
+	13: { title: "Lucky Egg", base: 400, growth: 2.2, text: "+10% experience per level." },
+}
+const JACKPOT_MILESTONES = [
+	[1, "Coins cost 20% fewer Research Points."],
+	[5, "Research Points ×1.1."],
+	[15, "The slots pay 10% more."],
+	[30, "Start every run with 500 coins."],
+]
+
+function gameCornerOpen() { return badges() >= 3 || hofEntries() >= 3 }
+function hasGameCornerUpgrade(id) { return !!player.k && player.k.upgrades.map(Number).includes(Number(id)) }
+function gameCornerBuyable(id) { return player.k ? new Decimal(player.k.buyables?.[id] ?? 0).toNumber() : 0 }
+function coins() { return player.k ? new Decimal(player.k.points).toNumber() : 0 }
+function addCoins(n) { player.k.points = new Decimal(player.k.points).add(n) }
+function jackpots() { return player.d.jackpots || 0 }
+function jackpotMilestone(n) { return jackpots() >= n }
+function startingCoins() { return jackpotMilestone(30) ? 500 : 0 }
+
+function coinRp() { return COIN_RP * (jackpotMilestone(1) ? 0.8 : 1) * (hofUpgrade(21) ? 0.25 : 1) }
+function coinsCost(n) { return new Decimal(n * coinRp()) }
+function buyCoins(n) {
+	if (!gameCornerOpen() || player.points.lt(coinsCost(n))) return false
+	player.points = player.points.sub(coinsCost(n))
+	addCoins(n)
+	return true
+}
+
+function isPrize(s) { return s.id in PRIZE_COINS }
+function prizeCoins(s) { return Math.ceil(PRIZE_COINS[s.id] * (hofUpgrade(21) ? 0.25 : 1)) }
+
+function slotPayoutMult() { return (hasGameCornerUpgrade(11) ? 1.25 : 1) * (jackpotMilestone(15) ? 1.1 : 1) }
+function spinTime() { return SPIN_SECONDS / (hasGameCornerUpgrade(12) ? 2 : 1) }
+function slotBet() { return BASE_BET * Math.pow(2, gameCornerBuyable(11)) }
+/** Coins back per coin bet, on average. */
+function slotReturn() { return SLOT_RESULTS.reduce((s, [, p, pay]) => s + p * pay, 0) * slotPayoutMult() }
+
+/** One spin of the slots: the bet (or what's left of it), then a result. */
+function spinSlots(rng) {
+	const bet = Math.min(slotBet(), Math.floor(coins()))
+	if (bet < BASE_BET) return null
+	addCoins(-bet)
+	let r = rand(rng)
+	for (const [name, p, pay] of SLOT_RESULTS) {
+		if (r < p) {
+			const won = Math.floor(bet * pay * slotPayoutMult())
+			addCoins(won)
+			if (name === "7 7 7") {
+				player.d.jackpots = jackpots() + 1
+				pkLog(`Game Corner: JACKPOT! 7 7 7 paid ${formatCoins(won)} coins.`, "new")
+			}
+			return { name, bet, won }
+		}
+		r -= p
+	}
+	return { name: null, bet, won: 0 }
+}
+function formatCoins(n) { return Math.floor(n).toLocaleString("en-US") }
+
+function gameCornerTick(diff, rng) {
+	if (!player.k || !gameCornerOpen() || !player.k.spinning) return
+	player.k.spinProgress = (player.k.spinProgress || 0) + diff / spinTime()
+	const n = Math.min(Math.floor(player.k.spinProgress), MAX_ENCOUNTERS_PER_TICK)
+	player.k.spinProgress -= Math.floor(player.k.spinProgress)
+	for (let i = 0; i < n; i++) {
+		const result = spinSlots(rng)
+		if (!result) { player.k.spinning = false; player.k.spinProgress = 0; return }
+		if (result.won > 0) player.k.last = `${result.name}: won ${formatCoins(result.won)} coins`
+		else player.k.last = `No luck (bet ${formatCoins(result.bet)})`
+	}
+}
+
+/** The Itemfinder: a wild battle won turns up coins 5% of the time (more after more badges). */
+function itemfinderFind(rng) {
+	if (!hasGameCornerUpgrade(13) || !gameCornerOpen() || rand(rng) >= 0.05) return
+	addCoins(Math.ceil(rand(rng) * 10 * (badges() + 1)))
 }

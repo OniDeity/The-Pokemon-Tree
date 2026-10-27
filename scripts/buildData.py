@@ -27,6 +27,8 @@ for s in species[:MAX_ID]:
         "baseExp": s["baseExp"],
         "catchRate": s["captureRate"],
         "growth": s["growthRate"],
+        # -1 genderless, 0 always male, 8 always female, else eighths female (Day Care breeding).
+        "gender": s["genderRate"],
         "legendary": s["legendary"],
         "evolutions": [
             {k: v for k, v in e.items() if k in ("into", "method", "level", "stone")}

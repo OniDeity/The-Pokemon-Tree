@@ -63,6 +63,7 @@ function rpMult() {
 	if (dexMilestone(80)) m *= 2
 	if (dexMilestone(150)) m *= 5
 	if (formMilestone(3)) m *= 1.25
+	m *= 1 + 0.02 * hatchedSpecies()
 	return m
 }
 function wildRpMult() { return rpMult() * (hasFieldUpgrade(21) ? 1.5 : 1) }
@@ -188,6 +189,15 @@ function lookOf(key) { return String(key).split("-").slice(1).join("-") }
 function variantOf(key) { return lookOf(key) || "normal" }
 function isShiny(key) { return String(key).split("-").includes("shiny") }
 function formOf(key) { return String(key).split("-").slice(1).find(p => p !== "shiny") || null }
+/** The (species, form) entries of a zone's open pools that aren't in the box in any look. */
+function zoneMissing(zone) {
+	const box = Object.keys(player.t.box)
+	const missing = new Set()
+	for (const p of zonePools(zone, badges())) for (const [id, , , , form] of zone.pools[p]) {
+		if (!box.some(k => speciesOf(k) === id && formOf(k) === (form || null))) missing.add(`${id}-${form || ""}`)
+	}
+	return missing.size
+}
 function ownsSpecies(id) { return Object.keys(player.t.box).some(key => speciesOf(key) === Number(id)) }
 function keyName(key) { return `${isShiny(key) ? "★ " : ""}${formName(speciesOf(key), formOf(key))}` }
 
@@ -305,6 +315,7 @@ function doEncounter(rng) {
 	const look = makeLook(enc.form, shiny)
 	dexSee(enc.id)
 	player.f.encounters++
+	eggStep()
 	const team = partyBattlers()
 	const result = battle(team, [battler(enc.id, enc.level)])
 	const name = `${shiny ? "★ " : ""}${formName(enc.id, enc.form)} (Lv. ${enc.level})`
@@ -582,3 +593,87 @@ const FORM_MILESTONES = [
 	[ALL_FORMS.length, "Every form: experience ×1.5."],
 ]
 function formMilestone(n) { return formsCaught() >= n }
+
+// ---- The Day Care ----
+// Route 5's Day Care (from 2 badges; from the start of a run once you've entered the Hall of
+// Fame): two Pokémon train there over time, and a compatible pair (eggSpecies) lays Eggs that
+// hatch after wild battles into their family's first stage. The Day Care's state ("c" layer) is
+// per run; the species you've hatched (player.d.hatched) count for good.
+
+const DAY_CARE_SLOTS = 2
+const EGG_SECONDS = 180
+const EGG_BATTLES = 60
+const MAX_EGGS = 3
+const DAY_CARE_UPGRADES = {
+	11: { title: "Day Care Fees", cost: 300, text: "Pokémon in the Day Care gain experience three times as fast." },
+	12: { title: "Oval Charm", cost: 1500, text: "Eggs come twice as often." },
+	13: { title: "Flame Body Friend", cost: 5000, text: "Eggs hatch in half the wild battles." },
+	14: { title: "Egg Basket", cost: 20000, text: "Carry two more Eggs." },
+}
+
+function dayCareOpen() { return badges() >= 2 || hofEntries() >= 1 }
+function hasDayCareUpgrade(id) { return !!player.c && player.c.upgrades.map(Number).includes(Number(id)) }
+function inDayCare(key) { return !!player.c && player.c.slots.includes(key) }
+
+/** Experience per second for each Pokémon in the Day Care: grows with the level cap. */
+function dayCareXpRate() {
+	return 0.02 * Math.pow(currentCap(), 2.5) * xpMult() * (hasDayCareUpgrade(11) ? 3 : 1)
+}
+function eggSeconds() { return EGG_SECONDS / (hasDayCareUpgrade(12) ? 2 : 1) }
+function eggBattles() { return Math.ceil(EGG_BATTLES / (hasDayCareUpgrade(13) ? 2 : 1)) }
+function maxEggs() { return MAX_EGGS + (hasDayCareUpgrade(14) ? 2 : 0) }
+
+/** What the two Pokémon in the Day Care's Eggs hatch into (species ids), or null. */
+function dayCareEggs() {
+	const [a, b] = player.c.slots
+	if (!a || !b || formOf(a) || formOf(b)) return null
+	return eggSpecies(speciesOf(a), speciesOf(b))
+}
+
+function depositInDayCare(key) {
+	if (!dayCareOpen() || !player.t.box[key] || inDayCare(key) || player.c.slots.length >= DAY_CARE_SLOTS) return false
+	if (player.t.party.length === 1 && player.t.party[0] === key) return false
+	player.t.party = player.t.party.filter(k => k !== key)
+	player.c.slots.push(key)
+	return true
+}
+function withdrawFromDayCare(key) {
+	player.c.slots = player.c.slots.filter(k => k !== key)
+	if (player.t.box[key] && player.t.party.length < partySize() && canJoinParty(key)) player.t.party.push(key)
+}
+
+/** Trains the Day Care's Pokémon (they don't evolve there) and lays Eggs. */
+function dayCareTick(diff) {
+	if (!player.c || !dayCareOpen()) return
+	for (const key of player.c.slots) {
+		const entry = player.t.box[key]
+		if (entry) gainXp(entry, speciesOf(key), dayCareXpRate() * diff, currentCap())
+	}
+	if (!dayCareEggs() || player.c.eggs.length >= maxEggs()) { player.c.eggProgress = 0; return }
+	player.c.eggProgress += diff / eggSeconds()
+	while (player.c.eggProgress >= 1 && player.c.eggs.length < maxEggs()) {
+		player.c.eggProgress -= 1
+		const options = dayCareEggs()
+		const shinyParent = player.c.slots.some(isShiny)
+		player.c.eggs.push({ species: options[Math.floor(rand() * options.length)], battles: eggBattles(), shinyBoost: shinyParent ? 2 : 1 })
+		pkLog("The Day Care couple left an Egg!", "egg")
+	}
+	if (player.c.eggs.length >= maxEggs()) player.c.eggProgress = 0
+}
+
+/** Every wild battle counts down the Eggs; hatched ones join the box at Lv. 5. */
+function eggStep() {
+	if (!player.c || !player.c.eggs.length) return
+	for (const egg of player.c.eggs) egg.battles--
+	for (const egg of player.c.eggs.filter(e => e.battles <= 0)) {
+		const shiny = rand() < egg.shinyBoost / shinyOdds()
+		const isNew = !player.d.hatched[egg.species]
+		player.d.hatched[egg.species] = (player.d.hatched[egg.species] || 0) + 1
+		addToBox(egg.species, 5, shiny ? "shiny" : "normal")
+		pkLog(`Oh? The Egg hatched into ${shiny ? "★ " : ""}${speciesName(egg.species)}!`, isNew || shiny ? "new" : "catch", { id: egg.species }, shiny)
+	}
+	player.c.eggs = player.c.eggs.filter(e => e.battles > 0)
+}
+
+/** Breeder's notes: each species ever hatched gives +2% Research Points. */
+function hatchedSpecies() { return player.d.hatched ? Object.keys(player.d.hatched).length : 0 }

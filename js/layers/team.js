@@ -4,7 +4,7 @@
 function chooseStarter(id) {
 	if (player.t.starter) return
 	player.t.starter = id
-	addToBox(id, hofUpgrade(11) ? 10 : 5, false)
+	addToBox(id, hofUpgrade(11) ? 10 : 5)
 	if (hofUpgrade(11)) player.points = player.points.add(200)
 	for (const up of fieldKeptUpgrades()) if (!hasFieldUpgrade(up)) player.f.upgrades.push(up)
 	player.f.zone = ZONES[0].id

@@ -42,7 +42,7 @@ var player = {
 // The game's chooseStarter, without the UI.
 function startRun(id) {
 	player.t.starter = id
-	addToBox(id, hofUpgrade(11) ? 10 : 5, false)
+	addToBox(id, hofUpgrade(11) ? 10 : 5)
 	if (hofUpgrade(11)) player.points = player.points.add(200)
 	player.f = freshField(fieldKeptUpgrades())
 }

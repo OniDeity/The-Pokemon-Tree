@@ -51,6 +51,7 @@ addLayer("s", {
 		if (resettingLayer === "h") freshLayerData("s")
 	},
 	update(diff) { safariTick(diff) },
+	buyables: Object.fromEntries(Object.entries(SAFARI_BUYABLES).map(([id, def]) => [id, rpBuyable("s", id, def)])),
 	clickables: {
 		11: {
 			title() { return player.s.balls > 0 ? `${player.s.balls} Safari Balls left` : "Start a Safari trip" },
@@ -94,6 +95,9 @@ addLayer("s", {
 		["display-text", () => safariLogHtml()],
 		"blank",
 		["display-text", () => `Safari catches (for good): <b>${safariCaught()}</b><br>${WARDEN_MILESTONES.map(([n, text]) => `<span class="${wardenMilestone(n) ? "" : "pk-done"}">${n}: ${text}${wardenMilestone(n) ? " ✓" : ""}</span>`).join("<br>")}`],
+		"blank",
+		["display-text", () => automationOn("safari") ? `<b>Warden's Pass:</b> trips are free and each Pokémon gets its best strategy.` : ""],
+		"buyables",
 		"blank",
 		"upgrades",
 		"blank",

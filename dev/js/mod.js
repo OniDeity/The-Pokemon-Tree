@@ -17,11 +17,15 @@ let modInfo = {
 
 // Set your version in num and name
 let VERSION = {
-	num: "0.6",
-	name: "Safari Zone",
+	num: "0.7",
+	name: "Automation",
 }
 
 let changelog = `<h1>Changelog:</h1><br>
+	<h3>v0.7 Automation</h3><br>
+		- Three hard automation challenges after your first Hall of Fame entry: Shoestring Budget (Auto-buy), Hatchling Run (the Day Care Lady, who keeps new Eggs coming) and Poacher's Net (the Warden's Pass: free automatic Safari trips with the best strategy). Switch them on and off in the Hall of Fame's Automation page.<br>
+		- Buyables for the Day Care (Training, Incubator, Warm Blanket) and the Safari Zone (Ball Pouch, Quiet Steps, Safari Ball Polish).<br>
+		- Breeder's notes: the Day Care marks which Pokémon's Eggs are new (+2% Research Points each) and shows every species that can hatch; the Pokédex marks hatched species with 🥚.<br>
 	<h3>v0.6 Safari Zone</h3><br>
 		- Fuchsia's Safari Zone (from 5 badges, or from the start after two Hall of Fame entries): trips of Safari Balls, no battles. Throw Bait or a Rock first, or just balls.<br>
 		- Safari catches count for good toward the Warden's milestones.<br>

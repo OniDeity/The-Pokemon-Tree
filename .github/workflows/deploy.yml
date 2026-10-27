@@ -1,0 +1,48 @@
+name: Deploy
+# main → the public game at https://onideity.github.io/The-Pokemon-Tree/
+# dev  → the dev build at https://onideity.github.io/The-Pokemon-Tree/dev/ (separate saves)
+on:
+  push:
+    branches:
+      - 'main'
+      - 'dev'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  # Both branches write to gh-pages; take turns.
+  group: gh-pages
+  cancel-in-progress: false
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Mark as dev build
+        if: github.ref_name == 'dev'
+        run: node scripts/prepareDevBuild.mjs
+
+      # No build step: copy only what the game serves.
+      - name: Collect the site
+        run: |
+          mkdir site
+          cp -r index.html css js resources *.png site/
+          rm -rf site/js/Demo
+
+      - name: Deploy public version
+        if: github.ref_name == 'main'
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          branch: gh-pages
+          folder: site
+          clean-exclude: dev
+
+      - name: Deploy dev version
+        if: github.ref_name == 'dev'
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          branch: gh-pages
+          folder: site
+          target-folder: dev

@@ -78,14 +78,17 @@ function boxHtml() {
 	const sort = player.t.sort
 	const box = player.t.box
 	const byNumber = (a, b) => speciesOf(a) - speciesOf(b) || a.localeCompare(b)
-	const keys = Object.keys(box).filter(key => !player.t.party.includes(key) && !inDayCare(key))
+	const mode = player.t.boxFilter
+	const keys = Object.keys(box).filter(key => !player.t.party.includes(key) && !inDayCare(key) && searchMatches(player.t.boxSearch, speciesOf(key))
+		&& (mode === "shiny" ? isShiny(key) : mode === "forms" ? !!formOf(key) : mode === "egg" || mode === "safari" ? box[key].origin === mode : true))
 	if (sort === "level") keys.sort((a, b) => box[b].level - box[a].level || byNumber(a, b))
 	else if (sort === "strength") keys.sort((a, b) => battlerScore(speciesOf(b), box[b].level) - battlerScore(speciesOf(a), box[a].level))
 	else keys.sort(byNumber)
-	if (!keys.length) return "<i>The box is empty. Catch more Pokémon!</i>"
+	if (!keys.length) return player.t.boxSearch || mode !== "all" ? "<i>No Pokémon in the box match.</i>" : "<i>The box is empty. Catch more Pokémon!</i>"
 	return `<div class="pk-cards">${keys.map(key => monCard(key, false)).join("")}</div>`
 }
 function setBoxSort(sort) { player.t.sort = sort }
+const BOX_FILTERS = { all: "All", shiny: "Shiny", forms: "Forms", egg: "Hatched", safari: "Safari" }
 
 addLayer("t", {
 	name: "Team",
@@ -106,10 +109,12 @@ addLayer("t", {
 		evolved: 0,
 		nuzlocke: {},
 		sort: "number",
+		boxSearch: "",
+		boxFilter: "all",
 	}},
 	// Your Pokémon are kept through badges; the Hall of Fame (or a challenge) starts over.
 	doReset(resettingLayer) {
-		if (resettingLayer === "h") freshLayerData("t", ["autoEvolve", "sort"])
+		if (resettingLayer === "h") freshLayerData("t", ["autoEvolve", "sort", "boxSearch", "boxFilter"])
 	},
 	tooltip() { return player.t.starter ? `${Object.keys(player.t.box).length} Pokémon` : "Choose your starter!" },
 	shouldNotify() { return !player.t.starter },
@@ -140,7 +145,8 @@ addLayer("t", {
 		["display-text", () => player.t.starter ? partyHtml() : ""],
 		"blank",
 		["clickable", 21],
-		["display-text", () => player.t.starter ? `<h3>Box</h3><br>Sort: ${["number", "level", "strength"].map(s => `<button class="pk-button ${player.t.sort === s ? "pk-on" : ""}" onclick="setBoxSort('${s}')">${s}</button>`).join(" ")}` : ""],
+		["display-text", () => player.t.starter ? `<h3>Box</h3><br>Sort: ${["number", "level", "strength"].map(s => `<button class="pk-button ${player.t.sort === s ? "pk-on" : ""}" onclick="setBoxSort('${s}')">${s}</button>`).join(" ")}<br>${filterBar("t", "boxFilter", BOX_FILTERS)}` : ""],
+		["pk-search", "boxSearch"],
 		["display-text", () => player.t.starter ? boxHtml() : ""],
 	],
 })

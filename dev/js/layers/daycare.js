@@ -11,7 +11,9 @@ function hatchMark(key) {
 }
 
 function breederNotesHtml() {
-	return `<h3>Breeder's notes (${hatchedSpecies()}/${HATCHABLE.length})</h3><br><small>Every species hatched gives +2% Research Points for good. Unhatched ones are dark.</small><br><div class="pk-dex">${HATCHABLE.map(id => {
+	const mode = player.c.notesFilter
+	const ids = HATCHABLE.filter(id => mode === "missing" ? !player.d.hatched[id] : mode === "hatched" ? !!player.d.hatched[id] : true)
+	return `<h3>Breeder's notes (${hatchedSpecies()}/${HATCHABLE.length})</h3><br><small>Every species hatched gives +2% Research Points for good. Unhatched ones are dark.</small><br>${filterBar("c", "notesFilter", { all: "All", missing: "Not hatched", hatched: "Hatched" })}<br><div class="pk-dex">${ids.map(id => {
 		const done = player.d.hatched[id]
 		return `<span class="pk-dex-entry ${done ? "" : "pk-unseen"}" title="${speciesName(id)}${done ? ` (hatched ${done})` : " (not hatched yet)"}">${pkSprite(id, false, 48)}<br><small>${done ? speciesName(id) : "???"}</small></span>`
 	}).join("")}</div>`
@@ -48,11 +50,21 @@ function eggsHtml() {
 		<div class="pk-xp"><div style="width:${100 * (1 - egg.battles / eggBattles())}%;background:#F8A0C0"></div></div></div>`).join("")}</div>`
 }
 
+const DEPOSIT_FILTERS = { all: "All", new: "New Eggs", breeds: "Lays Eggs", box: "Not in party" }
+function depositMatches(key) {
+	const mode = player.c.depositFilter
+	if (!searchMatches(player.c.depositSearch, speciesOf(key))) return false
+	const eggs = formOf(key) ? null : eggSpecies(speciesOf(key), DITTO)
+	if (mode === "new") return !!eggs && eggs.some(id => !player.d.hatched[id])
+	if (mode === "breeds") return !!eggs
+	if (mode === "box") return !player.t.party.includes(key)
+	return true
+}
 function depositListHtml() {
-	if (player.c.slots.length >= DAY_CARE_SLOTS) return ""
-	const keys = Object.keys(player.t.box).filter(key => !inDayCare(key)).sort((a, b) => speciesOf(a) - speciesOf(b))
-	if (!keys.length) return ""
-	return `<h3>Leave a Pokémon</h3><br><div class="pk-dex">${keys.map(key => {
+	if (player.c.slots.length >= DAY_CARE_SLOTS) return "<i>The Day Care is full: take a Pokémon back to leave another.</i>"
+	const keys = Object.keys(player.t.box).filter(key => !inDayCare(key) && depositMatches(key)).sort((a, b) => speciesOf(a) - speciesOf(b))
+	if (!keys.length) return "<i>No Pokémon match.</i>"
+	return `<div class="pk-dex">${keys.map(key => {
 		const lonely = player.t.party.length === 1 && player.t.party[0] === key
 		return `<button class="pk-dex-entry pk-button" ${lonely ? "disabled title='Your only party Pokémon'" : `onclick="depositKey('${key}')"`}>${pkKeySprite(key, 48)}<br><small>${keyName(key)}<br>Lv. ${player.t.box[key].level}<br>${hatchMark(key)}</small></button>`
 	}).join("")}</div>`
@@ -73,13 +85,16 @@ addLayer("c", {
 		eggs: [],
 		eggProgress: 0,
 		autoTimer: 0,
+		depositSearch: "",
+		depositFilter: "all",
+		notesFilter: "all",
 	}},
 	branches: ["t"],
 	layerShown() { return player.t.starter > 0 && dayCareOpen() },
 	tooltip() { return `${player.c.slots.length}/${DAY_CARE_SLOTS} Pokémon · ${player.c.eggs.length} Egg${player.c.eggs.length === 1 ? "" : "s"}` },
 	// Kept through badges; the Hall of Fame (or a challenge) starts it over.
 	doReset(resettingLayer) {
-		if (resettingLayer === "h") freshLayerData("c")
+		if (resettingLayer === "h") freshLayerData("c", ["depositSearch", "depositFilter", "notesFilter"])
 	},
 	update(diff) {
 		dayCareTick(diff)
@@ -125,6 +140,8 @@ addLayer("c", {
 		"blank",
 		"upgrades",
 		"blank",
+		["display-text", () => `<h3>Leave a Pokémon</h3><br>${filterBar("c", "depositFilter", DEPOSIT_FILTERS)}`],
+		["pk-search", "depositSearch"],
 		["display-text", () => depositListHtml()],
 		"blank",
 		["display-text", () => breederNotesHtml()],

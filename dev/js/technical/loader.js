@@ -2,7 +2,7 @@
 
 for (file in modInfo.modFiles) {
     let script = document.createElement("script");
-    script.setAttribute("src", "js/" + modInfo.modFiles[file] + "?v=60f677a");
+    script.setAttribute("src", "js/" + modInfo.modFiles[file] + "?v=1aba89b");
     script.async = false; // Run in order: later files use earlier ones
     document.head.insertBefore(script, document.getElementById("temp"));
 }

@@ -68,6 +68,7 @@ function rpMult() {
 	m *= 1 + 0.1 * gameCornerBuyable(12)
 	if (jackpotMilestone(5)) m *= 1.1
 	m *= 1 + 0.01 * shinySpecies()
+	if (rocketMilestone(10)) m *= 1.1
 	return m
 }
 function wildRpMult() { return rpMult() * (hasFieldUpgrade(21) ? 1.5 : 1) }
@@ -94,6 +95,7 @@ function catchMult() {
 	if (dexMilestone(25)) m *= 1.25
 	if (formMilestone(10)) m *= 1.25
 	if (wardenMilestone(50)) m *= 1.1
+	if (rocketMilestone(20)) m *= 1.1
 	return m
 }
 function gearMult() { return 1 + 0.15 * fieldBuyable(13) }
@@ -101,6 +103,7 @@ function atkMult() {
 	let m = gearMult() * Math.pow(BADGE_STAT_BOOST, badges()) * (1 + 0.05 * hofBuyable(13))
 	if (hasFieldUpgrade(22)) m *= 1.25
 	if (dexMilestone(120)) m *= 1.2
+	if (rocketMilestone(40)) m *= 1.1
 	return m
 }
 function defMult() {
@@ -354,7 +357,7 @@ function doEncounter(rng) {
 		pkLog(`Beat a wild ${name}.`, "win", enc, shiny)
 		return { ...enc, shiny, win: true, caught: false, rp }
 	}
-	const caught = rand(rng) < catchChance(enc.id, catchMult(), enc.form)
+	const caught = rand(rng) < catchChance(enc.id, catchMult() * speciesCatchMult(enc.id), enc.form)
 	if (caught) {
 		const isNew = !player.d.caught[enc.id] || (enc.form && !player.d.forms[`${enc.id}-${enc.form}`])
 		addToBox(enc.id, enc.level, look)
@@ -995,7 +998,7 @@ function spinSlots(rng) {
 			addCoins(won)
 			if (name === "7 7 7") {
 				player.d.jackpots = jackpots() + 1
-				pkLog(`Game Corner: JACKPOT! 7 7 7 paid ${formatCoins(won)} coins.`, "new")
+				pkLog(`Game Corner: JACKPOT! 7 7 7 paid ${formatCoins(won)} coins.`, "jackpot")
 			}
 			return { name, bet, won }
 		}
@@ -1081,3 +1084,60 @@ function huntStep(enc, win) {
 		player.y.chain = 0
 	}
 }
+
+// ---- The Rocket Hideout ----
+// The "r" layer, under the Game Corner: four floors of Team Rocket, Giovanni at the bottom. Battles
+// go in order; each Grunt drops coins from the Game Corner's takings and Giovanni the Silph Scope
+// (Ghost Pokémon twice as easy to catch this run). Kept through badges, reset by the Hall of Fame.
+// Rockets beaten count for good (player.d.rockets) toward its milestones. Giovanni's team is FRLG's;
+// the Grunts' are in the spirit of the games' (Idle Pokémon has no Hideout data).
+
+const ROCKET_FLOORS = [
+	{ name: "B1F", trainers: [{ team: [[19, 20], [20, 20]] }, { team: [[41, 20], [23, 20], [41, 20]] }] },
+	{ name: "B2F", trainers: [{ team: [[96, 21], [66, 21]] }, { team: [[109, 21], [20, 21]] }] },
+	{ name: "B3F", trainers: [{ team: [[24, 22], [41, 22]] }, { team: [[66, 21], [96, 22], [66, 21]] }] },
+	{ name: "B4F", trainers: [{ team: [[109, 23], [109, 23]] }, { team: [[42, 23], [24, 23]] },
+		{ name: "Giovanni", boss: true, team: [[95, 25], [111, 24], [115, 29]], quote: "So! I must say, I am impressed you got here." }] },
+]
+const ROCKET_TRAINERS = ROCKET_FLOORS.flatMap((floor, f) => floor.trainers.map(t => ({ name: "Team Rocket Grunt", ...t, floor: floor.name, coins: 150 * (f + 1) })))
+const ROCKET_STRENGTH = 2.6
+const GIOVANNI_STRENGTH = 5
+const ROCKET_MILESTONES = [
+	[5, "Rocket loot: Grunts drop twice as many coins."],
+	[10, "Research Points ×1.1."],
+	[20, "+10% catch chance everywhere."],
+	[40, "Your party's Attack ×1.1."],
+]
+
+function rocketOpen() { return gameCornerOpen() }
+function rocketsBeaten() { return player.d.rockets || 0 }
+function rocketMilestone(n) { return rocketsBeaten() >= n }
+function nextRocket() { return player.r ? ROCKET_TRAINERS[player.r.beaten] || null : null }
+function giovanniBeaten() { return !!player.r && player.r.beaten >= ROCKET_TRAINERS.length }
+function hasSilphScope() { return giovanniBeaten() }
+function rocketPrediction() {
+	const t = nextRocket()
+	if (!t) return null
+	return battle(partyBattlers(), trainerBattlers(t, t.boss ? GIOVANNI_STRENGTH : ROCKET_STRENGTH))
+}
+function canChallengeRocket() {
+	const p = rocketPrediction()
+	return rocketOpen() && !!p && p.win && !(inChallenge(11) && p.fainted > 0)
+}
+function challengeRocket() {
+	if (!canChallengeRocket()) return false
+	const t = nextRocket()
+	releaseFainted(rocketPrediction())
+	player.r.beaten++
+	player.d.rockets = rocketsBeaten() + 1
+	if (t.boss) {
+		pkLog(`Giovanni: "I'll withdraw for now..." He left the Silph Scope behind!`, "rocket")
+	} else {
+		const coins = t.coins * (rocketMilestone(5) ? 2 : 1)
+		addCoins(coins)
+		pkLog(`Beat a Rocket Grunt on ${t.floor}: found ${formatCoins(coins)} coins.`, "win")
+	}
+	return true
+}
+/** Species-specific catch help: the Silph Scope unmasks Ghost Pokémon. */
+function speciesCatchMult(id) { return hasSilphScope() && SPECIES[id].types.includes("ghost") ? 2 : 1 }

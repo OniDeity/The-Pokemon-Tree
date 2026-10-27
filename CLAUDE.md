@@ -53,6 +53,10 @@ Sister project: OniDeity/idle-pokemon (its data is the source of ours).
   reset layers with `freshLayerData` (field.js) or the box, routes and gifts survive the reset.
 - Challenges must stay beatable by the simulator: Battle Gear is most of a team's power, so no
   challenge takes it away, and Lone Partner doubles its one Pokémon (`LONE_PARTNER_BOOST`).
+- Box and party entries are keyed by species and look: `boxKey(id, variant)` gives "15" or
+  "15-shiny" (`speciesOf`, `variantOf`, `keyName`). Each look is its own slot, so evolution only
+  waits when the same look of the evolution is owned. `migrateBox` (run by `fixOldSave`) moved
+  v0.2 saves (one entry per species with a `shiny` flag, numeric party) to these keys.
 - Encounters per tick are capped (`MAX_ENCOUNTERS_PER_TICK`); the rest waits in `player.f.progress`
   so offline time isn't lost.
 
@@ -65,5 +69,9 @@ Sister project: OniDeity/idle-pokemon (its data is the source of ours).
   Pokémon has the data: `kantoAnime.ts`, Pinkan/Valencian variants), and side systems that
   each add a node and a bonus (Day Care breeding, Safari Zone, Game Corner, shiny hunting).
 - Later regions follow the same pattern, gated by Hall of Fame entries.
+- Albino and Melanistic Pokémon (the owner's idea, unlocked around Gen 3): Albino has the same
+  base odds as Shiny but its own items and hunting methods to lower them; Melanistic is Shiny
+  and Albino at once. They become `VARIANTS` ("15-albino", "15-melanistic"), their own Pokédex
+  marks, and need recolored sprites (Idle Pokémon draws its own with `scripts/generate*.py`).
 - Sprites: keep them, but as the Pokédex grows split it into per-region pages, page the box,
   and consider a setting to hide sprites.

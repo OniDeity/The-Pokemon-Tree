@@ -101,7 +101,7 @@ function chooseZone() {
 	let best = null, bestValue = -1
 	for (const id of open) {
 		// Challenge runs also go after species that can join the party and aren't in the box yet.
-		const wanted = run(`anyChallenge() && zoneSpecies(zoneById("${id}"), badges()).some(s => canJoinParty(s) && !player.t.box[s] && !(inChallenge(11) && player.t.nuzlocke["${id}"]))`)
+		const wanted = run(`anyChallenge() && zoneSpecies(zoneById("${id}"), badges()).some(s => canJoinParty(s) && !ownsSpecies(s) && !(inChallenge(11) && player.t.nuzlocke["${id}"]))`)
 		const v = zoneValue(run(`zoneById("${id}")`)) * (wanted ? 3 : 1) + (unseen.includes(id) ? 1e9 : 0)
 		if (v > bestValue) { bestValue = v; best = id }
 	}
@@ -115,12 +115,12 @@ function chooseParty() {
 		const gym = nextGym()
 		const foes = gym ? trainerBattlers(gym, GYM_STRENGTH[badges()]) : badges() >= 8 && player.l.beaten < 5
 			? trainerBattlers(leagueTrainers()[player.l.beaten], leagueTrainers()[player.l.beaten].strength) : null
-		const ids = Object.keys(player.t.box).map(Number).filter(canJoinParty)
+		const ids = Object.keys(player.t.box).filter(canJoinParty)
 		const score = id => {
-			const b = battler(id, player.t.box[id].level, atk, def)
-			if (!foes) return battlerScore(id, player.t.box[id].level)
+			const b = battler(speciesOf(id), player.t.box[id].level, atk, def)
+			if (!foes) return battlerScore(speciesOf(id), player.t.box[id].level)
 			const r = battle([b], foes)
-			return r.defeated + r.hpLeft + battlerScore(id, player.t.box[id].level) * 1e-12
+			return r.defeated + r.hpLeft + battlerScore(speciesOf(id), player.t.box[id].level) * 1e-12
 		}
 		ids.sort((a, b) => score(b) - score(a))
 		player.t.party = ids.slice(0, size)
@@ -144,8 +144,8 @@ function shop() {
 				options.push([cost, () => { player.points = player.points.sub(cost); player.f.buyables[id] = new Decimal(fieldBuyable(id) + 1) }])
 			}
 			for (const s of SPECIALS) if (specialStatus(s).ok) options.push([specialCost(s), () => takeSpecial(s)])
-			for (const id of Object.keys(player.t.box)) for (const e of itemEvolutions(Number(id), badges()))
-				if (canItemEvolve(Number(id), e)) options.push([itemEvolutionCost(e), () => itemEvolve(Number(id), e.into)])
+			for (const key of Object.keys(player.t.box)) for (const e of itemEvolutions(speciesOf(key), badges()))
+				if (canItemEvolve(key, e)) options.push([itemEvolutionCost(e), () => itemEvolve(key, e.into)])
 			options.sort((a, b) => a[0].cmp(b[0]))
 			if (options.length && player.points.gte(options[0][0])) { options[0][1](); return true }
 			return false
@@ -170,7 +170,7 @@ while (t < LIMIT) {
 		// Nuzlocke: wait until at most one Pokémon would faint (and be released).
 		if (run(`canChallengeGym() && !(inChallenge(11) && gymPrediction().fainted > 1)`)) {
 			const b = run(`badges()`) + 1
-			console.log(`${runNumber > 1 ? `Run ${runNumber} ` : ""}Badge ${b} at ${(t / 3600).toFixed(2)} h (+${((t - last) / 60).toFixed(0)} min; survey +${((surveyAt - last) / 60).toFixed(0)}, team +${((winAt - last) / 60).toFixed(0)}) gear ${run("[11,12,13,14].map(fieldBuyable).join('/')")} ups ${run("player.f.upgrades.join(',')")} RP ${run("format(player.points)")} caught ${run("caughtCount()")} cap ${run("currentCap()")} party ${run("player.t.party.map(id => speciesName(id) + ' ' + player.t.box[id].level).join(', ')")}`)
+			console.log(`${runNumber > 1 ? `Run ${runNumber} ` : ""}Badge ${b} at ${(t / 3600).toFixed(2)} h (+${((t - last) / 60).toFixed(0)} min; survey +${((surveyAt - last) / 60).toFixed(0)}, team +${((winAt - last) / 60).toFixed(0)}) gear ${run("[11,12,13,14].map(fieldBuyable).join('/')")} ups ${run("player.f.upgrades.join(',')")} RP ${run("format(player.points)")} caught ${run("caughtCount()")} cap ${run("currentCap()")} party ${run("player.t.party.map(k => keyName(k) + ' ' + player.t.box[k].level).join(', ')")}`)
 			last = t; surveyAt = winAt = null
 			run(`(() => {
 				winGymBattle()
@@ -193,7 +193,7 @@ while (t < LIMIT) {
 			chooseParty(); chooseZone()
 		}
 	}
-	if (t % 3600 === 0) console.log(`  ${t / 3600} h: badges ${run("badges()")} RP ${run("format(player.points)")} zone ${run("player.f.zone")} survey missing ${run("surveyStatus().missing.map(speciesName).join(',')")} party ${run("player.t.party.map(id => speciesName(id) + ' ' + player.t.box[id].level).join(', ')")} league ${run("badges() >= 8 && !isChampion() ? JSON.stringify((({win,defeated})=>({win,defeated}))(leaguePrediction(player.l.beaten))) : '-'")} gym ${run("JSON.stringify((({win,defeated})=>({win,defeated}))(gymPrediction()||{}))")}`)
+	if (t % 3600 === 0) console.log(`  ${t / 3600} h: badges ${run("badges()")} RP ${run("format(player.points)")} zone ${run("player.f.zone")} survey missing ${run("surveyStatus().missing.map(speciesName).join(',')")} party ${run("player.t.party.map(k => keyName(k) + ' ' + player.t.box[k].level).join(', ')")} league ${run("badges() >= 8 && !isChampion() ? JSON.stringify((({win,defeated})=>({win,defeated}))(leaguePrediction(player.l.beaten))) : '-'")} gym ${run("JSON.stringify((({win,defeated})=>({win,defeated}))(gymPrediction()||{}))")}`)
 }
 
 console.log(`Starter ${starter}: ${run("isChampion()") ? "Champion" : "not Champion"} after ${(t / 3600).toFixed(2)} h in all (run ${runNumber}), caught ${run("caughtCount()")}`)

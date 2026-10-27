@@ -186,10 +186,13 @@ function zoneSpecies(zone, badges) {
 	return [...ids]
 }
 
-/** Rolls a wild Pokémon in a zone: {id, level, pool, form}. */
-function rollEncounter(zone, badges, rng) {
+/**
+ * Rolls a wild Pokémon in a zone: {id, level, pool, form}. `lure` ({id, mult}) makes one species
+ * (its plain look) turn up more often within its pools.
+ */
+function rollEncounter(zone, badges, rng, lure = null) {
 	const pool = pickWeighted(zonePools(zone, badges), p => POOL_WEIGHT[p], rng)
-	const [id, , min, max, form] = pickWeighted(zone.pools[pool], e => e[1], rng)
+	const [id, , min, max, form] = pickWeighted(zone.pools[pool], e => e[1] * (lure && e[0] === lure.id && !e[4] ? lure.mult : 1), rng)
 	return { id, level: min + Math.floor(rand(rng) * (max - min + 1)), pool, form: form || null }
 }
 

@@ -67,6 +67,7 @@ function rpMult() {
 	if (wardenMilestone(25)) m *= 1.2
 	m *= 1 + 0.1 * gameCornerBuyable(12)
 	if (jackpotMilestone(5)) m *= 1.1
+	m *= 1 + 0.01 * shinySpecies()
 	return m
 }
 function wildRpMult() { return rpMult() * (hasFieldUpgrade(21) ? 1.5 : 1) }
@@ -112,6 +113,8 @@ function shinyOdds() {
 	if (hasFieldUpgrade(15)) odds /= 2
 	if (hofUpgrade(15)) odds /= 2
 	if (dexMilestone(100)) odds /= 3
+	if (shinyMilestone(10)) odds /= 2
+	odds /= 1 + 0.1 * huntBuyable(13)
 	return odds
 }
 function partySize() {
@@ -296,7 +299,7 @@ function partyBattlers() {
 		const lead = i === 0 ? (inChallenge(13) ? LONE_PARTNER_BOOST : 1) * (beatChallenge(13) ? 1.2 : 1) : 1
 		const typed = (inChallenge(12) ? MONOTYPE_BOOST : 1) * (beatChallenge(12) && sharesStarterType(key) ? 1.15 : 1)
 		const form = FORMS[formOf(key)] || {}
-		const handicap = challengeHandicap(player.t.box[key])
+		const handicap = challengeHandicap(player.t.box[key]) * (shinyMilestone(25) && isShiny(key) ? 1.25 : 1)
 		return battler(speciesOf(key), player.t.box[key].level, atk * lead * typed * (form.atk || 1) * handicap, def * lead * (form.def || 1) * handicap)
 	})
 }
@@ -317,8 +320,8 @@ function currentZone() { return zoneById(player.f.zone) || ZONES[0] }
 
 function doEncounter(rng) {
 	const zone = currentZone()
-	const enc = rollEncounter(zone, badges(), rng)
-	const shiny = rand(rng) < 1 / shinyOdds()
+	const enc = rollEncounter(zone, badges(), rng, huntLure())
+	const shiny = rand(rng) < 1 / encounterShinyOdds(enc)
 	const look = makeLook(enc.form, shiny)
 	dexSee(enc.id)
 	player.f.encounters++
@@ -326,6 +329,7 @@ function doEncounter(rng) {
 	const team = partyBattlers()
 	const result = battle(team, [battler(enc.id, enc.level)])
 	const name = `${shiny ? "★ " : ""}${formName(enc.id, enc.form)} (Lv. ${enc.level})`
+	huntStep(enc, result.win)
 	// Nuzlocke: only the first new species met on each route may be caught (shinies always can).
 	const nuzlocke = inChallenge(11)
 	const firstHere = nuzlocke && !player.t.nuzlocke[zone.id] && !ownsSpecies(enc.id)
@@ -681,7 +685,7 @@ function dayCareTick(diff) {
 		player.c.eggProgress -= 1
 		const options = dayCareEggs()
 		const shinyParent = player.c.slots.some(isShiny)
-		player.c.eggs.push({ species: options[Math.floor(rand() * options.length)], battles: eggBattles(), shinyBoost: shinyParent ? 2 : 1 })
+		player.c.eggs.push({ species: options[Math.floor(rand() * options.length)], battles: eggBattles(), shinyBoost: shinyParent ? (hasHuntUpgrade(12) ? 4 : 2) : 1 })
 		pkLog("The Day Care couple left an Egg!", "egg")
 	}
 	if (player.c.eggs.length >= maxEggs()) player.c.eggProgress = 0
@@ -792,7 +796,8 @@ function safariEncounter(rng) {
 function safariLog(text, kind, enc, shiny) {
 	player.s.log.unshift({ text, kind, id: enc.id, shiny: !!shiny })
 	if (player.s.log.length > LOG_SIZE) player.s.log.length = LOG_SIZE
-	if (kind === "new" || shiny) pkLog(`Safari Zone: ${text}`, kind, enc, shiny)
+	// Only shiny catches pop up; new Pokédex entries go to the Field's log quietly.
+	if (kind === "new") pkLog(`Safari Zone: ${text}`, kind, enc, shiny, !shiny)
 }
 
 function safariTick(diff, rng) {
@@ -828,7 +833,7 @@ function buyableCost(def, amount) { return new Decimal(def.base).times(Decimal.p
 // Rewards of the automation challenges (31-33), each with an on/off switch in player.h.auto.
 
 const AUTOMATIONS = {
-	buy: { challenge: 31, name: "Auto-buy", text: "Buys Field equipment, opens routes, and buys the Day Care's, Safari Zone's and Game Corner's buyables when you can afford them (cheapest first)." },
+	buy: { challenge: 31, name: "Auto-buy", text: "Buys Field equipment, opens routes, and buys the Day Care's, Safari Zone's, Game Corner's and shiny hunting's buyables when you can afford them (cheapest first)." },
 	eggs: { challenge: 32, name: "Day Care Lady", text: "Keeps the Day Care's pair laying Eggs, choosing pairs whose Eggs hatch into species you haven't hatched yet." },
 	safari: { challenge: 33, name: "Warden's Pass", text: "Safari trips are free and start on their own, and each Pokémon gets the strategy most likely to catch it." },
 }
@@ -864,6 +869,10 @@ function autoBuyTick() {
 		if (safariOpen()) for (const id in SAFARI_BUYABLES) {
 			const cost = buyableCost(SAFARI_BUYABLES[id], safariBuyable(id))
 			options.push([cost, () => { player.points = player.points.sub(cost); player.s.buyables[id] = new Decimal(safariBuyable(id) + 1) }])
+		}
+		if (huntOpen()) for (const id in HUNT_BUYABLES) {
+			const cost = buyableCost(HUNT_BUYABLES[id], huntBuyable(id))
+			options.push([cost, () => { player.points = player.points.sub(cost); player.y.buyables[id] = new Decimal(huntBuyable(id) + 1) }])
 		}
 		options.sort((a, b) => a[0].cmp(b[0]))
 		if (options.length && player.points.gte(options[0][0])) { options[0][1](); continue }
@@ -1013,4 +1022,62 @@ function gameCornerTick(diff, rng) {
 function itemfinderFind(rng) {
 	if (!hasGameCornerUpgrade(13) || !gameCornerOpen() || rand(rng) >= 0.05) return
 	addCoins(Math.ceil(rand(rng) * 10 * (badges() + 1)))
+}
+
+// ---- Shiny hunting ----
+// The "y" layer: choose a target species; every time you beat it in the wild the chain grows, and
+// a longer chain makes that species' shinies more common (like the Poké Radar or Let's Go's combos).
+// Losing to it breaks the chain. Shiny species caught (player.d.shiny) count for good.
+
+/** Chain length for each extra ×1 on the target's shiny odds. */
+const CHAIN_STEP = 10
+const HUNT_UPGRADES = {
+	11: { title: "Poké Radar", cost: 50000, text: "Chains can reach ×8 shiny odds (up from ×4)." },
+	12: { title: "Masuda's Notes", cost: 30000, text: "A shiny parent in the Day Care makes shiny Eggs four times as likely (up from twice)." },
+	13: { title: "Steady Nerves", cost: 80000, text: "Losing to your target no longer breaks the chain." },
+}
+const HUNT_BUYABLES = {
+	11: { title: "Lure", base: 2000, growth: 1.8, text: "Your target turns up 50% more often per level (where it lives)." },
+	12: { title: "Radar Battery", base: 3000, growth: 1.9, text: "Each target beaten adds 25% more to the chain per level." },
+	13: { title: "Shiny Lens", base: 10000, growth: 2.2, text: "Shiny Pokémon 10% more common everywhere per level." },
+}
+const SHINY_MILESTONES = [
+	[1, "Shiny hunting opens from the start of every run."],
+	[5, "A new target's chain starts at 10."],
+	[10, "Shiny Pokémon twice as common everywhere."],
+	[25, "Shiny Pokémon in your party fight 25% stronger."],
+]
+
+function shinySpecies() { return player.d ? Object.keys(player.d.shiny).length : 0 }
+function shinyMilestone(n) { return shinySpecies() >= n }
+function huntOpen() { return shinyMilestone(1) || badges() >= 4 || hofEntries() >= 4 }
+function hasHuntUpgrade(id) { return !!player.y && player.y.upgrades.map(Number).includes(Number(id)) }
+function huntBuyable(id) { return player.y ? new Decimal(player.y.buyables?.[id] ?? 0).toNumber() : 0 }
+function huntTarget() { return player.y && huntOpen() ? Number(player.y.target) || 0 : 0 }
+function chainCap() { return hasHuntUpgrade(11) ? 8 : 4 }
+/** The chain's multiplier on the target's shiny odds: ×1, +1 every CHAIN_STEP, up to the cap. */
+function chainBonus() { return Math.min(chainCap(), 1 + (player.y?.chain || 0) / CHAIN_STEP) }
+
+function setHuntTarget(id) {
+	if (!player.y || Number(id) === huntTarget()) return
+	player.y.target = Number(id)
+	player.y.chain = shinyMilestone(5) ? 10 : 0
+}
+function huntLure() {
+	const id = huntTarget()
+	return id && huntBuyable(11) ? { id, mult: 1 + 0.5 * huntBuyable(11) } : null
+}
+function encounterShinyOdds(enc) {
+	return shinyOdds() / (enc.id === huntTarget() && !enc.form ? chainBonus() : 1)
+}
+/** After a wild battle: beating the target grows the chain, losing to it breaks it. */
+function huntStep(enc, win) {
+	if (!huntTarget() || enc.id !== huntTarget() || enc.form) return
+	if (win) {
+		player.y.chain += 1 + 0.25 * huntBuyable(12)
+		player.d.bestChain = Math.max(player.d.bestChain || 0, Math.floor(player.y.chain))
+	} else if (!hasHuntUpgrade(13)) {
+		if (player.y.chain >= CHAIN_STEP) pkLog(`The ${speciesName(enc.id)} chain broke at ${Math.floor(player.y.chain)}.`, "lose", enc)
+		player.y.chain = 0
+	}
 }

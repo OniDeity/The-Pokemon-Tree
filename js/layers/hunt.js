@@ -18,6 +18,8 @@ function shinyDexHtml() {
 	let html = `<h3>Shiny Pokédex (${shinySpecies()}/151)</h3><br><small>Every shiny species caught gives +1% Research Points for good.</small><br><div class="pk-dex">`
 	for (let id = 1; id <= 151; id++) {
 		const n = player.d.shiny[id]
+		if (player.y.shinyFilter === "shiny" ? !n : player.y.shinyFilter === "missing" ? n || !player.d.caught[id] : false) continue
+		if (player.y.shinySearch && !(player.d.seen[id] && searchMatches(player.y.shinySearch, id))) continue
 		html += `<span class="pk-dex-entry ${n ? "" : "pk-unseen"}" title="${player.d.seen[id] ? speciesName(id) : "???"}${n ? ` (★${n})` : ""}">${pkSprite(id, !!n, 48)}<br><small>${id}</small></span>`
 	}
 	return html + "</div>"
@@ -36,12 +38,14 @@ addLayer("y", {
 		points: new Decimal(0),
 		target: 0,
 		chain: 0,
+		shinySearch: "",
+		shinyFilter: "all",
 	}},
 	branches: ["f"],
 	layerShown() { return player.t.starter > 0 && huntOpen() },
 	tooltip() { return huntTarget() ? `${speciesName(huntTarget())} chain ${Math.floor(player.y.chain)}` : `${shinySpecies()} shiny species` },
 	doReset(resettingLayer) {
-		if (resettingLayer === "h") freshLayerData("y")
+		if (resettingLayer === "h") freshLayerData("y", ["shinySearch", "shinyFilter"])
 	},
 	update() { player.y.points = new Decimal(shinySpecies()) },
 	buyables: Object.fromEntries(Object.entries(HUNT_BUYABLES).map(([id, def]) => [id, rpBuyable("y", id, def)])),
@@ -68,6 +72,8 @@ addLayer("y", {
 			content: [
 				["display-text", () => `Shiny species caught (for good): <b>${shinySpecies()}</b> · best chain: <b>${player.d.bestChain || 0}</b><br>${SHINY_MILESTONES.map(([n, text]) => `<span class="${shinyMilestone(n) ? "" : "pk-done"}">${n}: ${text}${shinyMilestone(n) ? " ✓" : ""}</span>`).join("<br>")}`],
 				"blank",
+				["display-text", () => filterBar("y", "shinyFilter", { all: "All", shiny: "Shiny", missing: "Caught, not shiny yet" })],
+				["pk-search", "shinySearch"],
 				["display-text", () => shinyDexHtml()],
 			],
 		},

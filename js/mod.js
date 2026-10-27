@@ -5,7 +5,7 @@ let modInfo = {
 	pointsName: "Research Points",
 	modFiles: [
 		"data/kanto.js", "engine.js", "logic.js",
-		"layers/field.js", "layers/team.js", "layers/gym.js", "layers/daycare.js", "layers/safari.js", "layers/gamecorner.js", "layers/hunt.js", "layers/hof.js", "layers/dex.js",
+		"layers/field.js", "layers/team.js", "layers/gym.js", "layers/daycare.js", "layers/safari.js", "layers/gamecorner.js", "layers/rocket.js", "layers/hunt.js", "layers/hof.js", "layers/dex.js",
 		"tree.js",
 	],
 
@@ -17,11 +17,15 @@ let modInfo = {
 
 // Set your version in num and name
 let VERSION = {
-	num: "0.9",
-	name: "Shiny hunting",
+	num: "0.10",
+	name: "Rocket Hideout",
 }
 
 let changelog = `<h1>Changelog:</h1><br>
+	<h3>v0.10 Rocket Hideout</h3><br>
+		- The Rocket Hideout under the Game Corner (opens with it): four floors of Team Rocket Grunts, each dropping coins, then Giovanni and the Silph Scope (Ghost Pokémon twice as easy to catch that run). Rockets beaten count for good toward its milestones.<br>
+		- Notification settings (the gear's settings page): switch off each kind of popup (new Pokédex entries, shinies, evolutions, badges, the League, the Hall of Fame, jackpots, Team Rocket, milestones, achievements) and the glowing nodes.<br>
+		- Filters and a name search for the box, the Day Care's list (new Eggs, Pokémon that lay Eggs...), the Breeder's notes, the Pokédex and the Shiny Pokédex.<br>
 	<h3>v0.9 Shiny hunting</h3><br>
 		- Shiny hunting (★, from 4 badges, from the start after four Hall of Fame entries, or for good once you've caught a shiny): choose a target on your route; each time you beat it the chain grows and its shinies get more common, up to ×4 (×8 with the Poké Radar). Losing to it breaks the chain.<br>
 		- Buyables (Lure, Radar Battery, Shiny Lens) and upgrades (Poké Radar, Masuda's Notes for shiny Eggs, Steady Nerves). Auto-buy buys the buyables too.<br>

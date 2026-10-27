@@ -796,7 +796,8 @@ function safariEncounter(rng) {
 function safariLog(text, kind, enc, shiny) {
 	player.s.log.unshift({ text, kind, id: enc.id, shiny: !!shiny })
 	if (player.s.log.length > LOG_SIZE) player.s.log.length = LOG_SIZE
-	if (kind === "new" || shiny) pkLog(`Safari Zone: ${text}`, kind, enc, shiny)
+	// Only shiny catches pop up; new Pokédex entries go to the Field's log quietly.
+	if (kind === "new") pkLog(`Safari Zone: ${text}`, kind, enc, shiny, !shiny)
 }
 
 function safariTick(diff, rng) {

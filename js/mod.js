@@ -26,6 +26,7 @@ let changelog = `<h1>Changelog:</h1><br>
 		- Shiny hunting (★, from 4 badges, from the start after four Hall of Fame entries, or for good once you've caught a shiny): choose a target on your route; each time you beat it the chain grows and its shinies get more common, up to ×4 (×8 with the Poké Radar). Losing to it breaks the chain.<br>
 		- Buyables (Lure, Radar Battery, Shiny Lens) and upgrades (Poké Radar, Masuda's Notes for shiny Eggs, Steady Nerves). Auto-buy buys the buyables too.<br>
 		- The Shiny Pokédex: every shiny species caught gives +1% Research Points for good, with milestones at 1, 5, 10 and 25.<br>
+		- Fewer Safari Zone notifications: only shiny catches pop up (new Pokédex entries go to the log quietly), and the Safari Zone only glows until your first trip of a run.<br>
 	<h3>v0.8 Game Corner</h3><br>
 		- Celadon's Game Corner (from 3 badges, or from the start after three Hall of Fame entries): buy coins with Research Points and trade them in at the prize counter for Abra, Clefairy, Nidorina, Dratini, Scyther, Pinsir and Porygon (they now cost coins, not Research Points).<br>
 		- The slots: switch them on and they spin by themselves. They pay back a little less than you bet until the Lucky Machine; every 7 7 7 counts for good toward the jackpot milestones.<br>

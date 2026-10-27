@@ -46,7 +46,8 @@ addLayer("s", {
 	branches: ["f"],
 	layerShown() { return player.t.starter > 0 && safariOpen() },
 	tooltip() { return player.s.balls > 0 ? `${player.s.balls} Safari Balls` : "Safari Zone" },
-	shouldNotify() { return player.s.balls <= 0 && player.points.gte(safariTripCost()) && !hasSafariUpgrade(13) },
+	// Only point the Safari out until the first trip of a run, not after every trip.
+	shouldNotify() { return player.s.trips === 0 && player.points.gte(safariTripCost()) && !automationOn("safari") },
 	doReset(resettingLayer) {
 		if (resettingLayer === "h") freshLayerData("s")
 	},

@@ -17,14 +17,14 @@ function freshLayerData(layer, keep = []) {
 	}
 }
 
-/** Writes to the encounter log (and pops up the special ones). */
-function pkLog(text, kind, enc, shiny) {
+/** Writes to the encounter log (and pops up the special ones, unless `quiet`). */
+function pkLog(text, kind, enc, shiny, quiet = false) {
 	if (!player.f) return
 	player.f.log.unshift({ text, kind, id: enc ? enc.id : null, form: enc?.form || null, shiny: !!shiny })
 	if (player.f.log.length > LOG_SIZE) player.f.log.length = LOG_SIZE
 	const popups = { new: ["Pokédex", "#F8D030"], evolve: ["Evolution!", "#78C850"], league: ["Pokémon League", "#A040A0"] }
 	const popup = shiny ? ["Shiny!", "#F8D030"] : popups[kind]
-	if (popup) doPopup("none", text, popup[0], 3, popup[1])
+	if (popup && !quiet) doPopup("none", text, popup[0], 3, popup[1])
 }
 
 /** A Pokémon's sprite: forms with their own image use it; others are drawn over the species'. */

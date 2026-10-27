@@ -12,6 +12,9 @@ An incremental Pokémon game on [The Modding Tree](https://github.com/Acamaeda/T
   Leader. The badge is the prestige: it resets Research Points, equipment and routes, and opens
   the next area. Beating Brock is the first reset.
 - **Pokémon League (L):** after eight badges, the Elite Four and the Champion.
+- **Hall of Fame (H):** after becoming Champion, start the region over for Fame. Fame buys
+  permanent upgrades, and challenges (Nuzlocke, Monotype, Lone Partner, Light Pack,
+  Underleveled) replay the region under a rule for a lasting reward. The Pokédex is kept.
 - **Pokédex (D)** and **Achievements (A)** on the side; Pokédex milestones boost everything.
 
 Play it by opening `index.html` (or serving the folder with any static server).

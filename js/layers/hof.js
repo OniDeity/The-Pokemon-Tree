@@ -8,6 +8,15 @@ function hallHtml() {
 		${e.team.map(([id, level, shiny, form]) => `<span class="pk-mon">${pkSprite(id, shiny, 64, "", form)}<br><small>${formName(id, form)}<br>Lv. ${level}</small></span>`).join("")}</div>`).reverse().join("")
 }
 
+function automationHtml() {
+	return `Automations are rewards of the automation challenges (Shoestring Budget, Hatchling Run, Poacher's Net). Once earned, they're yours for good; switch them off here any time.<br><br>` +
+		Object.entries(AUTOMATIONS).map(([id, a]) => {
+			const unlocked = automationUnlocked(id)
+			const button = unlocked ? `<button class="pk-button ${automationOn(id) ? "pk-on" : ""}" onclick="toggleAutomation('${id}')">${automationOn(id) ? "On" : "Off"}</button>` : `<i>Beat ${CHALLENGES[a.challenge].name}</i>`
+			return `<div class="pk-trainer ${unlocked ? "" : "pk-done"}"><b>${a.name}</b> ${button}<br><small>${a.text}</small></div>`
+		}).join("")
+}
+
 function hofBuyableDef(id) {
 	const def = HOF_BUYABLES[id]
 	return {
@@ -60,6 +69,7 @@ addLayer("h", {
 		total: new Decimal(0),
 		hall: [],
 		enshrined: {},
+		auto: {},
 	}},
 	branches: ["l"],
 	layerShown() { return isChampion() || hofEntries() > 0 },
@@ -103,6 +113,10 @@ addLayer("h", {
 		},
 		"Fame shop": {
 			content: ["main-display", "buyables", "blank", "upgrades"],
+			unlocked() { return hofEntries() >= 1 },
+		},
+		Automation: {
+			content: [["display-text", () => automationHtml()]],
 			unlocked() { return hofEntries() >= 1 },
 		},
 		Challenges: {

@@ -237,6 +237,9 @@ function eggSpecies(a, b) {
 	const pair = (canBeMale(a) && canBeFemale(b)) || (canBeFemale(a) && canBeMale(b))
 	return pair ? eggOptions(a) : null
 }
+/** Every species an Egg can hatch into: first stages that breed (with a partner or Ditto). */
+const HATCHABLE = Object.keys(SPECIES).map(Number)
+	.filter(id => !SPECIES[id].legendary && id !== DITTO && eggSpecies(id, DITTO)?.includes(id))
 function eggOptions(id) {
 	const base = breedingFamily(id)
 	return base === 29 ? [29, 32] : [base]

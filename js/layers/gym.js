@@ -8,7 +8,10 @@ function teamHtml(team, strength) {
 
 function predictionHtml(result) {
 	if (!result) return ""
-	if (result.win) return `<span style="color:#78C850">Your party would win with ${format(result.hpLeft * 100)}% HP left on its last Pokémon.</span>`
+	if (result.win) {
+		const lost = inChallenge(11) && result.fainted ? `<br><span style="color:#F08030">Nuzlocke: ${player.t.party.slice(0, result.fainted).map(speciesName).join(", ")} would faint and be released.</span>` : ""
+		return `<span style="color:#78C850">Your party would win with ${format(result.hpLeft * 100)}% HP left on its last Pokémon.</span>${lost}`
+	}
 	return `<span style="color:#F08030">Your party would lose at ${speciesName(result.stoppedBy.id)} (${result.defeated} beaten). Level up, gear up, or bring better matchups.</span>`
 }
 
@@ -51,6 +54,8 @@ addLayer("g", {
 	getNextAt() { return new Decimal(0) },
 	canReset() { return canChallengeGym() },
 	prestigeNotify() { return canChallengeGym() },
+	// Automatic challenges never cost a Nuzlocke a Pokémon.
+	autoPrestige() { return hofEntries() >= 5 && !(inChallenge(11) && gymPrediction()?.fainted > 0) },
 	prestigeButtonText() {
 		const gym = nextGym()
 		if (!gym) return "You have all eight badges. The Pokémon League awaits!"
@@ -60,6 +65,7 @@ addLayer("g", {
 	},
 	onPrestige() {
 		const gym = nextGym()
+		winGymBattle()
 		doPopup("none", `${gym.rewardText}`, `${gym.badge} earned!`, 5, "#B8A038")
 	},
 	tooltip() { return `${badges()} badge${badges() === 1 ? "" : "s"}` },
@@ -132,7 +138,9 @@ addLayer("l", {
 	}},
 	branches: ["g"],
 	layerShown() { return badges() >= 8 || isChampion() },
-	doReset() {},
+	doReset(resettingLayer) {
+		if (resettingLayer === "h") freshLayerData("l")
+	},
 	tooltip() { return isChampion() ? "Champion!" : `${player.l.beaten}/5 beaten` },
 	shouldNotify() { return !isChampion() && badges() >= 8 && canChallengeLeague(player.l.beaten) },
 	tabFormat: [

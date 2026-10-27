@@ -1,10 +1,12 @@
-// The Team ("t"): your starter, party and box. Pokémon, their levels and the Pokédex are yours for
-// good: Gym resets never touch them.
+// The Team ("t"): your starter, party and box. Gym resets never touch them; entering the Hall of
+// Fame starts a new run with a new starter.
 
 function chooseStarter(id) {
 	if (player.t.starter) return
 	player.t.starter = id
-	addToBox(id, 5, false)
+	addToBox(id, hofUpgrade(11) ? 10 : 5, false)
+	if (hofUpgrade(11)) player.points = player.points.add(200)
+	for (const up of fieldKeptUpgrades()) if (!hasFieldUpgrade(up)) player.f.upgrades.push(up)
 	player.f.zone = ZONES[0].id
 	pkLog(`Professor Oak gives you ${speciesName(id)}. Your research begins on Route 1!`, "new", { id })
 	showTab("f")
@@ -16,7 +18,7 @@ function togglePartyMember(id) {
 	const i = party.indexOf(id)
 	if (i >= 0) {
 		if (party.length > 1) party.splice(i, 1)
-	} else if (party.length < partySize() && player.t.box[id]) party.push(id)
+	} else if (party.length < partySize() && player.t.box[id] && canJoinParty(id)) party.push(id)
 }
 function moveToLead(id) {
 	id = Number(id)
@@ -58,7 +60,9 @@ function monCard(id, inParty) {
 		${inParty
 			? `${player.t.party[0] === id ? "<small><b>Lead</b></small>" : `<button class="pk-button" onclick="moveToLead(${id})">Lead</button>`}
 			   <button class="pk-button" ${player.t.party.length > 1 ? `onclick="togglePartyMember(${id})"` : "disabled"}>To box</button>`
-			: `<button class="pk-button" ${player.t.party.length < partySize() ? `onclick="togglePartyMember(${id})"` : "disabled"}>To party</button>`}
+			: canJoinParty(id)
+				? `<button class="pk-button" ${player.t.party.length < partySize() ? `onclick="togglePartyMember(${id})"` : "disabled"}>To party</button>`
+				: `<button class="pk-button" disabled title="Monotype: shares no type with your starter">To party</button>`}
 		<br>${evolutionButtons(id)}
 	</div>`
 }
@@ -95,19 +99,22 @@ addLayer("t", {
 		specials: {},
 		autoEvolve: true,
 		evolved: 0,
+		nuzlocke: {},
 		sort: "number",
 	}},
-	// Your Pokémon are kept through every reset.
-	doReset() {},
+	// Your Pokémon are kept through badges; the Hall of Fame (or a challenge) starts over.
+	doReset(resettingLayer) {
+		if (resettingLayer === "h") freshLayerData("t", ["autoEvolve", "sort"])
+	},
 	tooltip() { return player.t.starter ? `${Object.keys(player.t.box).length} Pokémon` : "Choose your starter!" },
 	shouldNotify() { return !player.t.starter },
 	clickables: {
-		...Object.fromEntries(STARTERS.map((id, i) => [11 + i, {
+		...Object.fromEntries([...STARTERS, 25, 133].map((id, i) => [11 + i, {
 			title: () => speciesName(id),
 			display: () => `${pkSprite(id, false, 96)}<br>${SPECIES[id].types.join(" / ")}`,
 			canClick: () => !player.t.starter,
 			onClick: () => chooseStarter(id),
-			unlocked: () => !player.t.starter,
+			unlocked: () => !player.t.starter && starterChoices().includes(id),
 			style: { width: "160px", height: "180px" },
 		}])),
 		21: {
@@ -121,8 +128,9 @@ addLayer("t", {
 	},
 	tabFormat: [
 		["display-text", () => player.t.starter ? "" : `<h2>Welcome to the world of Pokémon!</h2><br><br>Professor Oak needs a field researcher to survey Kanto's Pokémon.<br>Pick your first partner:`],
+		["display-text", () => !player.t.starter && anyChallenge() ? `<br><b>Challenge: ${CHALLENGES[player.h.activeChallenge].name}.</b> ${CHALLENGES[player.h.activeChallenge].rules}` : ""],
 		"blank",
-		["row", [["clickable", 11], ["clickable", 12], ["clickable", 13]]],
+		["row", [["clickable", 11], ["clickable", 12], ["clickable", 13], ["clickable", 14], ["clickable", 15]]],
 		["display-text", () => player.t.starter ? `<h3>Party (${player.t.party.length}/${partySize()})</h3><br><small>The lead fights first; the next one steps in if it faints. Level cap: ${currentCap()} (earn badges to raise it).</small>` : ""],
 		["display-text", () => player.t.starter ? partyHtml() : ""],
 		"blank",

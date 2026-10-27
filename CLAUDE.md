@@ -42,7 +42,10 @@ Sister project: OniDeity/idle-pokemon (its data is the source of ours).
   itself; holds the Fame shop and TMT challenges), `c` Day Care (row 1 beside the Gyms; kept
   through badges, reset by the Hall of Fame; rules `dayCareTick`/`eggStep`/`eggSpecies`, breeding
   needs `SPECIES[id].gender`), `s` Safari Zone (row 1; trips of Safari Balls, no battles,
-  `safariTick`; same reset rules as the Day Care), side layers `d` Pokédex and `a` Achievements.
+  `safariTick`; same reset rules as the Day Care), `k` Game Corner (row 1; coins are its points,
+  bought with RP (`COIN_RP`) or won at the slots (`SLOT_RESULTS`, ~0.9 back per coin bet until the
+  Lucky Machine); prize Pokémon (`PRIZE_COINS`) cost coins, not RP; jackpots in `player.d.jackpots`
+  count for good), side layers `d` Pokédex and `a` Achievements.
 - Hall of Fame and challenge rules (`HOF_*`, `CHALLENGES`, `fameGain`) live in `logic.js` with
   the rest, so the simulator plays them: `SIM_RUNS=n` replays n runs buying Fame upgrades,
   `SIM_CHALLENGE=id` plays the runs after the first under a challenge.
@@ -79,7 +82,8 @@ Sister project: OniDeity/idle-pokemon (its data is the source of ours).
   Fame entries they need, by badge tier), and its one-of-a-kind ids into forms. Gen 2 species
   seen there wait for Johto. Pinkan and Valencian forms belong to the Orange Islands.
 - Next: side systems that each add a node and a bonus, in the owner's order: Day Care (done,
-  v0.5), Safari Zone (done, v0.6), Game Corner, shiny hunting.
+  v0.5), Safari Zone (done, v0.6), automation challenges (v0.7), Game Corner (done, v0.8), shiny
+  hunting. The simulator buys coins for prizes but doesn't play the slots.
 - Later regions follow the same pattern, gated by Hall of Fame entries.
 - Albino and Melanistic Pokémon (the owner's idea, unlocked around Gen 3): Albino has the same
   base odds as Shiny but its own items and hunting methods to lower them; Melanistic is Shiny

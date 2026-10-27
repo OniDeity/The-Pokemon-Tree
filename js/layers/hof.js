@@ -5,7 +5,7 @@
 function hallHtml() {
 	if (!player.h.hall.length) return "<i>No entries yet. Become Champion, then enter the Hall of Fame.</i>"
 	return player.h.hall.map((e, i) => `<div class="pk-trainer"><b>Entry ${i + 1}</b> · ${formatTime(e.time)}${e.challenge ? ` · ${CHALLENGES[e.challenge].name}` : ""}<br>
-		${e.team.map(([id, level, shiny]) => `<span class="pk-mon">${pkSprite(id, shiny, 64)}<br><small>${speciesName(id)}<br>Lv. ${level}</small></span>`).join("")}</div>`).reverse().join("")
+		${e.team.map(([id, level, shiny, form]) => `<span class="pk-mon">${pkSprite(id, shiny, 64, "", form)}<br><small>${formName(id, form)}<br>Lv. ${level}</small></span>`).join("")}</div>`).reverse().join("")
 }
 
 function hofBuyableDef(id) {

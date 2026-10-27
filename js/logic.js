@@ -403,7 +403,7 @@ function challengeLeague(k) {
 	const t = leagueTrainers()[k]
 	if (k === leagueTrainers().length - 1) {
 		player.l.champion = true
-		player.l.team = player.t.party.map(key => [speciesOf(key), player.t.box[key].level, isShiny(key)])
+		player.l.team = player.t.party.map(key => [speciesOf(key), player.t.box[key].level, isShiny(key), formOf(key)])
 		player.l.hallOfFame.push({ team: player.l.team, time: player.timePlayed })
 		pkLog(`You beat ${t.name} and became the Pokémon League Champion!`, "league")
 	} else pkLog(`${t.name} of the Elite Four is beaten!`, "league")

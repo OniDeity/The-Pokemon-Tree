@@ -56,9 +56,10 @@ Sister project: OniDeity/idle-pokemon (its data is the source of ours).
   reset layers with `freshLayerData` (field.js) or the box, routes and gifts survive the reset.
 - Challenges must stay beatable by the simulator: Battle Gear is most of a team's power, so no
   challenge takes it away, and Lone Partner doubles its one Pokémon (`LONE_PARTNER_BOOST`).
-- Box and party entries are keyed by species and look: `boxKey(id, variant)` gives "15" or
-  "15-shiny" (`speciesOf`, `variantOf`, `keyName`). Each look is its own slot, so evolution only
-  waits when the same look of the evolution is owned. `migrateBox` (run by `fixOldSave`) moved
+- Box and party entries are keyed by species and look: `boxKey(id, look)` gives "15", "15-shiny",
+  "150-clone" or "25-clone-shiny" (`makeLook`, `speciesOf`, `formOf`, `isShiny`, `keyName`).
+  Each look is its own slot, so evolution only waits when the same look of the evolution is
+  owned; forms (`FORMS` in engine.js) never evolve. `migrateBox` (run by `fixOldSave`) moved
   v0.2 saves (one entry per species with a `shiny` flag, numeric party) to these keys.
 - Encounters per tick are capped (`MAX_ENCOUNTERS_PER_TICK`); the rest waits in `player.f.progress`
   so offline time isn't lost.
@@ -67,10 +68,12 @@ Sister project: OniDeity/idle-pokemon (its data is the source of ours).
 
 - Each region's first run should take about a day of play, reached mostly by going wide with
   features (new nodes, small bonuses that add up across resets) rather than slower numbers.
-- Done: Hall of Fame prestige and challenges (v0.2).
-- Next pass: Kanto's anime places and forms, unlocked through more and more resets (Idle
-  Pokémon has the data: `kantoAnime.ts`, Pinkan/Valencian variants), and side systems that
-  each add a node and a bonus (Day Care breeding, Safari Zone, Game Corner, shiny hunting).
+- Done: Hall of Fame prestige and challenges (v0.2); Kanto's anime places and forms (v0.4):
+  `buildData.py` turns Idle Pokémon's anime zones into zones with `anime` and `hof` (the Hall of
+  Fame entries they need, by badge tier), and its one-of-a-kind ids into forms. Gen 2 species
+  seen there wait for Johto. Pinkan and Valencian forms belong to the Orange Islands.
+- Next: side systems that each add a node and a bonus (Day Care breeding, Safari Zone, Game
+  Corner, shiny hunting).
 - Later regions follow the same pattern, gated by Hall of Fame entries.
 - Albino and Melanistic Pokémon (the owner's idea, unlocked around Gen 3): Albino has the same
   base odds as Shiny but its own items and hunting methods to lower them; Melanistic is Shiny

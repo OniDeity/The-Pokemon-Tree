@@ -31,6 +31,10 @@ jobs:
           cp -r index.html css js resources *.png site/
           rm -rf site/js/Demo
 
+      # Release-proof caching: new script addresses each build (see scripts/stampBuild.mjs).
+      - name: Stamp the build
+        run: node scripts/stampBuild.mjs site "${GITHUB_SHA::7}"
+
       - name: Deploy public version
         if: github.ref_name == 'main'
         uses: JamesIves/github-pages-deploy-action@v4

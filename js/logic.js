@@ -173,7 +173,9 @@ function dexCatch(id, shiny) {
 // "15" is a Beedrill, "15-shiny" a shiny one. Albino and Melanistic (shiny and albino at once) are
 // planned as further variants.
 const VARIANTS = ["normal", "shiny"]
-function boxKey(id, variant = "normal") { return variant === "normal" ? String(Number(id)) : `${Number(id)}-${variant}` }
+function boxKey(id, variant = "normal") {
+	return typeof variant === "string" && variant && variant !== "normal" ? `${Number(id)}-${variant}` : String(Number(id))
+}
 function speciesOf(key) { return parseInt(key) }
 function variantOf(key) { return String(key).split("-")[1] || "normal" }
 function isShiny(key) { return variantOf(key) === "shiny" }
@@ -186,15 +188,28 @@ function keyName(key) { return `${isShiny(key) ? "★ " : ""}${speciesName(speci
  */
 function migrateBox() {
 	const box = player.t.box
+	const rename = {}
+	const move = (from, to) => {
+		if (!box[to] || box[to].level < box[from].level) box[to] = box[from]
+		delete box[from]
+		rename[from] = to
+	}
 	for (const key of Object.keys(box)) {
 		const entry = box[key]
+		// v0.3 keyed new starters "4-false" (a boolean passed as the look): fold them into "4".
+		if (key.endsWith("-false") || entry.variant === false) {
+			entry.variant = "normal"
+			move(key, boxKey(speciesOf(key)))
+			continue
+		}
 		if (entry.variant) continue
 		entry.variant = entry.shiny ? "shiny" : "normal"
 		delete entry.shiny
 		const newKey = boxKey(speciesOf(key), entry.variant)
-		if (newKey !== key) { box[newKey] = entry; delete box[key] }
+		if (newKey !== key) move(key, newKey)
 	}
-	player.t.party = player.t.party.map(k => box[String(k)] ? String(k) : boxKey(speciesOf(k), "shiny"))
+	player.t.party = player.t.party.map(k => rename[String(k)] ?? String(k))
+		.map(k => box[k] ? k : boxKey(speciesOf(k), "shiny"))
 		.filter((k, i, all) => box[k] && all.indexOf(k) === i)
 }
 

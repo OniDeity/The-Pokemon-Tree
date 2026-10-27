@@ -5,7 +5,7 @@ let modInfo = {
 	pointsName: "Research Points",
 	modFiles: [
 		"data/kanto.js", "engine.js", "logic.js",
-		"layers/field.js", "layers/team.js", "layers/gym.js", "layers/daycare.js", "layers/safari.js", "layers/gamecorner.js", "layers/hof.js", "layers/dex.js",
+		"layers/field.js", "layers/team.js", "layers/gym.js", "layers/daycare.js", "layers/safari.js", "layers/gamecorner.js", "layers/hunt.js", "layers/hof.js", "layers/dex.js",
 		"tree.js",
 	],
 
@@ -17,11 +17,15 @@ let modInfo = {
 
 // Set your version in num and name
 let VERSION = {
-	num: "0.8",
-	name: "Game Corner",
+	num: "0.9",
+	name: "Shiny hunting",
 }
 
 let changelog = `<h1>Changelog:</h1><br>
+	<h3>v0.9 Shiny hunting</h3><br>
+		- Shiny hunting (★, from 4 badges, from the start after four Hall of Fame entries, or for good once you've caught a shiny): choose a target on your route; each time you beat it the chain grows and its shinies get more common, up to ×4 (×8 with the Poké Radar). Losing to it breaks the chain.<br>
+		- Buyables (Lure, Radar Battery, Shiny Lens) and upgrades (Poké Radar, Masuda's Notes for shiny Eggs, Steady Nerves). Auto-buy buys the buyables too.<br>
+		- The Shiny Pokédex: every shiny species caught gives +1% Research Points for good, with milestones at 1, 5, 10 and 25.<br>
 	<h3>v0.8 Game Corner</h3><br>
 		- Celadon's Game Corner (from 3 badges, or from the start after three Hall of Fame entries): buy coins with Research Points and trade them in at the prize counter for Abra, Clefairy, Nidorina, Dratini, Scyther, Pinsir and Porygon (they now cost coins, not Research Points).<br>
 		- The slots: switch them on and they spin by themselves. They pay back a little less than you bet until the Lucky Machine; every 7 7 7 counts for good toward the jackpot milestones.<br>

@@ -72,6 +72,11 @@ addLayer("a", {
 		33: { name: "The original", tooltip: "Catch Mewtwo.", done() { return !!player.d.caught[150] } },
 		34: { name: "Mythical", tooltip: "Catch Mew.", done() { return !!player.d.caught[151] } },
 		35: { name: "Level 100", tooltip: "Raise a Pokémon to level 100.", done() { return Object.values(player.t.box).some(e => e.level >= 100) } },
+		41: { name: "Hall of Famer", tooltip: "Enter the Hall of Fame.", done() { return hofEntries() >= 1 } },
+		42: { name: "Rules are rules", tooltip: "Beat a challenge.", done() { return Object.keys(CHALLENGES).some(id => beatChallenge(id)) } },
+		43: { name: "Nuzlocke survivor", tooltip: "Beat the Nuzlocke challenge.", done() { return beatChallenge(11) } },
+		44: { name: "Every rule in the book", tooltip: "Beat every challenge.", done() { return Object.keys(CHALLENGES).every(id => beatChallenge(id)) } },
+		45: { name: "Familiar faces", tooltip: "Enshrine 30 species in the Hall of Fame.", done() { return Object.keys(player.h.enshrined).length >= 30 } },
 	},
 	tabFormat: ["achievements"],
 })

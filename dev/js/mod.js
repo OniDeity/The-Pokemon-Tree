@@ -5,7 +5,7 @@ let modInfo = {
 	pointsName: "Research Points",
 	modFiles: [
 		"data/kanto.js", "engine.js", "logic.js",
-		"layers/field.js", "layers/team.js", "layers/gym.js", "layers/dex.js",
+		"layers/field.js", "layers/team.js", "layers/gym.js", "layers/hof.js", "layers/dex.js",
 		"tree.js",
 	],
 
@@ -17,11 +17,16 @@ let modInfo = {
 
 // Set your version in num and name
 let VERSION = {
-	num: "0.1",
-	name: "Kanto",
+	num: "0.2",
+	name: "Hall of Fame",
 }
 
 let changelog = `<h1>Changelog:</h1><br>
+	<h3>v0.2 Hall of Fame</h3><br>
+		- The Hall of Fame: after becoming Champion, start Kanto over for Fame. Your Pokédex is kept.<br>
+		- Fame buys permanent upgrades; Hall of Fame milestones keep upgrades, add starters and automate Gyms.<br>
+		- Challenges: Nuzlocke, Monotype, Lone Partner, Light Pack and Underleveled, each with a lasting reward.<br>
+		- Pokémon no longer evolve into a species you already have.<br>
 	<h3>v0.1 Kanto</h3><br>
 		- Choose Bulbasaur, Charmander or Squirtle and survey Kanto for Professor Oak.<br>
 		- Search Kanto's routes (FireRed/LeafGreen encounter tables), battle and catch.<br>

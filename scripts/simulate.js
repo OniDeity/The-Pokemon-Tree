@@ -1,5 +1,5 @@
 // Plays the game headlessly with a simple greedy strategy and reports when each badge falls.
-// Usage: node scripts/simulate.js [starter=1|4|7] [seed]
+// Usage: node scripts/simulate.js [starter=1|4|7] [seed]   (SIM_HOURS=n stops after n hours)
 // Runs js/data/kanto.js, js/engine.js and js/logic.js unchanged against a fake `player`.
 const fs = require("fs")
 const path = require("path")
@@ -115,9 +115,8 @@ function shop() {
 }
 
 const STEP = 1
-const LIMIT = 60 * 60 * 40
+const LIMIT = 60 * 60 * Number(process.env.SIM_HOURS || 40)
 let t = 0, last = 0, surveyAt = null, winAt = null
-const lines = []
 chooseZone(); chooseParty()
 while (t < LIMIT) {
 	run(`player.points = player.points.add(passiveRp() * ${STEP}); player.f.searching = true; searchTick(${STEP})`)
@@ -144,3 +143,5 @@ while (t < LIMIT) {
 }
 
 console.log(`Starter ${starter}: ${run("isChampion()") ? "Champion" : "not Champion"} after ${(t / 3600).toFixed(2)} h, caught ${run("caughtCount()")}`)
+// A run that can't even beat Brock means something broke.
+if (run("badges()") === 0) { console.error("No badge earned"); process.exit(1) }

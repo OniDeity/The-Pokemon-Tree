@@ -17,11 +17,13 @@ let modInfo = {
 
 // Set your version in num and name
 let VERSION = {
-	num: "0.2",
-	name: "Hall of Fame",
+	num: "0.3",
+	name: "Variants",
 }
 
 let changelog = `<h1>Changelog:</h1><br>
+	<h3>v0.3 Variants</h3><br>
+		- Shiny Pokémon get their own box slot: a shiny Kakuna evolves even if you have a normal Beedrill, and a shiny catch no longer replaces your normal one.<br>
 	<h3>v0.2 Hall of Fame</h3><br>
 		- The Hall of Fame: after becoming Champion, start Kanto over for Fame. Your Pokédex is kept.<br>
 		- Fame buys permanent upgrades; Hall of Fame milestones keep upgrades, add starters and automate Gyms.<br>
@@ -91,4 +93,6 @@ function maxTickLength() {
 // Use this if you need to undo inflation from an older version. If the version is older than the version that fixed the issue,
 // you can cap their current resources with this.
 function fixOldSave(oldVersion){
+	// v0.3: box entries are keyed by species and look (see migrateBox).
+	migrateBox()
 }

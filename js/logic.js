@@ -111,9 +111,9 @@ function partySize() {
 }
 /** The types of this run's starter (its original species, even after it evolves). */
 function starterTypes() { return SPECIES[player.t.starter]?.types ?? [] }
-function sharesStarterType(id) { return SPECIES[id].types.some(t => starterTypes().includes(t)) }
+function sharesStarterType(key) { return SPECIES[speciesOf(key)].types.some(t => starterTypes().includes(t)) }
 /** Monotype runs only let Pokémon sharing a type with the starter into the party. */
-function canJoinParty(id) { return !inChallenge(12) || sharesStarterType(id) }
+function canJoinParty(key) { return !inChallenge(12) || sharesStarterType(key) }
 
 // ---- Map ----
 
@@ -168,69 +168,100 @@ function dexCatch(id, shiny) {
 	if (shiny) player.d.shiny[id] = (player.d.shiny[id] || 0) + 1
 }
 
-/** Adds a Pokémon to the box. The box keeps one of each species: the higher level (or the shiny). */
-function addToBox(id, level, shiny) {
-	const old = player.t.box[id]
-	dexCatch(id, shiny)
-	if (old && old.level >= level && (old.shiny || !shiny)) return false
-	player.t.box[id] = { level: Math.max(level, old ? old.level : 0), xp: 0, shiny: !!shiny || !!(old && old.shiny) }
-	player.t.box[id].xp = xpForLevel(SPECIES[id].growth, player.t.box[id].level)
-	if (!old && player.t.party.length < partySize() && canJoinParty(id)) player.t.party.push(Number(id))
+// ---- Variants ----
+// A species can come in several looks. Each (species, look) is its own box slot and party key:
+// "15" is a Beedrill, "15-shiny" a shiny one. Albino and Melanistic (shiny and albino at once) are
+// planned as further variants.
+const VARIANTS = ["normal", "shiny"]
+function boxKey(id, variant = "normal") { return variant === "normal" ? String(Number(id)) : `${Number(id)}-${variant}` }
+function speciesOf(key) { return parseInt(key) }
+function variantOf(key) { return String(key).split("-")[1] || "normal" }
+function isShiny(key) { return variantOf(key) === "shiny" }
+function ownsSpecies(id) { return VARIANTS.some(v => player.t.box[boxKey(id, v)]) }
+function keyName(key) { return `${isShiny(key) ? "★ " : ""}${speciesName(speciesOf(key))}` }
+
+/**
+ * Saves before v0.3 kept one box entry per species, keyed by the species with a `shiny` flag,
+ * and a party of species numbers. Moves them to variant keys.
+ */
+function migrateBox() {
+	const box = player.t.box
+	for (const key of Object.keys(box)) {
+		const entry = box[key]
+		if (entry.variant) continue
+		entry.variant = entry.shiny ? "shiny" : "normal"
+		delete entry.shiny
+		const newKey = boxKey(speciesOf(key), entry.variant)
+		if (newKey !== key) { box[newKey] = entry; delete box[key] }
+	}
+	player.t.party = player.t.party.map(k => box[String(k)] ? String(k) : boxKey(speciesOf(k), "shiny"))
+		.filter((k, i, all) => box[k] && all.indexOf(k) === i)
+}
+
+/** Adds a Pokémon to the box. The box keeps one of each species and look: the higher level. */
+function addToBox(id, level, variant = "normal") {
+	const key = boxKey(id, variant)
+	const old = player.t.box[key]
+	dexCatch(id, variant === "shiny")
+	if (old && old.level >= level) return false
+	player.t.box[key] = { level, xp: xpForLevel(SPECIES[id].growth, level), variant }
+	if (!old && player.t.party.length < partySize() && canJoinParty(key)) player.t.party.push(key)
 	return true
 }
 
 /**
- * Pokémon don't evolve into a species you already have: the box keeps one of each, so evolving
- * would merge the two and lose the earlier form.
+ * Pokémon don't evolve into a species and look you already have: the box keeps one of each, so
+ * evolving would merge the two and lose the earlier form. A shiny Kakuna still evolves when you
+ * only have a normal Beedrill.
  */
-function canEvolveInto(into) { return !player.t.box[into] }
+function canEvolveInto(key, into) { return !player.t.box[boxKey(into, variantOf(key))] }
 
 /** Evolves a box Pokémon: it takes the evolution's place in the box (and the party). */
-function evolve(id, into) {
-	id = Number(id)
-	const entry = player.t.box[id]
+function evolve(key, into) {
+	key = String(key)
+	const entry = player.t.box[key]
 	if (!entry) return
-	delete player.t.box[id]
-	const existing = player.t.box[into]
-	if (!existing || existing.level < entry.level) player.t.box[into] = entry
-	if (existing && existing.shiny) player.t.box[into].shiny = true
-	dexCatch(into, entry.shiny)
-	const slot = player.t.party.indexOf(id)
+	const newKey = boxKey(into, variantOf(key))
+	delete player.t.box[key]
+	const existing = player.t.box[newKey]
+	if (!existing || existing.level < entry.level) player.t.box[newKey] = entry
+	dexCatch(into, isShiny(key))
+	const slot = player.t.party.indexOf(key)
 	if (slot >= 0) {
-		if (player.t.party.includes(into)) player.t.party.splice(slot, 1)
-		else player.t.party[slot] = into
+		if (player.t.party.includes(newKey)) player.t.party.splice(slot, 1)
+		else player.t.party[slot] = newKey
 	}
 	player.t.evolved = (player.t.evolved || 0) + 1
-	pkLog(`${speciesName(id)} evolved into ${speciesName(into)}!`, "evolve")
+	pkLog(`${keyName(key)} evolved into ${speciesName(into)}!`, "evolve", { id: into }, isShiny(key))
 	// It might already be high enough for its next stage.
-	const next = levelEvolution(into, player.t.box[into].level)
-	if (next && canEvolveInto(next)) evolve(into, next)
+	const next = levelEvolution(into, player.t.box[newKey].level)
+	if (next && canEvolveInto(newKey, next)) evolve(newKey, next)
 }
 
-function giveXp(id, xp) {
-	const entry = player.t.box[id]
+function giveXp(key, xp) {
+	const entry = player.t.box[key]
 	if (!entry) return
-	gainXp(entry, id, xp, currentCap())
-	const into = levelEvolution(id, entry.level)
-	if (into && canEvolveInto(into) && player.t.autoEvolve !== false) evolve(id, into)
+	gainXp(entry, speciesOf(key), xp, currentCap())
+	const into = levelEvolution(speciesOf(key), entry.level)
+	if (into && canEvolveInto(key, into) && player.t.autoEvolve !== false) evolve(key, into)
 }
 
 function partyBattlers() {
 	const atk = atkMult(), def = defMult()
-	return player.t.party.filter(id => player.t.box[id]).map((id, i) => {
+	return player.t.party.filter(key => player.t.box[key]).map((key, i) => {
 		// Challenge rewards: Lone Partner strengthens the lead, Monotype the starter's type.
 		const lead = i === 0 ? (inChallenge(13) ? LONE_PARTNER_BOOST : 1) * (beatChallenge(13) ? 1.2 : 1) : 1
-		const typed = (inChallenge(12) ? MONOTYPE_BOOST : 1) * (beatChallenge(12) && sharesStarterType(id) ? 1.15 : 1)
-		return battler(id, player.t.box[id].level, atk * lead * typed, def * lead)
+		const typed = (inChallenge(12) ? MONOTYPE_BOOST : 1) * (beatChallenge(12) && sharesStarterType(key) ? 1.15 : 1)
+		return battler(speciesOf(key), player.t.box[key].level, atk * lead * typed, def * lead)
 	})
 }
 
 /** Nuzlocke: Pokémon that fainted in a battle are released. */
 function releaseFainted(result) {
 	if (!inChallenge(11) || !result.fainted) return
-	for (const id of player.t.party.slice(0, result.fainted)) {
-		delete player.t.box[id]
-		pkLog(`${speciesName(id)} fainted and was released.`, "lose", { id })
+	for (const key of player.t.party.slice(0, result.fainted)) {
+		delete player.t.box[key]
+		pkLog(`${keyName(key)} fainted and was released.`, "lose", { id: speciesOf(key) }, isShiny(key))
 	}
 	player.t.party.splice(0, result.fainted)
 }
@@ -250,7 +281,7 @@ function doEncounter(rng) {
 	const name = `${shiny ? "★ " : ""}${speciesName(enc.id)} (Lv. ${enc.level})`
 	// Nuzlocke: only the first new species met on each route may be caught (shinies always can).
 	const nuzlocke = inChallenge(11)
-	const firstHere = nuzlocke && !player.t.nuzlocke[zone.id] && !player.t.box[enc.id]
+	const firstHere = nuzlocke && !player.t.nuzlocke[zone.id] && !ownsSpecies(enc.id)
 	if (firstHere) player.t.nuzlocke[zone.id] = enc.id
 	if (!result.win) {
 		// Nuzlocke runs flee from battles they'd lose rather than lose the party.
@@ -274,7 +305,7 @@ function doEncounter(rng) {
 	const caught = rand(rng) < catchChance(enc.id, catchMult())
 	if (caught) {
 		const isNew = !player.d.caught[enc.id]
-		addToBox(enc.id, enc.level, shiny)
+		addToBox(enc.id, enc.level, shiny ? "shiny" : "normal")
 		pkLog(`Caught ${name}!${isNew ? " New in the Pokédex!" : ""}`, isNew || shiny ? "new" : "catch", enc, shiny)
 	} else {
 		pkLog(`Beat a wild ${name}, but it broke free.`, "win", enc, shiny)
@@ -343,8 +374,8 @@ function challengeLeague(k) {
 	const t = leagueTrainers()[k]
 	if (k === leagueTrainers().length - 1) {
 		player.l.champion = true
-		player.l.hallOfFame.push({ team: player.t.party.map(id => [id, player.t.box[id].level]), time: player.timePlayed })
-		player.l.team = player.t.party.map(id => [id, player.t.box[id].level, !!player.t.box[id].shiny])
+		player.l.team = player.t.party.map(key => [speciesOf(key), player.t.box[key].level, isShiny(key)])
+		player.l.hallOfFame.push({ team: player.l.team, time: player.timePlayed })
 		pkLog(`You beat ${t.name} and became the Pokémon League Champion!`, "league")
 	} else pkLog(`${t.name} of the Elite Four is beaten!`, "league")
 	return true
@@ -370,7 +401,7 @@ function specialStatus(s) {
 	if (player.t.specials[s.id]) return { ok: false, why: "Done" }
 	if (!specialOpen(s)) return { ok: false, why: s.postGame ? "After the League" : `${s.badgesRequired} badges` }
 	if (s.keyItem && !hasKeyItem(s.keyItem, badges())) return { ok: false, why: `Needs the ${KEY_ITEMS[s.keyItem].name}` }
-	if (s.kind === "trade" && !player.t.box[s.wants]) return { ok: false, why: `Show a ${speciesName(s.wants)}` }
+	if (s.kind === "trade" && !ownsSpecies(s.wants)) return { ok: false, why: `Show a ${speciesName(s.wants)}` }
 	if (s.kind === "legendary" && !legendaryPrediction(s).win) return { ok: false, why: "Too strong for now" }
 	if (player.points.lt(specialCost(s))) return { ok: false, why: `${format(specialCost(s))} RP` }
 	return { ok: true }
@@ -380,7 +411,7 @@ function takeSpecial(s) {
 	player.points = player.points.sub(specialCost(s))
 	player.t.specials[s.id] = true
 	const shiny = rand() < 1 / shinyOdds()
-	addToBox(s.species, s.level, shiny)
+	addToBox(s.species, s.level, shiny ? "shiny" : "normal")
 	pkLog(s.kind === "legendary" ? `You caught ${speciesName(s.species)}!` : `${speciesName(s.species)} joined you!`, "new", { id: s.species }, shiny)
 	return true
 }
@@ -389,14 +420,14 @@ function takeSpecial(s) {
 
 /** Research Points for an evolution stone (₽2,100 in the games); trades are free. */
 function itemEvolutionCost(e) { return new Decimal(e.method === "trade" ? 0 : 2100 * PRICE_TO_RP) }
-function canItemEvolve(id, e) {
-	return !!player.t.box[id] && e.open && canEvolveInto(e.into) && player.points.gte(itemEvolutionCost(e))
+function canItemEvolve(key, e) {
+	return !!player.t.box[key] && e.open && canEvolveInto(key, e.into) && player.points.gte(itemEvolutionCost(e))
 }
-function itemEvolve(id, into) {
-	const e = itemEvolutions(id, badges()).find(e => e.into === Number(into))
-	if (!e || !canItemEvolve(id, e)) return false
+function itemEvolve(key, into) {
+	const e = itemEvolutions(speciesOf(key), badges()).find(e => e.into === Number(into))
+	if (!e || !canItemEvolve(key, e)) return false
 	player.points = player.points.sub(itemEvolutionCost(e))
-	evolve(id, e.into)
+	evolve(key, e.into)
 	return true
 }
 

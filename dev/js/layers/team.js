@@ -18,7 +18,7 @@ function togglePartyMember(key) {
 	const i = party.indexOf(key)
 	if (i >= 0) {
 		if (party.length > 1) party.splice(i, 1)
-	} else if (party.length < partySize() && player.t.box[key] && canJoinParty(key)) party.push(key)
+	} else if (party.length < partySize() && player.t.box[key] && canJoinParty(key) && !inDayCare(key)) party.push(key)
 }
 function moveToLead(key) {
 	const party = player.t.party
@@ -39,11 +39,14 @@ function evolutionButtons(key) {
 	if (formOf(key)) return ""
 	return itemEvolutions(speciesOf(key), badges()).map(e => {
 		const cost = itemEvolutionCost(e)
-		const label = `${evolutionLabel(e)} → ${speciesName(e.into)}${cost.gt(0) ? ` (${format(cost)} RP)` : ""}`
-		if (!canEvolveInto(key, e.into)) return `<button class="pk-button" disabled title="You already have ${keyName(boxKey(e.into, variantOf(key)))}">${label}</button>`
-		return e.open
-			? `<button class="pk-button" ${canItemEvolve(key, e) ? `onclick="itemEvolveByKey('${key}', ${e.into})"` : "disabled"}>${label}</button>`
-			: `<button class="pk-button" disabled title="Needs more badges">${label}</button>`
+		const label = `${evolutionLabel(e)} → ${speciesName(e.into)}`
+		// Say why a button is locked: tooltips don't show on phones.
+		let why = null
+		if (!canEvolveInto(key, e.into)) why = `you have ${keyName(boxKey(e.into, variantOf(key)))}`
+		else if (!e.open) why = e.method === "trade" ? `trades at ${TRADE_BADGES} badges` : `sold at ${STONE_BADGES[e.stone]} badge${STONE_BADGES[e.stone] === 1 ? "" : "s"}`
+		else if (player.points.lt(cost)) why = `need ${format(cost)} RP`
+		if (why) return `<button class="pk-button" disabled>${label}<br><small>(${why})</small></button>`
+		return `<button class="pk-button" onclick="itemEvolveByKey('${key}', ${e.into})">${label}${cost.gt(0) ? `<br><small>(${format(cost)} RP)</small>` : ""}</button>`
 	}).join("")
 }
 
@@ -61,7 +64,7 @@ function monCard(key, inParty) {
 			? `${player.t.party[0] === key ? "<small><b>Lead</b></small>" : `<button class="pk-button" onclick="moveToLead('${key}')">Lead</button>`}
 			   <button class="pk-button" ${player.t.party.length > 1 ? `onclick="togglePartyMember('${key}')"` : "disabled"}>To box</button>`
 			: canJoinParty(key)
-				? `<button class="pk-button" ${player.t.party.length < partySize() ? `onclick="togglePartyMember('${key}')"` : "disabled"}>To party</button>`
+				? `<button class="pk-button" ${player.t.party.length < partySize() ? `onclick="togglePartyMember('${key}')"` : "disabled"}>To party</button>${dayCareOpen() && player.c.slots.length < DAY_CARE_SLOTS ? ` <button class="pk-button" onclick="depositKey('${key}')">Day Care</button>` : ""}`
 				: `<button class="pk-button" disabled title="Monotype: shares no type with your starter">To party</button>`}
 		<br>${evolutionButtons(key)}
 	</div>`
@@ -75,7 +78,7 @@ function boxHtml() {
 	const sort = player.t.sort
 	const box = player.t.box
 	const byNumber = (a, b) => speciesOf(a) - speciesOf(b) || a.localeCompare(b)
-	const keys = Object.keys(box).filter(key => !player.t.party.includes(key))
+	const keys = Object.keys(box).filter(key => !player.t.party.includes(key) && !inDayCare(key))
 	if (sort === "level") keys.sort((a, b) => box[b].level - box[a].level || byNumber(a, b))
 	else if (sort === "strength") keys.sort((a, b) => battlerScore(speciesOf(b), box[b].level) - battlerScore(speciesOf(a), box[a].level))
 	else keys.sort(byNumber)

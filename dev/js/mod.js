@@ -5,7 +5,7 @@ let modInfo = {
 	pointsName: "Research Points",
 	modFiles: [
 		"data/kanto.js", "engine.js", "logic.js",
-		"layers/field.js", "layers/team.js", "layers/gym.js", "layers/hof.js", "layers/dex.js",
+		"layers/field.js", "layers/team.js", "layers/gym.js", "layers/daycare.js", "layers/hof.js", "layers/dex.js",
 		"tree.js",
 	],
 
@@ -17,11 +17,16 @@ let modInfo = {
 
 // Set your version in num and name
 let VERSION = {
-	num: "0.4",
-	name: "The anime",
+	num: "0.5",
+	name: "Day Care",
 }
 
 let changelog = `<h1>Changelog:</h1><br>
+	<h3>v0.5 Day Care</h3><br>
+		- Route 5's Day Care (from 2 badges, or from the start once you've entered the Hall of Fame): two Pokémon train there, and a compatible pair lays Eggs that hatch after wild battles.<br>
+		- Every species hatched gives +2% Research Points for good.<br>
+		- The Map shows how many of each route's Pokémon aren't in your box yet.<br>
+		- Evolution buttons say why they're locked (badges, Research Points, or an evolution you already have).<br>
 	<h3>v0.4 The anime</h3><br>
 		- 51 places from the anime, opening in tiers as you enter the Hall of Fame again and again (the Map's Anime places).<br>
 		- The anime's forms as variants: Mewtwo's 27 clones (New Island), the giants of Pokémopolis and Bill's Lighthouse, Pink Butterfree, Flying and Original Cap Pikachu.<br>

@@ -208,6 +208,40 @@ function battlerScore(id, level) {
 	return b.hp * Math.max(b.atk, b.spa) * (b.def + b.spd) / 2
 }
 
+// ---- Breeding ----
+
+const DITTO = 132
+/** Each species' pre-evolution, from the evolution data. */
+const PRE_EVOLUTION = {}
+for (const id in SPECIES) for (const e of SPECIES[id].evolutions) PRE_EVOLUTION[e.into] = Number(id)
+/** The first stage of a species' family: what its Eggs hatch into. */
+function familyBase(id) {
+	while (PRE_EVOLUTION[id]) id = PRE_EVOLUTION[id]
+	return id
+}
+// Nidoran♀ and Nidoran♂ are one family for breeding: their Eggs hatch into either.
+const BREEDING_FAMILY = { 32: 29 }
+function breedingFamily(id) { const base = familyBase(id); return BREEDING_FAMILY[base] ?? base }
+function canBeMale(id) { const g = SPECIES[id].gender; return g >= 0 && g < 8 }
+function canBeFemale(id) { return SPECIES[id].gender > 0 }
+
+/**
+ * What two Day Care Pokémon's Eggs hatch into, or null if they won't breed: the same family
+ * with a male and a female, or anything (but another Ditto) with Ditto. Legendaries don't breed.
+ */
+function eggSpecies(a, b) {
+	if (SPECIES[a].legendary || SPECIES[b].legendary) return null
+	if (a === DITTO && b === DITTO) return null
+	if (a === DITTO || b === DITTO) return eggOptions(a === DITTO ? b : a)
+	if (breedingFamily(a) !== breedingFamily(b)) return null
+	const pair = (canBeMale(a) && canBeFemale(b)) || (canBeFemale(a) && canBeMale(b))
+	return pair ? eggOptions(a) : null
+}
+function eggOptions(id) {
+	const base = breedingFamily(id)
+	return base === 29 ? [29, 32] : [base]
+}
+
 if (typeof module !== "undefined") module.exports = {
 	STARTERS, BASE_SEARCH_TIME, BASE_SHINY_ODDS, LEVEL_CAPS, GYM_STRENGTH, ELITE_FOUR_STRENGTH,
 	CHAMPION_STRENGTH, KEY_ITEMS, STONE_BADGES, TRADE_BADGES, xpForLevel, xpYield, gainXp, levelEvolution,

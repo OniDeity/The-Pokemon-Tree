@@ -41,6 +41,12 @@ function setZone(id) {
 	if (zone && zoneOpen(zone)) player.f.zone = id
 }
 
+/** "3 not in box": a route still has Pokémon (or forms) your box doesn't have this run. */
+function missingBadge(zone) {
+	const n = zoneMissing(zone)
+	return n ? `<br><small class="pk-missing">● ${n} not in box</small>` : ""
+}
+
 function zoneListHtml() {
 	const b = badges()
 	const areas = {}
@@ -60,7 +66,7 @@ function zoneListHtml() {
 			const seen = species.filter(id => player.d.seen[id]).length
 			const caught = species.filter(id => player.d.caught[id]).length
 			const cls = player.f.zone === z.id ? "pk-zone pk-zone-on" : open ? "pk-zone" : "pk-zone pk-zone-locked"
-			html += `<button class="${cls}" ${open ? `onclick="setZone('${z.id}')"` : "disabled"} title="${z.blurb}">${z.name}<br><small>${open ? `${caught}/${species.length} caught${seen < species.length ? `, ${species.length - seen} unseen` : ""}` : "Locked"}</small></button>`
+			html += `<button class="${cls}" ${open ? `onclick="setZone('${z.id}')"` : "disabled"} title="${z.blurb}">${z.name}<br><small>${open ? `${caught}/${species.length} caught${seen < species.length ? `, ${species.length - seen} unseen` : ""}` : "Locked"}</small>${open ? missingBadge(z) : ""}</button>`
 		}
 		html += "</div>"
 	}
@@ -79,7 +85,7 @@ function animeListHtml() {
 		const caught = species.filter(id => player.d.caught[id]).length
 		const cls = player.f.zone === z.id ? "pk-zone pk-zone-on" : open ? "pk-zone pk-zone-anime" : "pk-zone pk-zone-locked"
 		const why = z.postGame ? "After the League" : `${z.badges} badge${z.badges === 1 ? "" : "s"}`
-		html += `<button class="${cls}" ${open ? `onclick="setZone('${z.id}')"` : "disabled"} title="${z.blurb}">${z.name}<br><small>${open ? `${caught}/${species.length} caught` : why}</small></button>`
+		html += `<button class="${cls}" ${open ? `onclick="setZone('${z.id}')"` : "disabled"} title="${z.blurb}">${z.name}<br><small>${open ? `${caught}/${species.length} caught` : why}</small>${open ? missingBadge(z) : ""}</button>`
 	}
 	if (nextTier < Infinity) {
 		const more = ZONES.filter(z => z.anime && z.hof === nextTier).length
@@ -99,7 +105,8 @@ function zoneDetailHtml() {
 		for (const [id, w, min, max, form] of entries) {
 			const seen = player.d.seen[id], caught = form ? player.d.forms[`${id}-${form}`] : player.d.caught[id]
 			const name = seen ? formName(id, form) : "???"
-			html += `<span class="pk-mon ${caught ? "" : seen ? "pk-seen" : "pk-unseen"}" title="${name}">${pkSprite(id, false, 72, "", form)}<br><small>${name}<br>Lv. ${min === max ? min : `${min}-${max}`} · ${Math.round(100 * w / total)}%</small></span>`
+			const inBox = Object.keys(player.t.box).some(k => speciesOf(k) === id && formOf(k) === (form || null))
+			html += `<span class="pk-mon ${caught ? "" : seen ? "pk-seen" : "pk-unseen"}" title="${name}${inBox ? "" : " (not in your box)"}">${pkSprite(id, false, 72, "", form)}<br><small>${inBox ? "" : `<span class="pk-missing">●</span> `}${name}<br>Lv. ${min === max ? min : `${min}-${max}`} · ${Math.round(100 * w / total)}%</small></span>`
 		}
 		html += "</div>"
 	}

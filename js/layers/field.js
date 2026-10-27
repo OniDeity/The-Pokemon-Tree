@@ -177,7 +177,7 @@ function specialsHtml() {
 			const status = specialStatus(s)
 			const done = player.t.specials[s.id]
 			const cost = specialCost(s)
-			const action = kind === "legendary" ? "Battle" : kind === "trade" ? "Trade" : cost.gt(0) ? `Buy (${format(cost)} RP)` : "Take"
+			const action = kind === "legendary" ? "Battle" : kind === "trade" ? "Trade" : isPrize(s) ? `Trade in ${formatCoins(prizeCoins(s))} coins` : cost.gt(0) ? `Buy (${format(cost)} RP)` : "Take"
 			html += `<div class="pk-special ${done ? "pk-done" : ""}">${pkSprite(s.species, false, 80, "", s.form)}<br><b>${formName(s.species, s.form)}</b>${s.anime ? ` <small>(anime)</small>` : ""} Lv. ${s.level}<br><small>${s.place}</small><br><small><i>${s.text}</i></small><br>
 				${done ? "<b>Done</b>" : `<button class="pk-button" ${status.ok ? `onclick="takeSpecialById('${s.id}')"` : "disabled"}>${status.ok ? action : status.why}</button>`}</div>`
 		}

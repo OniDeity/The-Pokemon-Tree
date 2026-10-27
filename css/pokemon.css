@@ -65,3 +65,9 @@
 .pk-accessory-wrap { position: relative; display: inline-block; }
 .pk-accessory { position: absolute; top: 0; right: 0; font-size: 18px; }
 .pk-zone-anime { border-color: #a070c0; }
+
+/* Pokémon a route has that your box doesn't, and the Day Care. */
+.pk-missing { color: #F8A0C0; }
+.pk-log-egg { color: #F8A0C0; }
+.pk-card-empty { border-style: dashed; opacity: 0.6; }
+.pk-egg { font-size: 48px; line-height: 64px; }

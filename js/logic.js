@@ -162,6 +162,12 @@ function addToBox(id, level, shiny) {
 	return true
 }
 
+/**
+ * Pokémon don't evolve into a species you already have: the box keeps one of each, so evolving
+ * would merge the two and lose the earlier form.
+ */
+function canEvolveInto(into) { return !player.t.box[into] }
+
 /** Evolves a box Pokémon: it takes the evolution's place in the box (and the party). */
 function evolve(id, into) {
 	id = Number(id)
@@ -181,7 +187,7 @@ function evolve(id, into) {
 	pkLog(`${speciesName(id)} evolved into ${speciesName(into)}!`, "evolve")
 	// It might already be high enough for its next stage.
 	const next = levelEvolution(into, player.t.box[into].level)
-	if (next) evolve(into, next)
+	if (next && canEvolveInto(next)) evolve(into, next)
 }
 
 function giveXp(id, xp) {
@@ -189,7 +195,7 @@ function giveXp(id, xp) {
 	if (!entry) return
 	gainXp(entry, id, xp, currentCap())
 	const into = levelEvolution(id, entry.level)
-	if (into && player.t.autoEvolve !== false) evolve(id, into)
+	if (into && canEvolveInto(into) && player.t.autoEvolve !== false) evolve(id, into)
 }
 
 function partyBattlers() {
@@ -335,7 +341,7 @@ function takeSpecial(s) {
 /** Research Points for an evolution stone (₽2,100 in the games); trades are free. */
 function itemEvolutionCost(e) { return new Decimal(e.method === "trade" ? 0 : 2100 * PRICE_TO_RP) }
 function canItemEvolve(id, e) {
-	return !!player.t.box[id] && e.open && player.points.gte(itemEvolutionCost(e))
+	return !!player.t.box[id] && e.open && canEvolveInto(e.into) && player.points.gte(itemEvolutionCost(e))
 }
 function itemEvolve(id, into) {
 	const e = itemEvolutions(id, badges()).find(e => e.into === Number(into))

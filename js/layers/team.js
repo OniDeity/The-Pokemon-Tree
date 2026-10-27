@@ -38,6 +38,7 @@ function evolutionButtons(id) {
 	return itemEvolutions(id, badges()).map(e => {
 		const cost = itemEvolutionCost(e)
 		const label = `${evolutionLabel(e)} → ${speciesName(e.into)}${cost.gt(0) ? ` (${format(cost)} RP)` : ""}`
+		if (!canEvolveInto(e.into)) return `<button class="pk-button" disabled title="You already have ${speciesName(e.into)}">${label}</button>`
 		return e.open
 			? `<button class="pk-button" ${canItemEvolve(id, e) ? `onclick="itemEvolveById(${id}, ${e.into})"` : "disabled"}>${label}</button>`
 			: `<button class="pk-button" disabled title="Needs more badges">${label}</button>`
@@ -53,7 +54,7 @@ function monCard(id, inParty) {
 		<b>${entry.shiny ? "★ " : ""}${s.name}</b> Lv. ${entry.level}<br>
 		<small>${s.types.map(t => `<span class="pk-type pk-type-${t}">${t}</span>`).join(" ")}</small>
 		${xpBar(id, entry)}
-		${lvEvo ? `<small>Evolves at Lv. ${lvEvo.level}</small><br>` : ""}
+		${lvEvo ? `<small>${canEvolveInto(lvEvo.into) ? `Evolves at Lv. ${lvEvo.level}` : `Won't evolve: you have ${speciesName(lvEvo.into)}`}</small><br>` : ""}
 		${inParty
 			? `${player.t.party[0] === id ? "<small><b>Lead</b></small>" : `<button class="pk-button" onclick="moveToLead(${id})">Lead</button>`}
 			   <button class="pk-button" ${player.t.party.length > 1 ? `onclick="togglePartyMember(${id})"` : "disabled"}>To box</button>`

@@ -85,10 +85,11 @@ addLayer("h", {
 	onPrestige(gain) {
 		enterHallOfFame()
 		player.h.total = player.h.total.add(gain)
-		doPopup("none", `Welcome to the Hall of Fame! Choose your next starter.`, "Hall of Fame", 5, "#D4A017")
+		pkPopup("hof", `Welcome to the Hall of Fame! Choose your next starter.`, "Hall of Fame", 5, "#D4A017")
 		showTab("t")
 	},
 	tooltip() { return `${formatWhole(player.h.points)} Fame` },
+	milestonePopups() { return notifyOn("milestone") },
 	milestones: {
 		0: { requirementDescription: "1 entry", effectDescription: "Challenges and the Fame shop open.", done() { return hofEntries() >= 1 } },
 		1: { requirementDescription: "2 entries", effectDescription: "Start every run with the Auto-Search Drone and the Exp. Share.", done() { return hofEntries() >= 2 } },

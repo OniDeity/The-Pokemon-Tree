@@ -64,6 +64,7 @@ function rpMult() {
 	if (dexMilestone(150)) m *= 5
 	if (formMilestone(3)) m *= 1.25
 	m *= 1 + 0.02 * hatchedSpecies()
+	if (wardenMilestone(25)) m *= 1.2
 	return m
 }
 function wildRpMult() { return rpMult() * (hasFieldUpgrade(21) ? 1.5 : 1) }
@@ -88,6 +89,7 @@ function catchMult() {
 	let m = (1 + fieldBuyableStep(12, 0.15) * fieldBuyable(12)) * (1 + 0.1 * hofBuyable(15))
 	if (dexMilestone(25)) m *= 1.25
 	if (formMilestone(10)) m *= 1.25
+	if (wardenMilestone(50)) m *= 1.1
 	return m
 }
 function gearMult() { return 1 + 0.15 * fieldBuyable(13) }
@@ -677,3 +679,106 @@ function eggStep() {
 
 /** Breeder's notes: each species ever hatched gives +2% Research Points. */
 function hatchedSpecies() { return player.d.hatched ? Object.keys(player.d.hatched).length : 0 }
+
+// ---- The Safari Zone ----
+// Fuchsia's Safari Zone ("s" layer): buy a trip for Research Points and get Safari Balls. Its
+// Pokémon come by on their own; there's no battle: throw Bait or a Rock first (or not), then
+// balls until it's caught or it runs. Trips are per run; Safari catches (player.d.safari) count
+// for good toward the Warden's milestones.
+
+const SAFARI_BALLS = 30
+/** A Safari Ball throw's catch rate before Bait/Rocks (the Field's catch upgrades don't apply). */
+const SAFARI_CATCH = 0.55
+const SAFARI_STRATEGIES = {
+	balls: { name: "Just throw balls", catch: 1, flee: 1 },
+	bait: { name: "Bait first", catch: 0.75, flee: 0.35, text: "It eats: much less likely to run, a little harder to catch. Best for fast, rare ones." },
+	rock: { name: "Rock first", catch: 2, flee: 2.5, text: "It's angry: twice as easy to catch, far more likely to run. The most catches per trip, but fast, rare ones get away." },
+}
+const SAFARI_UPGRADES = {
+	11: { title: "Extra Balls", cost: 20000, text: "15 more Safari Balls per trip." },
+	12: { title: "Binoculars", cost: 60000, text: "Safari Pokémon turn up twice as often." },
+	13: { title: "Safari Pass", cost: 150000, text: "A new trip starts on its own when the balls run out (if you can pay)." },
+}
+const WARDEN_MILESTONES = [
+	[10, "5 more Safari Balls per trip."],
+	[25, "Research Points ×1.2."],
+	[50, "+10% catch chance everywhere."],
+	[100, "Safari Pokémon turn up twice as often."],
+]
+
+function safariZone() { return zoneById("safariZone") }
+function safariOpen() { return hofEntries() >= 2 || badges() >= safariZone().badges }
+function hasSafariUpgrade(id) { return !!player.s && player.s.upgrades.map(Number).includes(Number(id)) }
+function safariCaught() { return player.d.safari || 0 }
+function wardenMilestone(n) { return safariCaught() >= n }
+
+function safariTripCost() { return new Decimal(1000).times(Decimal.pow(2, badges())) }
+function safariBallsPerTrip() { return SAFARI_BALLS + (hasSafariUpgrade(11) ? 15 : 0) + (wardenMilestone(10) ? 5 : 0) }
+function safariTime() {
+	return searchTime() * 2 / (hasSafariUpgrade(12) ? 2 : 1) / (wardenMilestone(100) ? 2 : 1)
+}
+
+function startSafariTrip() {
+	if (!safariOpen() || player.s.balls > 0 || player.points.lt(safariTripCost())) return false
+	player.points = player.points.sub(safariTripCost())
+	player.s.balls = safariBallsPerTrip()
+	player.s.trips++
+	return true
+}
+
+/** Chance a wild Pokémon runs after a turn: faster Pokémon run more. */
+function safariFleeChance(id) { return Math.min(0.9, SPECIES[id].stats[5] / 300) }
+/** Chance a Safari Ball catches it (rarer Pokémon are harder; Rocks help, Bait hurts). */
+function safariCatchChance(id, strategy = SAFARI_STRATEGIES.balls) {
+	return Math.min(1, Math.pow(SPECIES[id].catchRate / 255, 0.6) * SAFARI_CATCH * strategy.catch * (wardenMilestone(50) ? 1.1 : 1))
+}
+
+/** One Safari encounter: a strategy's opening move, then balls until it's caught or runs. */
+function safariEncounter(rng) {
+	const enc = rollEncounter(safariZone(), badges(), rng)
+	const shiny = rand(rng) < 1 / shinyOdds()
+	const strategy = SAFARI_STRATEGIES[player.s.strategy] || SAFARI_STRATEGIES.balls
+	const name = `${shiny ? "★ " : ""}${speciesName(enc.id)} (Lv. ${enc.level})`
+	dexSee(enc.id)
+	const catchP = safariCatchChance(enc.id, strategy)
+	const fleeP = Math.min(0.95, safariFleeChance(enc.id) * strategy.flee)
+	// The opening Bait or Rock is a turn it might run on.
+	if (strategy !== SAFARI_STRATEGIES.balls && rand(rng) < fleeP) {
+		safariLog(`A wild ${name} ran away!`, "lose", enc, shiny)
+		return
+	}
+	while (player.s.balls > 0) {
+		player.s.balls--
+		if (rand(rng) < catchP) {
+			const isNew = !player.d.caught[enc.id]
+			addToBox(enc.id, enc.level, shiny ? "shiny" : "normal")
+			player.d.safari = safariCaught() + 1
+			safariLog(`Caught ${name}!${isNew ? " New in the Pokédex!" : ""}`, isNew || shiny ? "new" : "catch", enc, shiny)
+			return
+		}
+		if (rand(rng) < fleeP) {
+			safariLog(`A wild ${name} broke free and ran away!`, "lose", enc, shiny)
+			return
+		}
+	}
+	safariLog(`Out of Safari Balls: the ${name} got away.`, "lose", enc, shiny)
+}
+
+function safariLog(text, kind, enc, shiny) {
+	player.s.log.unshift({ text, kind, id: enc.id, shiny: !!shiny })
+	if (player.s.log.length > LOG_SIZE) player.s.log.length = LOG_SIZE
+	if (kind === "new" || shiny) pkLog(`Safari Zone: ${text}`, kind, enc, shiny)
+}
+
+function safariTick(diff, rng) {
+	if (!player.s || !safariOpen()) return
+	if (player.s.balls <= 0) {
+		if (hasSafariUpgrade(13)) startSafariTrip()
+		if (player.s.balls <= 0) { player.s.progress = 0; return }
+	}
+	player.s.progress += diff / safariTime()
+	let n = Math.min(Math.floor(player.s.progress), MAX_ENCOUNTERS_PER_TICK)
+	player.s.progress -= Math.floor(player.s.progress)
+	for (let i = 0; i < n && player.s.balls > 0; i++) safariEncounter(rng)
+	if (player.s.balls <= 0 && hasSafariUpgrade(13)) startSafariTrip()
+}

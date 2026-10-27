@@ -17,11 +17,14 @@ let modInfo = {
 
 // Set your version in num and name
 let VERSION = {
-	num: "0.3",
+	num: "0.3.1",
 	name: "Variants",
 }
 
 let changelog = `<h1>Changelog:</h1><br>
+	<h3>v0.3.1</h3><br>
+		- Fixed new starters being stored under a broken box key ("4-false"); saves are repaired on load.<br>
+		- Each release now loads fresh instead of from the browser's cache.<br>
 	<h3>v0.3 Variants</h3><br>
 		- Shiny Pokémon get their own box slot: a shiny Kakuna evolves even if you have a normal Beedrill, and a shiny catch no longer replaces your normal one.<br>
 	<h3>v0.2 Hall of Fame</h3><br>
@@ -93,6 +96,6 @@ function maxTickLength() {
 // Use this if you need to undo inflation from an older version. If the version is older than the version that fixed the issue,
 // you can cap their current resources with this.
 function fixOldSave(oldVersion){
-	// v0.3: box entries are keyed by species and look (see migrateBox).
+	// v0.3: box entries are keyed by species and look; v0.3.1 repairs "4-false" keys (see migrateBox).
 	migrateBox()
 }

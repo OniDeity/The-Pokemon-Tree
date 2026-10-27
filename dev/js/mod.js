@@ -5,7 +5,7 @@ let modInfo = {
 	pointsName: "Research Points",
 	modFiles: [
 		"data/kanto.js", "engine.js", "logic.js",
-		"layers/field.js", "layers/team.js", "layers/gym.js", "layers/daycare.js", "layers/hof.js", "layers/dex.js",
+		"layers/field.js", "layers/team.js", "layers/gym.js", "layers/daycare.js", "layers/safari.js", "layers/hof.js", "layers/dex.js",
 		"tree.js",
 	],
 
@@ -17,11 +17,14 @@ let modInfo = {
 
 // Set your version in num and name
 let VERSION = {
-	num: "0.5",
-	name: "Day Care",
+	num: "0.6",
+	name: "Safari Zone",
 }
 
 let changelog = `<h1>Changelog:</h1><br>
+	<h3>v0.6 Safari Zone</h3><br>
+		- Fuchsia's Safari Zone (from 5 badges, or from the start after two Hall of Fame entries): trips of Safari Balls, no battles. Throw Bait or a Rock first, or just balls.<br>
+		- Safari catches count for good toward the Warden's milestones.<br>
 	<h3>v0.5 Day Care</h3><br>
 		- Route 5's Day Care (from 2 badges, or from the start once you've entered the Hall of Fame): two Pokémon train there, and a compatible pair lays Eggs that hatch after wild battles.<br>
 		- Every species hatched gives +2% Research Points for good.<br>

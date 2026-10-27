@@ -2,7 +2,7 @@
 // Field (Research Points, equipment, routes) but keeps your Pokémon and Pokédex. Brock is the first.
 
 function teamHtml(team, strength) {
-	return team.map(([id, level]) => `<span class="pk-mon">${pkSprite(id, false, 80)}<br><small>${speciesName(id)}<br>Lv. ${level}</small></span>`).join("")
+	return team.map(([id, level, shiny, form]) => `<span class="pk-mon">${pkSprite(id, !!shiny, 80, "", form)}<br><small>${formName(id, form)}<br>Lv. ${level}</small></span>`).join("")
 		+ (strength > 1 ? `<br><small>Raised well: stats ×${format(strength)}</small>` : "")
 }
 

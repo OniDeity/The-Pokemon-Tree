@@ -34,8 +34,23 @@ const POOL_NAMES = { walk: "Grass & caves", surf: "Surfing", oldRod: "Old Rod", 
 const STONE_BADGES = { moonStone: 1, fireStone: 3, waterStone: 3, thunderStone: 3, leafStone: 3 }
 const TRADE_BADGES = 3
 
+// Forms: looks of a species seen in the anime, kept as variants (box keys like "150-clone").
+// sprite: its own image (resources/pokemon/<id>-<form>.png); filter/accessory: drawn over the
+// species' sprite. Forms don't evolve (a clone or a giant stays as it is).
+const FORMS = {
+	clone: { name: "Clone", sprite: true, text: "One of Mewtwo's clones from New Island, marked with stripes." },
+	giant: { name: "Giant", sprite: true, atk: 1.2, def: 1.1, catchRate: 3, text: "A towering giant: Attack ×1.2, Defense ×1.1." },
+	pink: { name: "Pink", filter: "sepia(1) saturate(3) hue-rotate(290deg) brightness(1.15)", catchRate: 25, text: "The pink Butterfree that leads the migration out to sea." },
+	balloon: { name: "Flying", accessory: "🎈", catchRate: 45, text: "A Pikachu that floats on a bunch of balloons." },
+	originalCap: { name: "Original Cap", sprite: true, catchRate: 45, text: "Wearing Ash's original cap." },
+}
+
 function speciesName(id) { return SPECIES[id] ? SPECIES[id].name : "???" }
-function spriteOf(id, shiny) { return `resources/pokemon/${shiny ? "shiny/" : ""}${id}.png` }
+function formName(id, form) { return form ? `${FORMS[form].name} ${speciesName(id)}` : speciesName(id) }
+function spriteOf(id, shiny, form) {
+	const file = form && FORMS[form].sprite ? `${id}-${form}` : id
+	return `resources/pokemon/${shiny ? "shiny/" : ""}${file}.png`
+}
 function hasKeyItem(item, badges) { return badges >= KEY_ITEMS[item].badges }
 function levelCap(badges) { return LEVEL_CAPS[Math.min(badges, LEVEL_CAPS.length - 1)] }
 
@@ -171,16 +186,17 @@ function zoneSpecies(zone, badges) {
 	return [...ids]
 }
 
-/** Rolls a wild Pokémon in a zone: {id, level, pool}. */
+/** Rolls a wild Pokémon in a zone: {id, level, pool, form}. */
 function rollEncounter(zone, badges, rng) {
 	const pool = pickWeighted(zonePools(zone, badges), p => POOL_WEIGHT[p], rng)
-	const [id, , min, max] = pickWeighted(zone.pools[pool], e => e[1], rng)
-	return { id, level: min + Math.floor(rand(rng) * (max - min + 1)), pool }
+	const [id, , min, max, form] = pickWeighted(zone.pools[pool], e => e[1], rng)
+	return { id, level: min + Math.floor(rand(rng) * (max - min + 1)), pool, form: form || null }
 }
 
 /** Chance a beaten wild Pokémon is caught. */
-function catchChance(id, mult) {
-	return Math.min(1, Math.pow(SPECIES[id].catchRate / 255, 0.6) * 0.6 * mult)
+function catchChance(id, mult, form) {
+	const rate = (form && FORMS[form].catchRate) || SPECIES[id].catchRate
+	return Math.min(1, Math.pow(rate / 255, 0.6) * 0.6 * mult)
 }
 
 /** Research Points for beating a wild Pokémon (before multipliers). */

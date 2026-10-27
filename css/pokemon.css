@@ -60,3 +60,8 @@
 
 /* TMT colors bought and affordable upgrades alike; mark the bought ones. */
 .upg.bought { filter: saturate(0.5) brightness(0.8); cursor: default; }
+
+/* Forms drawn over the species' sprite (Flying Pikachu's balloons). */
+.pk-accessory-wrap { position: relative; display: inline-block; }
+.pk-accessory { position: absolute; top: 0; right: 0; font-size: 18px; }
+.pk-zone-anime { border-color: #a070c0; }

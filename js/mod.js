@@ -17,11 +17,15 @@ let modInfo = {
 
 // Set your version in num and name
 let VERSION = {
-	num: "0.3.1",
-	name: "Variants",
+	num: "0.4",
+	name: "The anime",
 }
 
 let changelog = `<h1>Changelog:</h1><br>
+	<h3>v0.4 The anime</h3><br>
+		- 51 places from the anime, opening in tiers as you enter the Hall of Fame again and again (the Map's Anime places).<br>
+		- The anime's forms as variants: Mewtwo's 27 clones (New Island), the giants of Pokémopolis and Bill's Lighthouse, Pink Butterfree, Flying and Original Cap Pikachu.<br>
+		- The Pokédex's Forms page, with form milestones.<br>
 	<h3>v0.3.1</h3><br>
 		- Fixed new starters being stored under a broken box key ("4-false"); saves are repaired on load.<br>
 		- Each release now loads fresh instead of from the browser's cache.<br>

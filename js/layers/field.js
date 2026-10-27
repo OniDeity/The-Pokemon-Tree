@@ -4,6 +4,19 @@
 
 const LOG_SIZE = 8
 
+/**
+ * TMT's layerDataReset merges the start data into objects and arrays rather than replacing them,
+ * so a reset box or route list would keep its old entries. This replaces them with fresh copies.
+ */
+function freshLayerData(layer, keep = []) {
+	layerDataReset(layer, keep)
+	const start = layers[layer].startData()
+	for (const key in start) {
+		if (keep.includes(key) || start[key] instanceof Decimal || !(start[key] instanceof Object)) continue
+		player[layer][key] = start[key]
+	}
+}
+
 /** Writes to the encounter log (and pops up the special ones). */
 function pkLog(text, kind, enc, shiny) {
 	if (!player.f) return
@@ -85,7 +98,7 @@ function fieldBuyableDef(id) {
 			player.points = player.points.sub(this.cost())
 			addBuyables("f", id, 1)
 		},
-		unlocked() { return badges() >= def.badges },
+		unlocked() { return badges() >= def.badges && fieldBuyableAllowed(id) },
 		style: { width: "180px", height: "130px" },
 	}
 }
@@ -148,8 +161,10 @@ addLayer("f", {
 		if (layers[resettingLayer].row <= this.row) return
 		const keep = fieldKeptUpgrades()
 		const zone = player.f.zone
-		layerDataReset("f", [])
+		const gear = resettingLayer === "g" && hofUpgrade(13) ? Math.floor(fieldBuyable(13) / 2) : 0
+		freshLayerData("f", ["log"])
 		player.f.upgrades = keep
+		player.f.buyables[13] = new Decimal(gear)
 		player.f.zone = zoneOpen(zoneById(zone)) ? zone : ZONES[0].id
 	},
 	update(diff) {

@@ -145,7 +145,8 @@ function battle(team, foes) {
 		}
 	}
 	const win = j >= foes.length
-	return { win, defeated: j, fought: [...fought], hpLeft: win ? hpA / team[i].hp : 0, stoppedBy: win ? null : foes[j] }
+	// fainted: how many of the player's Pokémon fainted, from the front of the team.
+	return { win, defeated: j, fainted: i, fought: [...fought], hpLeft: win ? hpA / team[i].hp : 0, stoppedBy: win ? null : foes[j] }
 }
 
 // ---- Encounters ----

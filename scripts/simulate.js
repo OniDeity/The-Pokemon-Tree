@@ -37,7 +37,8 @@ var player = {
 	g: { points: new Decimal(0) },
 	l: { beaten: 0, champion: false, hallOfFame: [] },
 	h: { points: new Decimal(0), hall: [], enshrined: {}, upgrades: [], buyables: {}, challenges: {}, activeChallenge: null, resetTime: 0 },
-	d: { seen: {}, caught: {}, shiny: {}, forms: {} },
+	d: { seen: {}, caught: {}, shiny: {}, forms: {}, hatched: {} },
+	c: { slots: [], eggs: [], eggProgress: 0, upgrades: [] },
 }
 // The game's chooseStarter, without the UI.
 function startRun(id) {

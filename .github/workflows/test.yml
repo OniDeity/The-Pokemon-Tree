@@ -1,0 +1,18 @@
+name: Checks
+on:
+  push:
+    branches: [ main, dev ]
+  pull_request:
+    branches: [ main, dev ]
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+      - name: Syntax check
+        run: for f in $(find js -name '*.js' ! -path 'js/Demo/*'); do node --check "$f" || exit 1; done
+      - name: Simulate the first two hours (each starter)
+        run: for s in 1 4 7; do SIM_HOURS=2 node scripts/simulate.js $s 1 || exit 1; done

@@ -7,9 +7,20 @@ Sister project: OniDeity/idle-pokemon (its data is the source of ours).
 
 ## Workflow
 
-- Develop on the session's feature branch; never put model identifiers in commits, PRs or code.
+- Develop on the session's feature branch, open a PR into `dev`, merge when the checks are green.
+  `dev` deploys to https://onideity.github.io/The-Pokemon-Tree/dev/ (its own save id, via
+  `scripts/prepareDevBuild.mjs`).
+- `dev` exists so a save-breaking bug never reaches the public game. Before releasing, start a
+  game on the `main` code, then load that save in the new code (same origin) and check it loads
+  with no page errors and keeps its progress. If it does, release without waiting to be asked:
+  PR `dev` → `main`, merge when green, confirm https://onideity.github.io/The-Pokemon-Tree/ serves
+  the new code.
+- Deploys go to the `gh-pages` branch (`.github/workflows/deploy.yml`); Pages serves that branch.
+- Never put model identifiers in commits, PRs or code.
 - Check changes in a browser: serve the folder (`python3 -m http.server`) and open `index.html`.
   Headless Chromium needs the agent proxy bypassed for localhost.
+- Checks (CI, `.github/workflows/test.yml`): `node --check` on every file in `js/`, and a two-hour
+  simulation per starter (`SIM_HOURS=2`) that fails if it can't earn a badge.
 - Pacing: `node scripts/simulate.js <starter> <seed>` plays greedily and prints each badge's time
   (and whether the survey or the team was the wall). Check all three starters and two seeds.
 

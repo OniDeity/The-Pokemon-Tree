@@ -16,6 +16,9 @@ Sister project: OniDeity/idle-pokemon (its data is the source of ours).
   PR `dev` → `main`, merge when green, confirm https://onideity.github.io/The-Pokemon-Tree/ serves
   the new code.
 - Deploys go to the `gh-pages` branch (`.github/workflows/deploy.yml`); Pages serves that branch.
+  The deploy stamps each build (`scripts/stampBuild.mjs`): script and stylesheet addresses get
+  `?v=<commit>`, and `index.html` checks `version.txt` (never cached) and reloads once if a newer
+  build is live, because Pages lets browsers cache files for 10 minutes.
 - Never put model identifiers in commits, PRs or code.
 - Check changes in a browser: serve the folder (`python3 -m http.server`) and open `index.html`.
   Headless Chromium needs the agent proxy bypassed for localhost.

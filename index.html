@@ -12,6 +12,20 @@
 	<link rel="stylesheet" type="text/css" href="css/popup.css" />
 	<link rel="stylesheet" type="text/css" href="css/pokemon.css" />
 	<title>The Pokémon Tree</title>
+	<script>
+		// GitHub Pages lets browsers cache files for 10 minutes. The deploy stamps BUILD and
+		// version.txt (scripts/stampBuild.mjs); when the live build is newer than this page,
+		// reload from an address the cache hasn't seen.
+		const BUILD = "local"
+		if (BUILD !== "local") fetch("version.txt", { cache: "no-store" })
+			.then(r => r.ok ? r.text() : null)
+			.then(live => {
+				live = live && live.trim()
+				if (live && live !== BUILD && new URLSearchParams(location.search).get("v") !== live)
+					location.replace(location.pathname + "?v=" + live)
+			})
+			.catch(() => {})
+	</script>
 	<link rel="stylesheet" type="text/css" href="css/tree-node.css" />
 
 	<link href="https://fonts.googleapis.com/css?family=Inconsolata" rel="stylesheet">

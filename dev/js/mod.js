@@ -5,7 +5,7 @@ let modInfo = {
 	pointsName: "Research Points",
 	modFiles: [
 		"data/kanto.js", "engine.js", "logic.js",
-		"layers/field.js", "layers/team.js", "layers/gym.js", "layers/daycare.js", "layers/safari.js", "layers/hof.js", "layers/dex.js",
+		"layers/field.js", "layers/team.js", "layers/gym.js", "layers/daycare.js", "layers/safari.js", "layers/gamecorner.js", "layers/hof.js", "layers/dex.js",
 		"tree.js",
 	],
 
@@ -17,11 +17,15 @@ let modInfo = {
 
 // Set your version in num and name
 let VERSION = {
-	num: "0.7",
-	name: "Automation",
+	num: "0.8",
+	name: "Game Corner",
 }
 
 let changelog = `<h1>Changelog:</h1><br>
+	<h3>v0.8 Game Corner</h3><br>
+		- Celadon's Game Corner (from 3 badges, or from the start after three Hall of Fame entries): buy coins with Research Points and trade them in at the prize counter for Abra, Clefairy, Nidorina, Dratini, Scyther, Pinsir and Porygon (they now cost coins, not Research Points).<br>
+		- The slots: switch them on and they spin by themselves. They pay back a little less than you bet until the Lucky Machine; every 7 7 7 counts for good toward the jackpot milestones.<br>
+		- Coin upgrades (Lucky Machine, Coin Case, Itemfinder: coins from wild battles) and prize counter buyables (High Roller, Amulet Coin, Lucky Egg). Auto-buy buys the coin buyables too.<br>
 	<h3>v0.7 Automation</h3><br>
 		- Three hard automation challenges after your first Hall of Fame entry: Shoestring Budget (Auto-buy), Hatchling Run (the Day Care Lady, who keeps new Eggs coming) and Poacher's Net (the Warden's Pass: free automatic Safari trips with the best strategy). Switch them on and off in the Hall of Fame's Automation page.<br>
 		- Buyables for the Day Care (Training, Incubator, Warm Blanket) and the Safari Zone (Ball Pouch, Quiet Steps, Safari Ball Polish).<br>

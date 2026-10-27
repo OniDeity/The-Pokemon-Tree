@@ -29,6 +29,7 @@ const NOTIFY_KINDS = {
 	hof: "Hall of Fame",
 	jackpot: "Game Corner jackpots",
 	rocket: "Team Rocket",
+	story: "Story (rival, S.S. Anne, Dojo)",
 	milestone: "Milestones",
 	achievement: "Achievements",
 	glow: "Glowing nodes (something to buy or do)",
@@ -40,8 +41,8 @@ function toggleNotify(kind) {
 }
 Vue.component("pk-notify-settings", {
 	data() { return { kinds: NOTIFY_KINDS } },
-	template: `<div><h3>Notifications</h3><br><button v-for="(name, kind) in kinds" class="opt" style="width:auto; min-width:150px; height:auto; padding:6px; margin:3px" @click="toggleNotify(kind)">{{ name }}: {{ notifyOn(kind, options.pkNotify && options.pkNotify[kind]) ? "ON" : "OFF" }}</button></div>`,
-	methods: { toggleNotify, notifyOn },
+	template: `<div><h3>Display</h3><br><button class="opt" style="width:auto; min-width:150px; height:auto; padding:6px; margin:3px" @click="toggleSprites()">Pokémon sprites: {{ options.pkHideSprites ? "OFF" : "ON" }}</button><br><h3>Notifications</h3><br><button v-for="(name, kind) in kinds" class="opt" style="width:auto; min-width:150px; height:auto; padding:6px; margin:3px" @click="toggleNotify(kind)">{{ name }}: {{ notifyOn(kind, options.pkNotify && options.pkNotify[kind]) ? "ON" : "OFF" }}</button></div>`,
+	methods: { toggleNotify, notifyOn, toggleSprites() { options.pkHideSprites = !options.pkHideSprites } },
 })
 /** A popup of a kind the player hasn't switched off. */
 function pkPopup(kind, text, title, timer, color) {
@@ -71,13 +72,15 @@ function pkLog(text, kind, enc, shiny, quiet = false) {
 	player.f.log.unshift({ text, kind, id: enc ? enc.id : null, form: enc?.form || null, shiny: !!shiny })
 	if (player.f.log.length > LOG_SIZE) player.f.log.length = LOG_SIZE
 	const popups = { new: ["pokedex", "Pokédex", "#F8D030"], evolve: ["evolve", "Evolution!", "#78C850"], league: ["league", "Pokémon League", "#A040A0"],
-		jackpot: ["jackpot", "Game Corner", "#E0B040"], rocket: ["rocket", "Rocket Hideout", "#C03028"] }
+		jackpot: ["jackpot", "Game Corner", "#E0B040"], rocket: ["rocket", "Team Rocket", "#C03028"], story: ["story", "Kanto", "#6890F0"],
+		glitch: ["pokedex", "?̷?̵?̸", "#888888"] }
 	const popup = shiny ? ["shiny", "Shiny!", "#F8D030"] : popups[kind]
 	if (popup && !quiet) pkPopup(popup[0], text, popup[1], 3, popup[2])
 }
 
 /** A Pokémon's sprite: forms with their own image use it; others are drawn over the species'. */
 function pkSprite(id, shiny, size = 48, extra = "", form = null) {
+	if (options.pkHideSprites) return `<span class="pk-sprite-off" style="width:${size}px">${shiny ? "★" : ""}${formName(id, form)}</span>`
 	const f = form ? FORMS[form] : null
 	const style = f?.filter ? `style="filter:${f.filter}"` : ""
 	const img = `<img src="${spriteOf(id, shiny, form)}" width="${size}" height="${size}" class="pk-sprite" ${style} ${extra} alt="${formName(id, form)}">`

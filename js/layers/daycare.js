@@ -50,7 +50,7 @@ function eggsHtml() {
 		<div class="pk-xp"><div style="width:${100 * (1 - egg.battles / eggBattles())}%;background:#F8A0C0"></div></div></div>`).join("")}</div>`
 }
 
-const DEPOSIT_FILTERS = { all: "All", new: "New Eggs", breeds: "Lays Eggs", box: "Not in party" }
+const DEPOSIT_FILTERS = { all: "All", new: "New Eggs", breeds: "Lays Eggs", noShiny: "No shiny yet", box: "Not in party" }
 function depositMatches(key) {
 	const mode = player.c.depositFilter
 	if (!searchMatches(player.c.depositSearch, speciesOf(key))) return false
@@ -58,6 +58,7 @@ function depositMatches(key) {
 	if (mode === "new") return !!eggs && eggs.some(id => !player.d.hatched[id])
 	if (mode === "breeds") return !!eggs
 	if (mode === "box") return !player.t.party.includes(key)
+	if (mode === "noShiny") return !player.d.shiny[speciesOf(key)]
 	return true
 }
 function depositListHtml() {

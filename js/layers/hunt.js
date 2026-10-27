@@ -18,7 +18,7 @@ function shinyDexHtml() {
 	let html = `<h3>Shiny Pokédex (${shinySpecies()}/151)</h3><br><small>Every shiny species caught gives +1% Research Points for good.</small><br><div class="pk-dex">`
 	for (let id = 1; id <= 151; id++) {
 		const n = player.d.shiny[id]
-		if (player.y.shinyFilter === "shiny" ? !n : player.y.shinyFilter === "missing" ? n || !player.d.caught[id] : false) continue
+		if (player.y.shinyFilter === "shiny" ? !n : player.y.shinyFilter === "missing" ? !!n : false) continue
 		if (player.y.shinySearch && !(player.d.seen[id] && searchMatches(player.y.shinySearch, id))) continue
 		html += `<span class="pk-dex-entry ${n ? "" : "pk-unseen"}" title="${player.d.seen[id] ? speciesName(id) : "???"}${n ? ` (★${n})` : ""}">${pkSprite(id, !!n, 48)}<br><small>${id}</small></span>`
 	}
@@ -72,7 +72,7 @@ addLayer("y", {
 			content: [
 				["display-text", () => `Shiny species caught (for good): <b>${shinySpecies()}</b> · best chain: <b>${player.d.bestChain || 0}</b><br>${SHINY_MILESTONES.map(([n, text]) => `<span class="${shinyMilestone(n) ? "" : "pk-done"}">${n}: ${text}${shinyMilestone(n) ? " ✓" : ""}</span>`).join("<br>")}`],
 				"blank",
-				["display-text", () => filterBar("y", "shinyFilter", { all: "All", shiny: "Shiny", missing: "Caught, not shiny yet" })],
+				["display-text", () => filterBar("y", "shinyFilter", { all: "All", shiny: "Shiny", missing: "No shiny yet" })],
 				["pk-search", "shinySearch"],
 				["display-text", () => shinyDexHtml()],
 			],

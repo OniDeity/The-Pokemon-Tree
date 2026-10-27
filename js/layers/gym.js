@@ -26,6 +26,10 @@ function surveyHtml() {
 	return html
 }
 
+function storyGateHtml(ch) {
+	return ch ? `<span style="color:#F08030">First clear ${ch.name} (the ${ch.layer === "r" ? "Team Rocket" : "Trainers"} node).</span>` : ""
+}
+
 function badgeCaseHtml() {
 	return `<div class="pk-badges">${GYMS.map((g, i) => i < badges()
 		? `<img src="resources/badges/${i + 1}.png" width="40" height="40" title="${g.badge}">`
@@ -59,6 +63,7 @@ addLayer("g", {
 	prestigeButtonText() {
 		const gym = nextGym()
 		if (!gym) return "You have all eight badges. The Pokémon League awaits!"
+		if (gymStoryGate(badges())) return `Clear ${gymStoryGate(badges()).name} to reach ${gym.name}'s Gym.`
 		if (!surveyStatus().done) return `Finish surveying the area to challenge ${gym.name}.`
 		if (!gymPrediction().win) return `${gym.name} is too strong for your party right now.`
 		return `Challenge ${gym.name} for the ${gym.badge}!<br><small>Resets Research Points, equipment and routes.</small>`
@@ -111,6 +116,7 @@ addLayer("g", {
 		}],
 		"blank",
 		["display-text", () => nextGym() ? surveyHtml() : ""],
+		["display-text", () => storyGateHtml(gymStoryGate(badges()))],
 		["display-text", () => nextGym() ? predictionHtml(gymPrediction()) : ""],
 		"blank",
 		"prestige-button",
@@ -150,6 +156,7 @@ addLayer("l", {
 			: `<h2>Indigo Plateau</h2><br>Survey Route 23 and Victory Road, then beat the Elite Four and the Champion in a row.`],
 		"blank",
 		["display-text", () => isChampion() ? "" : surveyHtml()],
+		["display-text", () => isChampion() ? "" : storyGateHtml(leagueStoryGate())],
 		"blank",
 		["display-text", () => leagueTrainers().map((t, k) => {
 			const beaten = player.l.beaten > k

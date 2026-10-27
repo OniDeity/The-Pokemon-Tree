@@ -80,15 +80,20 @@ function boxHtml() {
 	const byNumber = (a, b) => speciesOf(a) - speciesOf(b) || a.localeCompare(b)
 	const mode = player.t.boxFilter
 	const keys = Object.keys(box).filter(key => !player.t.party.includes(key) && !inDayCare(key) && searchMatches(player.t.boxSearch, speciesOf(key))
-		&& (mode === "shiny" ? isShiny(key) : mode === "forms" ? !!formOf(key) : mode === "egg" || mode === "safari" ? box[key].origin === mode : true))
+		&& (mode === "shiny" ? isShiny(key) : mode === "noShiny" ? !player.d.shiny[speciesOf(key)] : mode === "forms" ? !!formOf(key) : mode === "egg" || mode === "safari" ? box[key].origin === mode : true))
 	if (sort === "level") keys.sort((a, b) => box[b].level - box[a].level || byNumber(a, b))
 	else if (sort === "strength") keys.sort((a, b) => battlerScore(speciesOf(b), box[b].level) - battlerScore(speciesOf(a), box[a].level))
 	else keys.sort(byNumber)
-	if (!keys.length) return player.t.boxSearch || mode !== "all" ? "<i>No Pokémon in the box match.</i>" : "<i>The box is empty. Catch more Pokémon!</i>"
-	return `<div class="pk-cards">${keys.map(key => monCard(key, false)).join("")}</div>`
+	const pages = Math.max(1, Math.ceil(keys.length / BOX_PAGE))
+	const page = Math.min(player.t.boxPage || 0, pages - 1)
+	const pager = pages > 1 ? `<div>${Array.from({ length: pages }, (_, i) => `<button class="pk-button ${i === page ? "pk-on" : ""}" onclick="setBoxPage(${i})">${i + 1}</button>`).join(" ")}</div>` : ""
+	if (keys.length) return `${pager}<div class="pk-cards">${keys.slice(page * BOX_PAGE, (page + 1) * BOX_PAGE).map(key => monCard(key, false)).join("")}</div>${pager}`
+	return player.t.boxSearch || mode !== "all" ? "<i>No Pokémon in the box match.</i>" : "<i>The box is empty. Catch more Pokémon!</i>"
 }
 function setBoxSort(sort) { player.t.sort = sort }
-const BOX_FILTERS = { all: "All", shiny: "Shiny", forms: "Forms", egg: "Hatched", safari: "Safari" }
+function setBoxPage(page) { player.t.boxPage = page }
+const BOX_PAGE = 30
+const BOX_FILTERS = { all: "All", shiny: "Shiny", noShiny: "No shiny yet", forms: "Forms", egg: "Hatched", safari: "Safari" }
 
 addLayer("t", {
 	name: "Team",
@@ -111,10 +116,11 @@ addLayer("t", {
 		sort: "number",
 		boxSearch: "",
 		boxFilter: "all",
+		boxPage: 0,
 	}},
 	// Your Pokémon are kept through badges; the Hall of Fame (or a challenge) starts over.
 	doReset(resettingLayer) {
-		if (resettingLayer === "h") freshLayerData("t", ["autoEvolve", "sort", "boxSearch", "boxFilter"])
+		if (resettingLayer === "h") freshLayerData("t", ["autoEvolve", "sort", "boxSearch", "boxFilter", "boxPage"])
 	},
 	tooltip() { return player.t.starter ? `${Object.keys(player.t.box).length} Pokémon` : "Choose your starter!" },
 	shouldNotify() { return !player.t.starter },

@@ -1,6 +1,6 @@
 // The Pokédex ("d") and Achievements ("a"): side layers, never reset.
 
-const DEX_FILTERS = { all: "All", caught: "Caught", missing: "Not caught", seen: "Seen only", shiny: "Shiny", hatched: "Hatched" }
+const DEX_FILTERS = { all: "All", caught: "Caught", missing: "Not caught", seen: "Seen only", shiny: "Shiny", noShiny: "No shiny yet", hatched: "Hatched" }
 function dexMatches(id) {
 	const d = player.d, mode = d.dexFilter
 	// Unseen species can't be searched by name.
@@ -9,6 +9,7 @@ function dexMatches(id) {
 	if (mode === "missing") return !d.caught[id]
 	if (mode === "seen") return !!d.seen[id] && !d.caught[id]
 	if (mode === "shiny") return !!d.shiny[id]
+	if (mode === "noShiny") return !d.shiny[id]
 	if (mode === "hatched") return !!d.hatched[id]
 	return true
 }
@@ -57,6 +58,8 @@ addLayer("d", {
 		jackpots: 0,
 		bestChain: 0,
 		rockets: 0,
+		rivalWins: 0,
+		missingno: 0,
 		dexSearch: "",
 		dexFilter: "all",
 	}},
@@ -72,6 +75,9 @@ addLayer("d", {
 	tabFormat: {
 		"Pokédex": {
 			content: [
+				["display-text", () => hasDiploma()
+					? `<div class="pk-trainer"><b>🎓 Game Freak's Diploma</b><br><small>"Congratulations! This is to certify that you have completed your Pokédex." Your Pokémon fight with ×1.1 Attack and Defense for good.</small></div>`
+					: `<small>Game Freak's Diploma: catch all 150 Kanto species, Mew not needed (${Object.keys(player.d.caught).filter(id => id >= 1 && id <= 150).length}/150).</small>`],
 				["display-text", () => `Seen: <b>${seenCount()}</b> · Caught: <b>${caughtCount()}</b>/151 · Shiny: <b>${Object.keys(player.d.shiny).length}</b><br><small>Every species caught gives Research Points over time. Shiny odds: 1/${format(shinyOdds())}.</small>`],
 				"blank",
 				["display-text", () => filterBar("d", "dexFilter", DEX_FILTERS)],
@@ -123,6 +129,10 @@ addLayer("a", {
 		53: { name: "Shiny hunter", tooltip: "Catch 10 shiny species.", done() { return shinySpecies() >= 10 } },
 		54: { name: "Chain reaction", tooltip: "Build a chain of 100.", done() { return (player.d.bestChain || 0) >= 100 } },
 		55: { name: "Blasting off again", tooltip: "Beat Giovanni in the Rocket Hideout.", done() { return giovanniBeaten() } },
+		61: { name: "Smell ya later", tooltip: "Beat your rival on Route 22 before Victory Road.", done() { return chapterCleared("route22Final") } },
+		62: { name: "Bye bye, Team Rocket", tooltip: "Clear Silph Co.", done() { return chapterCleared("silphCo") } },
+		63: { name: "Game Freak's Diploma", tooltip: "Catch all 150 Kanto species (Mew not needed).", done() { return hasDiploma() } },
+		64: { name: "Glitch City", tooltip: "Meet Missingno. off Cinnabar's coast.", done() { return (player.d.missingno || 0) > 0 } },
 		45: { name: "Familiar faces", tooltip: "Enshrine 30 species in the Hall of Fame.", done() { return Object.keys(player.h.enshrined).length >= 30 } },
 	},
 	tabFormat: ["achievements"],

@@ -12,73 +12,74 @@ function chooseStarter(id) {
 	showTab("f")
 }
 
-function togglePartyMember(id) {
-	id = Number(id)
+// Box and party entries are keyed by species and look ("15", "15-shiny"); see boxKey in logic.js.
+function togglePartyMember(key) {
 	const party = player.t.party
-	const i = party.indexOf(id)
+	const i = party.indexOf(key)
 	if (i >= 0) {
 		if (party.length > 1) party.splice(i, 1)
-	} else if (party.length < partySize() && player.t.box[id] && canJoinParty(id)) party.push(id)
+	} else if (party.length < partySize() && player.t.box[key] && canJoinParty(key)) party.push(key)
 }
-function moveToLead(id) {
-	id = Number(id)
+function moveToLead(key) {
 	const party = player.t.party
-	const i = party.indexOf(id)
-	if (i > 0) { party.splice(i, 1); party.unshift(id) }
+	const i = party.indexOf(key)
+	if (i > 0) { party.splice(i, 1); party.unshift(key) }
 }
-function itemEvolveById(id, into) { itemEvolve(Number(id), Number(into)) }
+function itemEvolveByKey(key, into) { itemEvolve(key, Number(into)) }
 
-function xpBar(id, entry) {
-	const growth = SPECIES[id].growth
+function xpBar(key, entry) {
+	const growth = SPECIES[speciesOf(key)].growth
 	const lo = xpForLevel(growth, entry.level), hi = xpForLevel(growth, entry.level + 1)
 	const capped = entry.level >= currentCap()
 	const pct = capped ? 100 : Math.max(0, Math.min(100, 100 * (entry.xp - lo) / (hi - lo)))
 	return `<div class="pk-xp"><div style="width:${pct}%;background:${capped ? "#F08030" : "#6890F0"}"></div></div>`
 }
 
-function evolutionButtons(id) {
-	return itemEvolutions(id, badges()).map(e => {
+function evolutionButtons(key) {
+	return itemEvolutions(speciesOf(key), badges()).map(e => {
 		const cost = itemEvolutionCost(e)
 		const label = `${evolutionLabel(e)} → ${speciesName(e.into)}${cost.gt(0) ? ` (${format(cost)} RP)` : ""}`
-		if (!canEvolveInto(e.into)) return `<button class="pk-button" disabled title="You already have ${speciesName(e.into)}">${label}</button>`
+		if (!canEvolveInto(key, e.into)) return `<button class="pk-button" disabled title="You already have ${keyName(boxKey(e.into, variantOf(key)))}">${label}</button>`
 		return e.open
-			? `<button class="pk-button" ${canItemEvolve(id, e) ? `onclick="itemEvolveById(${id}, ${e.into})"` : "disabled"}>${label}</button>`
+			? `<button class="pk-button" ${canItemEvolve(key, e) ? `onclick="itemEvolveByKey('${key}', ${e.into})"` : "disabled"}>${label}</button>`
 			: `<button class="pk-button" disabled title="Needs more badges">${label}</button>`
 	}).join("")
 }
 
-function monCard(id, inParty) {
-	const entry = player.t.box[id]
-	const s = SPECIES[id]
+function monCard(key, inParty) {
+	const entry = player.t.box[key]
+	const s = SPECIES[speciesOf(key)]
 	const lvEvo = s.evolutions.find(e => e.method === "level" && e.level)
 	return `<div class="pk-card ${inParty ? "pk-card-party" : ""}">
-		${pkSprite(id, entry.shiny, 96)}<br>
-		<b>${entry.shiny ? "★ " : ""}${s.name}</b> Lv. ${entry.level}<br>
+		${pkSprite(speciesOf(key), isShiny(key), 96)}<br>
+		<b>${keyName(key)}</b> Lv. ${entry.level}<br>
 		<small>${s.types.map(t => `<span class="pk-type pk-type-${t}">${t}</span>`).join(" ")}</small>
-		${xpBar(id, entry)}
-		${lvEvo ? `<small>${canEvolveInto(lvEvo.into) ? `Evolves at Lv. ${lvEvo.level}` : `Won't evolve: you have ${speciesName(lvEvo.into)}`}</small><br>` : ""}
+		${xpBar(key, entry)}
+		${lvEvo ? `<small>${canEvolveInto(key, lvEvo.into) ? `Evolves at Lv. ${lvEvo.level}` : `Won't evolve: you have ${keyName(boxKey(lvEvo.into, variantOf(key)))}`}</small><br>` : ""}
 		${inParty
-			? `${player.t.party[0] === id ? "<small><b>Lead</b></small>" : `<button class="pk-button" onclick="moveToLead(${id})">Lead</button>`}
-			   <button class="pk-button" ${player.t.party.length > 1 ? `onclick="togglePartyMember(${id})"` : "disabled"}>To box</button>`
-			: canJoinParty(id)
-				? `<button class="pk-button" ${player.t.party.length < partySize() ? `onclick="togglePartyMember(${id})"` : "disabled"}>To party</button>`
+			? `${player.t.party[0] === key ? "<small><b>Lead</b></small>" : `<button class="pk-button" onclick="moveToLead('${key}')">Lead</button>`}
+			   <button class="pk-button" ${player.t.party.length > 1 ? `onclick="togglePartyMember('${key}')"` : "disabled"}>To box</button>`
+			: canJoinParty(key)
+				? `<button class="pk-button" ${player.t.party.length < partySize() ? `onclick="togglePartyMember('${key}')"` : "disabled"}>To party</button>`
 				: `<button class="pk-button" disabled title="Monotype: shares no type with your starter">To party</button>`}
-		<br>${evolutionButtons(id)}
+		<br>${evolutionButtons(key)}
 	</div>`
 }
 
 function partyHtml() {
-	return `<div class="pk-cards">${player.t.party.filter(id => player.t.box[id]).map(id => monCard(id, true)).join("")}</div>`
+	return `<div class="pk-cards">${player.t.party.filter(key => player.t.box[key]).map(key => monCard(key, true)).join("")}</div>`
 }
 
 function boxHtml() {
 	const sort = player.t.sort
-	const ids = Object.keys(player.t.box).map(Number).filter(id => !player.t.party.includes(id))
-	if (sort === "level") ids.sort((a, b) => player.t.box[b].level - player.t.box[a].level || a - b)
-	else if (sort === "strength") ids.sort((a, b) => battlerScore(b, player.t.box[b].level) - battlerScore(a, player.t.box[a].level))
-	else ids.sort((a, b) => a - b)
-	if (!ids.length) return "<i>The box is empty. Catch more Pokémon!</i>"
-	return `<div class="pk-cards">${ids.map(id => monCard(id, false)).join("")}</div>`
+	const box = player.t.box
+	const byNumber = (a, b) => speciesOf(a) - speciesOf(b) || a.localeCompare(b)
+	const keys = Object.keys(box).filter(key => !player.t.party.includes(key))
+	if (sort === "level") keys.sort((a, b) => box[b].level - box[a].level || byNumber(a, b))
+	else if (sort === "strength") keys.sort((a, b) => battlerScore(speciesOf(b), box[b].level) - battlerScore(speciesOf(a), box[a].level))
+	else keys.sort(byNumber)
+	if (!keys.length) return "<i>The box is empty. Catch more Pokémon!</i>"
+	return `<div class="pk-cards">${keys.map(key => monCard(key, false)).join("")}</div>`
 }
 function setBoxSort(sort) { player.t.sort = sort }
 

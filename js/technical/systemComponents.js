@@ -150,6 +150,7 @@ var systemComponents = {
 
     'options-tab': {
         template: `
+        <div>
         <table>
             <tr>
                 <td><button class="opt" onclick="save()">Save</button></td>
@@ -171,7 +172,9 @@ var systemComponents = {
                 <td><button class="opt" onclick="toggleOpt('forceOneTab'); needsCanvasUpdate = true">Single-Tab Mode: {{ options.forceOneTab?"ALWAYS":"AUTO" }}</button></td>
 				<td><button class="opt" onclick="toggleOpt('forceTooltips'); needsCanvasUpdate = true">Shift-Click to Toggle Tooltips: {{ options.forceTooltips?"ON":"OFF" }}</button></td>
 				</tr> 
-        </table>`
+        </table>
+        <pk-notify-settings></pk-notify-settings>
+        </div>`
     },
 
     'back-button': {

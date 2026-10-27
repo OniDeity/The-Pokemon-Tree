@@ -17,14 +17,63 @@ function freshLayerData(layer, keep = []) {
 	}
 }
 
+// ---- Notifications ----
+// Each kind of popup (and the nodes' glow) can be switched off in the settings (options.pkNotify,
+// kept across saves like TMT's own options).
+const NOTIFY_KINDS = {
+	pokedex: "New Pokédex entries",
+	shiny: "Shiny Pokémon",
+	evolve: "Evolutions",
+	badge: "Badges",
+	league: "Pokémon League",
+	hof: "Hall of Fame",
+	jackpot: "Game Corner jackpots",
+	rocket: "Team Rocket",
+	milestone: "Milestones",
+	achievement: "Achievements",
+	glow: "Glowing nodes (something to buy or do)",
+}
+function notifyOn(kind) { return !(options.pkNotify && options.pkNotify[kind] === false) }
+function toggleNotify(kind) {
+	if (!options.pkNotify) options.pkNotify = {}
+	Vue.set(options.pkNotify, kind, !notifyOn(kind))
+}
+Vue.component("pk-notify-settings", {
+	data() { return { kinds: NOTIFY_KINDS } },
+	template: `<div><h3>Notifications</h3><br><button v-for="(name, kind) in kinds" class="opt" style="width:auto; min-width:150px; height:auto; padding:6px; margin:3px" @click="toggleNotify(kind)">{{ name }}: {{ notifyOn(kind, options.pkNotify && options.pkNotify[kind]) ? "ON" : "OFF" }}</button></div>`,
+	methods: { toggleNotify, notifyOn },
+})
+/** A popup of a kind the player hasn't switched off. */
+function pkPopup(kind, text, title, timer, color) {
+	if (notifyOn(kind)) doPopup("none", text, title, timer, color)
+}
+
+// ---- Filters for long lists of Pokémon ----
+// ["pk-search", "field"] in a tabFormat is a live name search bound to player[layer][field];
+// filterBar(layer, field, modes) draws the mode buttons for player[layer][field].
+Vue.component("pk-search", {
+	props: ["layer", "data"],
+	template: `<input class="pk-search" type="search" placeholder="Search by name or number" :value="player[layer][data]"
+		@input="player[layer][data] = $event.target.value" @focus="focused(true)" @blur="focused(false)">`,
+})
+function searchMatches(text, id) {
+	text = String(text || "").trim().toLowerCase()
+	return !text || String(id) === text || speciesName(id).toLowerCase().includes(text)
+}
+function setFilter(layer, field, mode) { player[layer][field] = mode }
+function filterBar(layer, field, modes) {
+	return `Show: ${Object.entries(modes).map(([mode, name]) => `<button class="pk-button ${player[layer][field] === mode ? "pk-on" : ""}" onclick="setFilter('${layer}', '${field}', '${mode}')">${name}</button>`).join(" ")}`
+}
+
 /** Writes to the encounter log (and pops up the special ones, unless `quiet`). */
 function pkLog(text, kind, enc, shiny, quiet = false) {
 	if (!player.f) return
 	player.f.log.unshift({ text, kind, id: enc ? enc.id : null, form: enc?.form || null, shiny: !!shiny })
 	if (player.f.log.length > LOG_SIZE) player.f.log.length = LOG_SIZE
-	const popups = { new: ["Pokédex", "#F8D030"], evolve: ["Evolution!", "#78C850"], league: ["Pokémon League", "#A040A0"] }
-	const popup = shiny ? ["Shiny!", "#F8D030"] : popups[kind]
-	if (popup && !quiet) doPopup("none", text, popup[0], 3, popup[1])
+	const popups = { new: ["pokedex", "Pokédex", "#F8D030"], evolve: ["evolve", "Evolution!", "#78C850"], league: ["league", "Pokémon League", "#A040A0"],
+		jackpot: ["jackpot", "Game Corner", "#E0B040"], rocket: ["rocket", "Rocket Hideout", "#C03028"] }
+	const popup = shiny ? ["shiny", "Shiny!", "#F8D030"] : popups[kind]
+	if (popup && !quiet) pkPopup(popup[0], text, popup[1], 3, popup[2])
 }
 
 /** A Pokémon's sprite: forms with their own image use it; others are drawn over the species'. */

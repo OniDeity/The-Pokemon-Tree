@@ -9,7 +9,7 @@ function teamHtml(team, strength) {
 function predictionHtml(result) {
 	if (!result) return ""
 	if (result.win) {
-		const lost = inChallenge(11) && result.fainted ? `<br><span style="color:#F08030">Nuzlocke: ${player.t.party.slice(0, result.fainted).map(speciesName).join(", ")} would faint and be released.</span>` : ""
+		const lost = inChallenge(11) && result.fainted ? `<br><span style="color:#F08030">Nuzlocke: ${player.t.party.slice(0, result.fainted).map(keyName).join(", ")} would faint and be released.</span>` : ""
 		return `<span style="color:#78C850">Your party would win with ${format(result.hpLeft * 100)}% HP left on its last Pokémon.</span>${lost}`
 	}
 	return `<span style="color:#F08030">Your party would lose at ${speciesName(result.stoppedBy.id)} (${result.defeated} beaten). Level up, gear up, or bring better matchups.</span>`

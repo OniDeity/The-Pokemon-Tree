@@ -1,5 +1,7 @@
 // Plays the game headlessly with a simple greedy strategy and reports when each badge falls.
-// Usage: node scripts/simulate.js [starter=1|4|7] [seed]   (SIM_HOURS=n stops after n hours)
+// Usage: node scripts/simulate.js [starter=1|4|7] [seed]
+//   SIM_HOURS=n stops after n hours. SIM_RUNS=n enters the Hall of Fame and replays n runs in all,
+//   buying Fame upgrades; SIM_CHALLENGE=id plays the runs after the first under that challenge.
 // Runs js/data/kanto.js, js/engine.js and js/logic.js unchanged against a fake `player`.
 const fs = require("fs")
 const path = require("path")
@@ -31,15 +33,51 @@ function freshField(keep) {
 var player = {
 	points: new Decimal(0), timePlayed: 0,
 	f: freshField(),
-	t: { starter: 0, box: {}, party: [], specials: {}, autoEvolve: true },
+	t: { starter: 0, box: {}, party: [], specials: {}, autoEvolve: true, nuzlocke: {} },
 	g: { points: new Decimal(0) },
 	l: { beaten: 0, champion: false, hallOfFame: [] },
+	h: { points: new Decimal(0), hall: [], enshrined: {}, upgrades: [], buyables: {}, challenges: {}, activeChallenge: null, resetTime: 0 },
 	d: { seen: {}, caught: {}, shiny: {} },
+}
+// The game's chooseStarter, without the UI.
+function startRun(id) {
+	player.t.starter = id
+	addToBox(id, hofUpgrade(11) ? 10 : 5, false)
+	if (hofUpgrade(11)) player.points = player.points.add(200)
+	player.f = freshField(fieldKeptUpgrades())
+}
+// Entering the Hall of Fame: Fame, then a new run (the Pokédex stays).
+function hallOfFameReset(challenge) {
+	const fame = fameGain()
+	enterHallOfFame()
+	if (player.h.activeChallenge) player.h.challenges[player.h.activeChallenge] = 1
+	player.h.points = player.h.points.add(fame)
+	player.h.activeChallenge = challenge || null
+	player.h.resetTime = 0
+	player.points = new Decimal(0)
+	player.t = { starter: 0, box: {}, party: [], specials: {}, autoEvolve: true, nuzlocke: {} }
+	player.g = { points: new Decimal(0) }
+	player.l = { beaten: 0, champion: false, hallOfFame: [] }
+	return fame
+}
+// Spends Fame greedily, cheapest first.
+function fameShop() {
+	for (let guard = 0; guard < 200; guard++) {
+		const options = []
+		for (const id in HOF_UPGRADES) if (!hofUpgrade(id)) options.push([HOF_UPGRADES[id].cost, () => player.h.upgrades.push(Number(id))])
+		for (const id in HOF_BUYABLES) options.push([hofBuyableCost(id).toNumber(), () => { player.h.buyables[id] = new Decimal(hofBuyable(id) + 1) }])
+		options.sort((a, b) => a[0] - b[0])
+		if (!options.length || player.h.points.lt(options[0][0])) return
+		player.h.points = player.h.points.sub(options[0][0])
+		options[0][1]()
+	}
 }
 `, ctx)
 
 const run = code => vm.runInContext(code, ctx)
-run(`player.t.starter = ${starter}; addToBox(${starter}, 5, false)`)
+const RUNS = Number(process.env.SIM_RUNS || 1)
+const CHALLENGE = process.env.SIM_CHALLENGE || ""
+run(`startRun(${starter})`)
 
 // Average Research Points per second in a zone with the current team (sampled battles).
 function zoneValue(zone) {
@@ -62,7 +100,9 @@ function chooseZone() {
 	const unseen = run(`frontierZones().filter(z => zoneOpen(z) && zoneSpecies(z, badges()).some(id => !player.d.seen[id])).map(z => z.id)`)
 	let best = null, bestValue = -1
 	for (const id of open) {
-		const v = zoneValue(run(`zoneById("${id}")`)) + (unseen.includes(id) ? 1e9 : 0)
+		// Challenge runs also go after species that can join the party and aren't in the box yet.
+		const wanted = run(`anyChallenge() && zoneSpecies(zoneById("${id}"), badges()).some(s => canJoinParty(s) && !player.t.box[s] && !(inChallenge(11) && player.t.nuzlocke["${id}"]))`)
+		const v = zoneValue(run(`zoneById("${id}")`)) * (wanted ? 3 : 1) + (unseen.includes(id) ? 1e9 : 0)
 		if (v > bestValue) { bestValue = v; best = id }
 	}
 	run(`player.f.zone = "${best}"`)
@@ -75,7 +115,7 @@ function chooseParty() {
 		const gym = nextGym()
 		const foes = gym ? trainerBattlers(gym, GYM_STRENGTH[badges()]) : badges() >= 8 && player.l.beaten < 5
 			? trainerBattlers(leagueTrainers()[player.l.beaten], leagueTrainers()[player.l.beaten].strength) : null
-		const ids = Object.keys(player.t.box).map(Number)
+		const ids = Object.keys(player.t.box).map(Number).filter(canJoinParty)
 		const score = id => {
 			const b = battler(id, player.t.box[id].level, atk, def)
 			if (!foes) return battlerScore(id, player.t.box[id].level)
@@ -99,7 +139,7 @@ function shop() {
 					options.push([new Decimal(u.cost), () => { player.points = player.points.sub(u.cost); player.f.upgrades.push(Number(id)) }])
 			}
 			for (const id in FIELD_BUYABLES) {
-				if (badges() < FIELD_BUYABLES[id].badges) continue
+				if (badges() < FIELD_BUYABLES[id].badges || !fieldBuyableAllowed(id)) continue
 				const cost = fieldBuyableCost(id)
 				options.push([cost, () => { player.points = player.points.sub(cost); player.f.buyables[id] = new Decimal(fieldBuyable(id) + 1) }])
 			}
@@ -116,7 +156,7 @@ function shop() {
 
 const STEP = 1
 const LIMIT = 60 * 60 * Number(process.env.SIM_HOURS || 40)
-let t = 0, last = 0, surveyAt = null, winAt = null
+let t = 0, last = 0, surveyAt = null, winAt = null, runStart = 0, runNumber = 1
 chooseZone(); chooseParty()
 while (t < LIMIT) {
 	run(`player.points = player.points.add(passiveRp() * ${STEP}); player.f.searching = true; searchTick(${STEP})`)
@@ -127,21 +167,35 @@ while (t < LIMIT) {
 		chooseParty()
 		if (surveyAt == null && run(`surveyStatus().done`)) surveyAt = t
 		if (winAt == null && run(`!!(gymPrediction() || {}).win`)) winAt = t
-		if (run(`canChallengeGym()`)) {
+		// Nuzlocke: wait until at most one Pokémon would faint (and be released).
+		if (run(`canChallengeGym() && !(inChallenge(11) && gymPrediction().fainted > 1)`)) {
 			const b = run(`badges()`) + 1
-			console.log(`Badge ${b} at ${(t / 3600).toFixed(2)} h (+${((t - last) / 60).toFixed(0)} min; survey +${((surveyAt - last) / 60).toFixed(0)}, team +${((winAt - last) / 60).toFixed(0)}) gear ${run("[11,12,13,14].map(fieldBuyable).join('/')")} ups ${run("player.f.upgrades.join(',')")} RP ${run("format(player.points)")} caught ${run("caughtCount()")} cap ${run("currentCap()")} party ${run("player.t.party.map(id => speciesName(id) + ' ' + player.t.box[id].level).join(', ')")}`)
+			console.log(`${runNumber > 1 ? `Run ${runNumber} ` : ""}Badge ${b} at ${(t / 3600).toFixed(2)} h (+${((t - last) / 60).toFixed(0)} min; survey +${((surveyAt - last) / 60).toFixed(0)}, team +${((winAt - last) / 60).toFixed(0)}) gear ${run("[11,12,13,14].map(fieldBuyable).join('/')")} ups ${run("player.f.upgrades.join(',')")} RP ${run("format(player.points)")} caught ${run("caughtCount()")} cap ${run("currentCap()")} party ${run("player.t.party.map(id => speciesName(id) + ' ' + player.t.box[id].level).join(', ')")}`)
 			last = t; surveyAt = winAt = null
-			run(`player.g.points = player.g.points.add(1); player.points = new Decimal(0); player.f = freshField(fieldKeptUpgrades())`)
+			run(`(() => {
+				winGymBattle()
+				const gear = hofUpgrade(13) ? Math.floor(fieldBuyable(13) / 2) : 0
+				player.g.points = player.g.points.add(1); player.points = new Decimal(0); player.f = freshField(fieldKeptUpgrades())
+				player.f.buyables[13] = new Decimal(gear)
+			})()`)
 			chooseParty(); chooseZone()
 		}
-		for (let k = 0; k < 5; k++) if (run(`challengeLeague(player.l.beaten)`)) {
+		for (let k = 0; k < 5; k++) if (run(`canChallengeLeague(player.l.beaten) && !(inChallenge(11) && leaguePrediction(player.l.beaten).fainted > (player.l.beaten === 4 ? 6 : 1)) && challengeLeague(player.l.beaten)`)) {
 			console.log(`League: ${run("player.l.beaten")} beaten at ${(t / 3600).toFixed(2)} h`)
 		}
-		if (run(`isChampion()`)) break
+		if (run(`isChampion()`)) {
+			console.log(`Run ${runNumber}${run("anyChallenge() ? ' (' + CHALLENGES[player.h.activeChallenge].name + ')' : ''")}: Champion after ${((t - runStart) / 3600).toFixed(2)} h`)
+			if (runNumber >= RUNS) break
+			console.log(`  Hall of Fame: +${run(`hallOfFameReset(${JSON.stringify(CHALLENGE)})`)} Fame`)
+			run(`fameShop(); startRun(${starter})`)
+			console.log(`  Fame now spent: ${run("JSON.stringify({ups: player.h.upgrades, buy: Object.fromEntries(Object.keys(HOF_BUYABLES).map(id => [id, hofBuyable(id)]))})")}`)
+			runNumber++; runStart = t; last = t
+			chooseParty(); chooseZone()
+		}
 	}
-	if (t % 3600 === 0) console.log(`  ${t / 3600} h: badges ${run("badges()")} RP ${run("format(player.points)")} zone ${run("player.f.zone")} survey missing ${run("surveyStatus().missing.map(speciesName).join(',')")} gym ${run("JSON.stringify((({win,defeated})=>({win,defeated}))(gymPrediction()||{}))")}`)
+	if (t % 3600 === 0) console.log(`  ${t / 3600} h: badges ${run("badges()")} RP ${run("format(player.points)")} zone ${run("player.f.zone")} survey missing ${run("surveyStatus().missing.map(speciesName).join(',')")} party ${run("player.t.party.map(id => speciesName(id) + ' ' + player.t.box[id].level).join(', ')")} league ${run("badges() >= 8 && !isChampion() ? JSON.stringify((({win,defeated})=>({win,defeated}))(leaguePrediction(player.l.beaten))) : '-'")} gym ${run("JSON.stringify((({win,defeated})=>({win,defeated}))(gymPrediction()||{}))")}`)
 }
 
-console.log(`Starter ${starter}: ${run("isChampion()") ? "Champion" : "not Champion"} after ${(t / 3600).toFixed(2)} h, caught ${run("caughtCount()")}`)
+console.log(`Starter ${starter}: ${run("isChampion()") ? "Champion" : "not Champion"} after ${(t / 3600).toFixed(2)} h in all (run ${runNumber}), caught ${run("caughtCount()")}`)
 // A run that can't even beat Brock means something broke.
-if (run("badges()") === 0) { console.error("No badge earned"); process.exit(1) }
+if (run("badges() === 0 && hofEntries() === 0")) { console.error("No badge earned"); process.exit(1) }

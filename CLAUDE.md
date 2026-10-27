@@ -33,9 +33,13 @@ Sister project: OniDeity/idle-pokemon (its data is the source of ours).
   zones and surveys, encounters, box/party/evolution, trainers, specials). Neither uses TMT
   helpers, so the simulator runs them against a fake `player`.
 - Layers (`js/layers/`): `f` Field (row 0, main; Research Points are TMT's `player.points`),
-  `t` Team (row 0, its `doReset` keeps everything), `g` Gyms (row 1, custom prestige: one badge per
-  reset, needs the survey done and a winning battle forecast), `l` League (row 2), side layers
-  `d` Pokédex and `a` Achievements.
+  `t` Team (row 0, kept through badges, reset by the Hall of Fame), `g` Gyms (row 1, custom prestige: one badge per
+  reset, needs the survey done and a winning battle forecast), `l` League (row 2), `h` Hall of
+  Fame (row 3, custom prestige for Fame; resets everything but the Pokédex, achievements and
+  itself; holds the Fame shop and TMT challenges), side layers `d` Pokédex and `a` Achievements.
+- Hall of Fame and challenge rules (`HOF_*`, `CHALLENGES`, `fameGain`) live in `logic.js` with
+  the rest, so the simulator plays them: `SIM_RUNS=n` replays n runs buying Fame upgrades,
+  `SIM_CHALLENGE=id` plays the runs after the first under a challenge.
 
 ## Gotchas
 
@@ -45,5 +49,21 @@ Sister project: OniDeity/idle-pokemon (its data is the source of ours).
   `setAttribute("async", "false")` still loaded them async). `index.html` needs `<meta charset>`
   or "Pokédex" breaks the scripts.
 - Trainer strength multiplies both attack and bulk, so it acts roughly squared.
+- TMT's `layerDataReset` merges start data into objects and arrays instead of replacing them;
+  reset layers with `freshLayerData` (field.js) or the box, routes and gifts survive the reset.
+- Challenges must stay beatable by the simulator: Battle Gear is most of a team's power, so no
+  challenge takes it away, and Lone Partner doubles its one Pokémon (`LONE_PARTNER_BOOST`).
 - Encounters per tick are capped (`MAX_ENCOUNTERS_PER_TICK`); the rest waits in `player.f.progress`
   so offline time isn't lost.
+
+## Plans (the owner's direction)
+
+- Each region's first run should take about a day of play, reached mostly by going wide with
+  features (new nodes, small bonuses that add up across resets) rather than slower numbers.
+- Done: Hall of Fame prestige and challenges (v0.2).
+- Next pass: Kanto's anime places and forms, unlocked through more and more resets (Idle
+  Pokémon has the data: `kantoAnime.ts`, Pinkan/Valencian variants), and side systems that
+  each add a node and a bonus (Day Care breeding, Safari Zone, Game Corner, shiny hunting).
+- Later regions follow the same pattern, gated by Hall of Fame entries.
+- Sprites: keep them, but as the Pokédex grows split it into per-region pages, page the box,
+  and consider a setting to hide sprites.

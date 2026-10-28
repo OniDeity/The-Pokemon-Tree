@@ -2,6 +2,7 @@
 // starts it over. Rules are in logic.js (safariTick, safariEncounter).
 
 function setSafariStrategy(id) { player.s.strategy = id }
+function ballName() { return inJohtoContest() ? "Park Ball" : "Safari Ball" }
 
 function safariSpeciesHtml() {
 	const zone = safariZone()
@@ -27,7 +28,7 @@ function safariLogHtml() {
 }
 
 addLayer("s", {
-	name: "Safari Zone",
+	name() { return inJohtoContest() ? "Bug-Catching Contest" : "Safari Zone" },
 	symbol: "S",
 	position: 2,
 	row: 1,
@@ -45,7 +46,7 @@ addLayer("s", {
 	}},
 	branches: ["f"],
 	layerShown() { return player.t.starter > 0 && safariOpen() },
-	tooltip() { return player.s.balls > 0 ? `${player.s.balls} Safari Balls` : "Safari Zone" },
+	tooltip() { return player.s.balls > 0 ? `${player.s.balls} ${ballName()}s` : inJohtoContest() ? "Bug-Catching Contest" : "Safari Zone" },
 	// Only point the Safari out until the first trip of a run, not after every trip.
 	shouldNotify() { return player.s.trips === 0 && player.points.gte(safariTripCost()) && !automationOn("safari") },
 	doReset(resettingLayer) {
@@ -55,8 +56,8 @@ addLayer("s", {
 	buyables: Object.fromEntries(Object.entries(SAFARI_BUYABLES).map(([id, def]) => [id, rpBuyable("s", id, def)])),
 	clickables: {
 		11: {
-			title() { return player.s.balls > 0 ? `${player.s.balls} Safari Balls left` : "Start a Safari trip" },
-			display() { return player.s.balls > 0 ? `Trip ${player.s.trips}` : `${safariBallsPerTrip()} Safari Balls for ${format(safariTripCost())} Research Points` },
+			title() { return player.s.balls > 0 ? `${player.s.balls} ${ballName()}s left` : inJohtoContest() ? "Enter the contest" : "Start a Safari trip" },
+			display() { return player.s.balls > 0 ? `Trip ${player.s.trips}` : `${safariBallsPerTrip()} ${ballName()}s for ${format(safariTripCost())} Research Points` },
 			canClick() { return player.s.balls <= 0 && player.points.gte(safariTripCost()) },
 			onClick() { startSafariTrip() },
 			style: { width: "220px", height: "90px" },
@@ -87,7 +88,9 @@ addLayer("s", {
 		currencyInternalName: "points",
 	}])),
 	tabFormat: [
-		["display-text", () => `<h2>Fuchsia City Safari Zone</h2><br><i>No battles here: throw Safari Balls, Bait or Rocks. Each Pokémon shows its catch and run chances per ball.</i>`],
+		["display-text", () => inJohtoContest()
+			? `<h2>National Park Bug-Catching Contest</h2><br><i>Only bugs, and only Park Balls: no battles, just throws. Bait and Rocks work as in the Safari Zone. Each Pokémon shows its catch and run chances per ball.</i>`
+			: `<h2>Fuchsia City Safari Zone</h2><br><i>No battles here: throw Safari Balls, Bait or Rocks. Each Pokémon shows its catch and run chances per ball.</i>`],
 		"blank",
 		["row", [["clickable", 11], "blank", ["bar", "search"]]],
 		"blank",

@@ -337,7 +337,7 @@ function currentZone() { return zoneById(player.f.zone) || regionZones()[0] }
 
 function doEncounter(rng) {
 	const zone = currentZone()
-	const enc = rollEncounter(zone, badges(), rng, huntLure())
+	const enc = rollEncounter(withSwarm(zone), badges(), rng, huntLure())
 	const shiny = rand(rng) < 1 / encounterShinyOdds(enc)
 	const look = makeLook(enc.form, shiny)
 	dexSee(enc.id)
@@ -372,7 +372,7 @@ function doEncounter(rng) {
 		pkLog(`Beat a wild ${name}.`, "win", enc, shiny)
 		return { ...enc, shiny, win: true, caught: false, rp }
 	}
-	let caught = rand(rng) < catchChance(enc.id, catchMult() * speciesCatchMult(enc.id), enc.form)
+	let caught = rand(rng) < catchChance(enc.id, catchMult() * speciesCatchMult(enc.id) * apricornMult(enc), enc.form)
 	// Silph Co.'s Master Ball: the next new Pokémon beaten is caught for sure.
 	if (!caught && player.r?.masterBall && !player.d.caught[enc.id]) {
 		caught = true
@@ -380,9 +380,12 @@ function doEncounter(rng) {
 		pkLog(`You threw the Master Ball!`, "story", enc)
 	}
 	if (caught) {
-		const isNew = !player.d.caught[enc.id] || (enc.form && !player.d.forms[`${enc.id}-${enc.form}`])
+		const wasCaught = !!player.d.caught[enc.id]
+		const isNew = !wasCaught || (enc.form && !player.d.forms[`${enc.id}-${enc.form}`])
 		addToBox(enc.id, enc.level, look)
-		pkLog(`Caught ${name}!${isNew ? " New in the Pokédex!" : ""}`, isNew || shiny ? "new" : "catch", enc, shiny)
+		// New Unown letters after the first Unown go to the log without a popup each.
+		const quiet = !!enc.form && !!FORMS[enc.form]?.suffix && !!wasCaught
+		pkLog(`Caught ${name}!${isNew ? " New in the Pokédex!" : ""}`, isNew || shiny ? "new" : "catch", enc, shiny, quiet && !shiny)
 	} else {
 		pkLog(`Beat a wild ${name}, but it broke free.`, "win", enc, shiny)
 	}
@@ -673,7 +676,7 @@ function animeOpen(zone) {
 
 /** Every form Kanto has: "id-form" keys from the anime places and events. */
 const ALL_FORMS = [...new Set([
-	...ZONES.flatMap(z => Object.values(z.pools).flat().filter(e => e[4]).map(e => `${e[0]}-${e[4]}`)),
+	...[...ZONES, ...JOHTO_ZONES].flatMap(z => Object.values(z.pools).flat().filter(e => e[4]).map(e => `${e[0]}-${e[4]}`)),
 	...SPECIALS.filter(s => s.form).map(s => `${s.species}-${s.form}`),
 ])].sort((a, b) => parseInt(a) - parseInt(b))
 function formsCaught() { return ALL_FORMS.filter(k => player.d.forms[k]).length }
@@ -802,8 +805,11 @@ const WARDEN_MILESTONES = [
 	[100, "Safari Pokémon turn up twice as often."],
 ]
 
-function safariZone() { return zoneById("safariZone") }
-function safariOpen() { return currentRegion() === "kanto" && (hofEntries() >= 2 || badges() >= safariZone().badges) }
+/** Johto's National Park holds the Bug-Catching Contest instead (Park Balls, its own bugs). */
+const BUG_CONTEST_ZONE = { id: "bugContest", name: "Bug-Catching Contest", region: "johto", badges: 2, blurb: "National Park's contest: Park Balls only, and the biggest bug wins.", pools: { walk: BUG_CONTEST } }
+function inJohtoContest() { return currentRegion() === "johto" }
+function safariZone() { return inJohtoContest() ? BUG_CONTEST_ZONE : zoneById("safariZone") }
+function safariOpen() { return hofEntries() >= 2 || badges() >= safariZone().badges }
 function hasSafariUpgrade(id) { return !!player.s && player.s.upgrades.map(Number).includes(Number(id)) }
 function safariCaught() { return player.d.safari || 0 }
 function wardenMilestone(n) { return safariCaught() >= n }
@@ -865,7 +871,7 @@ function safariLog(text, kind, enc, shiny) {
 	player.s.log.unshift({ text, kind, id: enc.id, shiny: !!shiny })
 	if (player.s.log.length > LOG_SIZE) player.s.log.length = LOG_SIZE
 	// Only shiny catches pop up; new Pokédex entries go to the Field's log quietly.
-	if (kind === "new") pkLog(`Safari Zone: ${text}`, kind, enc, shiny, !shiny)
+	if (kind === "new") pkLog(`${inJohtoContest() ? "Bug Contest" : "Safari Zone"}: ${text}`, kind, enc, shiny, !shiny)
 }
 
 function safariTick(diff, rng) {
@@ -1012,7 +1018,7 @@ function bestSafariStrategy(id) {
 /** Research Points per coin (₽20 a coin in the games, at PRICE_TO_RP, a little cheaper). */
 const COIN_RP = 20
 /** The prize counter's coin prices (Red/Blue's). */
-const PRIZE_COINS = { gameCorner63: 180, gameCorner35: 500, gameCorner30: 1200, gameCorner147: 2800, gameCorner123: 5500, gameCorner127: 5500, gameCorner137: 9999 }
+const PRIZE_COINS = { goldenrodGameCorner63: 200, goldenrodGameCorner23: 700, goldenrodGameCorner27: 700, goldenrodGameCorner147: 2100, gameCorner63: 180, gameCorner35: 500, gameCorner30: 1200, gameCorner147: 2800, gameCorner123: 5500, gameCorner127: 5500, gameCorner137: 9999 }
 const SPIN_SECONDS = 3
 const BASE_BET = 3
 /** Slot results as [name, chance, payout in bets]: 0.9 of the bet back on average before upgrades. */
@@ -1041,7 +1047,7 @@ const JACKPOT_MILESTONES = [
 	[30, "Start every run with 500 coins."],
 ]
 
-function gameCornerOpen() { return badges() >= 3 || hofEntries() >= 3 }
+function gameCornerOpen() { return badges() >= (currentRegion() === "johto" ? 2 : 3) || hofEntries() >= 3 }
 function hasGameCornerUpgrade(id) { return !!player.k && player.k.upgrades.map(Number).includes(Number(id)) }
 function gameCornerBuyable(id) { return player.k ? new Decimal(player.k.buyables?.[id] ?? 0).toNumber() : 0 }
 function coins() { return player.k ? new Decimal(player.k.points).toNumber() : 0 }
@@ -1632,3 +1638,59 @@ function chooseJohtoStarter(id) {
 	return true
 }
 function needsJohtoStarter() { return currentRegion() === "johto" && !player.t.johtoStarter }
+
+// ---- Johto's Pokégear and Kurt's Apricorn Balls ----
+// The "p" layer: with the Radio Card, tune in to one of HeartGold/SoulSilver's swarms and its
+// Pokémon join that place's pools; Kurt (from Azalea's badge on) crafts Apricorn Balls, each a
+// catch bonus in its own situation. Kept through badges, reset by the Hall of Fame.
+
+const SWARM_COST = 6000
+const APRICORN_BALLS = {
+	levelBall: { name: "Level Ball", cost: 20000, text: "Catch ×2 when your strongest party Pokémon out-levels the wild one, ×4 at double its level." },
+	lureBall: { name: "Lure Ball", cost: 50000, text: "Catch ×3 on Pokémon hooked with a rod." },
+	moonBall: { name: "Moon Ball", cost: 100000, text: "Catch ×4 on Pokémon that evolve with a Moon Stone." },
+	fastBall: { name: "Fast Ball", cost: 200000, text: "Catch ×4 on Pokémon with a base Speed of 100 or more." },
+	loveBall: { name: "Love Ball", cost: 400000, text: "Catch ×2 on Pokémon whose family is already in your box." },
+}
+
+function pokegearOpen() { return currentRegion() === "johto" && !!player.p }
+function radioOpen() { return pokegearOpen() && hasKeyItem("radioCard", badges()) }
+function currentSwarm() { return pokegearOpen() && player.p.swarm ? JOHTO_SWARMS.find(w => w.zone === player.p.swarm) || null : null }
+function swarmCost() { return new Decimal(SWARM_COST).times(Decimal.pow(2, badges())) }
+function tuneSwarm(zoneId) {
+	if (!radioOpen() || player.p.swarm === zoneId || player.points.lt(swarmCost())) return false
+	if (!JOHTO_SWARMS.some(w => w.zone === zoneId)) return false
+	player.points = player.points.sub(swarmCost())
+	player.p.swarm = zoneId
+	return true
+}
+/** A zone with the radio's swarm (if it's here) added to its pools. */
+function withSwarm(zone) {
+	const w = currentSwarm()
+	if (!w || w.zone !== zone.id) return zone
+	const pools = { ...zone.pools }
+	for (const p in w.pools) pools[p] = [...(pools[p] || []), ...w.pools[p]]
+	return { ...zone, pools }
+}
+
+function kurtOpen() { return pokegearOpen() && badges() >= 1 }
+function hasBall(id) { return !!player.p?.balls?.[id] }
+function buyBall(id) {
+	const ball = APRICORN_BALLS[id]
+	if (!ball || !kurtOpen() || hasBall(id) || player.points.lt(ball.cost)) return false
+	player.points = player.points.sub(ball.cost)
+	player.p.balls = { ...player.p.balls, [id]: true }
+	return true
+}
+/** Every Apricorn Ball you hold that helps with this encounter (the best of them counts). */
+function apricornMult(enc) {
+	if (!player.p?.balls) return 1
+	let best = 1
+	const top = Math.max(0, ...player.t.party.map(k => player.t.box[k]?.level || 0))
+	if (hasBall("levelBall") && top > enc.level) best = Math.max(best, top >= 2 * enc.level ? 4 : 2)
+	if (hasBall("lureBall") && ROD_POOLS.includes(enc.pool)) best = Math.max(best, 3)
+	if (hasBall("moonBall") && SPECIES[enc.id].evolutions.some(e => e.stone === "moonStone")) best = Math.max(best, 4)
+	if (hasBall("fastBall") && SPECIES[enc.id].stats[5] >= 100) best = Math.max(best, 4)
+	if (hasBall("loveBall") && Object.keys(player.t.box).some(k => breedingFamily(speciesOf(k)) === breedingFamily(enc.id))) best = Math.max(best, 2)
+	return best
+}

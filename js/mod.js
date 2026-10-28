@@ -5,7 +5,7 @@ let modInfo = {
 	pointsName: "Research Points",
 	modFiles: [
 		"data/kanto.js", "data/johto.js", "engine.js", "logic.js",
-		"layers/field.js", "layers/team.js", "layers/gym.js", "layers/daycare.js", "layers/safari.js", "layers/gamecorner.js", "layers/story.js", "layers/hunt.js", "layers/hof.js", "layers/dex.js",
+		"layers/field.js", "layers/team.js", "layers/gym.js", "layers/daycare.js", "layers/safari.js", "layers/gamecorner.js", "layers/story.js", "layers/pokegear.js", "layers/hunt.js", "layers/hof.js", "layers/dex.js",
 		"tree.js",
 	],
 
@@ -17,11 +17,16 @@ let modInfo = {
 
 // Set your version in num and name
 let VERSION = {
-	num: "0.14",
-	name: "Johto's story",
+	num: "0.15",
+	name: "Johto's side systems",
 }
 
 let changelog = `<h1>Changelog:</h1><br>
+	<h3>v0.15 Johto's side systems</h3><br>
+		- Headbutt trees (from Bugsy's badge) and Rock Smash (from Whitney's) on Johto's routes.<br>
+		- The Ruins of Alph chambers: all 28 Unown letters, as forms for your collection.<br>
+		- The Pokégear (Johto): tune in to the radio's swarm reports (Radio Card) to add a Pokémon to a place, and Kurt's Apricorn Balls (Level, Lure, Moon, Fast and Love Balls).<br>
+		- In Johto the Safari Zone node is National Park's Bug-Catching Contest, and the Game Corner is Goldenrod's, with its own prizes.<br>
 	<h3>v0.14 Johto's story</h3><br>
 		- Team Rocket returns in Johto: Slowpoke Well (opens Bugsy's Gym), the Mahogany Hideout with Lance (opens Pryce's) and the Radio Tower takeover with Executives Proton, Petrel, Ariana and Archer (opens Clair's, and Lugia).<br>
 		- Silver, your new rival: his starter answers yours, from Cherrygrove to Victory Road (his last battle opens the League).<br>

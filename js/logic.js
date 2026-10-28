@@ -1242,6 +1242,65 @@ function silverTeam(stage) {
 const SILVER = stage => ({ name: "Rival Silver", rival: true, team: () => silverTeam(stage), quote: "...Hmph. Weaklings like you shouldn't have Pokémon." })
 const EXECUTIVE = (name, team, quote) => ({ name: `Executive ${name}`, rocket: true, team, quote })
 
+// Hoenn (Emerald): May's starter answers yours (strong against it), with a partner line that covers
+// her weak spot; Wally; Team Aqua and Team Magma (both, as in Emerald). Teams are close to Emerald's.
+const MAY_LINES = { 252: [255, 256, 257], 255: [258, 259, 260], 258: [252, 253, 254] }
+const MAY_PARTNERS = { 255: [270, 271, 272], 258: [285, 285, 286], 252: [322, 322, 323] }
+function mayTeam(stage) {
+	const [s0, s1, s2] = MAY_LINES[player.t.starter] || MAY_LINES[252]
+	const [p0, p1, p2] = MAY_PARTNERS[s0]
+	return [
+		[[s0, 5]],
+		[[p0, 13], [s0, 15]],
+		[[278, 18], [p1, 18], [s1, 20]],
+		[[279, 29], [p1, 29], [s1, 31]],
+		[[357, 31], [279, 32], [p2, 32], [s2, 34]],
+	][stage]
+}
+const MAY = stage => ({ name: "Rival May", rival: true, team: () => mayTeam(stage), quote: "I'm going to be a Trainer like my dad, Professor Birch!" })
+const AQUA = (team, extra = {}) => ({ name: "Team Aqua Grunt", rocket: true, team, ...extra })
+const MAGMA = (team, extra = {}) => ({ name: "Team Magma Grunt", rocket: true, team, ...extra })
+const HOENN_CHAPTERS = [
+	// Rivals: May and Wally.
+	{ id: "route103May", region: "hoenn", name: "Route 103", badges: 0, strength: 1.9, trainers: [MAY(0)], reward: "May's first battle: Research Points." },
+	{ id: "rustboroMay", region: "hoenn", name: "Rustboro City", badges: 1, strength: 3.8, trainers: [MAY(1)], reward: "Research Points." },
+	{ id: "route110May", region: "hoenn", name: "Route 110", badges: 2, strength: 5.8, trainers: [MAY(2)], reward: "Research Points." },
+	{ id: "mauvilleWally", region: "hoenn", name: "Mauville City", badges: 2, strength: 4.8, trainers: [{ name: "Wally", rival: true, team: [[280, 16]], quote: "I want to be strong enough to travel with my Pokémon!" }], reward: "Wally heads off on a journey of his own." },
+	{ id: "route119May", region: "hoenn", name: "Route 119", badges: 5, strength: 8.8, trainers: [MAY(3)], reward: "Research Points." },
+	{ id: "lilycoveMay", region: "hoenn", name: "Lilycove City", badges: 6, strength: 9.5, trainers: [MAY(4)], reward: "Research Points." },
+	{ id: "victoryRoadWally", region: "hoenn", name: "Victory Road", badges: 8, strength: 14.4, gateLeague: true, reward: "Wally, stronger than ever, steps aside: the Pokémon League opens.",
+		trainers: [{ name: "Wally", rival: true, team: [[334, 44], [301, 43], [315, 44], [82, 41], [282, 45]], quote: "I've been waiting for you. I'll show you how strong I've become!" }] },
+	// Team Aqua and Team Magma.
+	{ id: "petalburgWoods", arc: "villain", region: "hoenn", name: "Petalburg Woods", badges: 0, strength: 2.9, gate: 0, reward: "You save the Devon researcher's papers: Roxanne's Gym opens.",
+		trainers: [AQUA([[261, 9]], { quote: "Hand over those papers!" })] },
+	{ id: "rusturfTunnel", arc: "villain", region: "hoenn", name: "Rusturf Tunnel", badges: 1, strength: 4.5, gate: 1, reward: "The Devon Goods are back: Mr. Briney sails you to Dewford, and Brawly's Gym opens.",
+		trainers: [AQUA([[261, 11]], { quote: "Grah! The Devon Goods are ours now!" })] },
+	{ id: "slateportMuseum", arc: "villain", region: "hoenn", name: "Oceanic Museum", badges: 2, strength: 6.1, gate: 2, reward: "Captain Stern gets his parts: the way north to Mauville (and Wattson's Gym) opens.",
+		trainers: [AQUA([[318, 15]]), AQUA([[261, 14], [41, 14]])] },
+	{ id: "mtChimney", arc: "villain", region: "hoenn", name: "Mt. Chimney", badges: 3, strength: 7.4, gate: 3, reward: "Maxie's plan to awaken the volcano fails: the way down to Lavaridge (and Flannery's Gym) opens.",
+		trainers: [MAGMA([[261, 20], [322, 20]]), MAGMA([[41, 22]]), { name: "Magma Admin Tabitha", rocket: true, team: [[322, 18], [261, 20], [322, 22], [41, 22]] },
+			{ name: "Maxie", rocket: true, boss: true, team: [[262, 24], [41, 24], [323, 25]], quote: "The land must grow! That's our goal, and you stand in its way." }] },
+	{ id: "weatherInstitute", arc: "villain", region: "hoenn", name: "Weather Institute", badges: 5, strength: 9, gate: 5, reward: "The researchers are freed (and give you Castform): Winona's Gym opens.",
+		trainers: [AQUA([[318, 28]]), AQUA([[261, 27], [41, 27]]), { name: "Aqua Admin Shelly", rocket: true, team: [[318, 28], [262, 28]], quote: "Ahahahaha! You're going to meddle in Team Aqua's affairs?" }] },
+	{ id: "mtPyre", arc: "villain", region: "hoenn", name: "Mt. Pyre", badges: 6, strength: 9, reward: "Team Aqua takes the Blue Orb from the summit, and Team Magma the Red Orb.",
+		trainers: [AQUA([[262, 29], [42, 29]], { floor: "Summit" }), AQUA([[319, 30]], { floor: "Summit" })] },
+	{ id: "magmaHideout", arc: "villain", region: "hoenn", name: "Magma Hideout", badges: 6, needs: "mtPyre", strength: 9.5, reward: "Maxie wakes Groudon with the Red Orb, and it flees.",
+		trainers: [MAGMA([[262, 29], [42, 29]]), MAGMA([[322, 30], [262, 30]]), MAGMA([[41, 31], [322, 31]]),
+			{ name: "Magma Admin Tabitha", rocket: true, team: [[323, 35], [262, 33], [42, 33]] },
+			{ name: "Maxie", rocket: true, boss: true, team: [[262, 37], [169, 38], [323, 39]], quote: "Groudon! Expand the land!" }] },
+	{ id: "aquaHideout", arc: "villain", region: "hoenn", name: "Aqua Hideout", badges: 6, needs: "magmaHideout", strength: 10, gate: 6, reward: "Team Aqua sails off in its submarine: the seas east to Mossdeep (and Tate & Liza's Gym) open.",
+		trainers: [AQUA([[319, 32], [42, 32]]), AQUA([[262, 33], [73, 33]]), { name: "Aqua Admin Matt", rocket: true, team: [[262, 34], [42, 34]], quote: "Hehehe! You're too late!" }] },
+	{ id: "spaceCenter", arc: "villain", region: "hoenn", name: "Mossdeep Space Center", badges: 7, needs: "aquaHideout", strength: 11.5, reward: "Steven and you drive Team Magma out of the Space Center.",
+		trainers: [MAGMA([[262, 37], [42, 37]]), { name: "Magma Admin Tabitha", rocket: true, team: [[323, 41], [262, 41], [42, 41]] },
+			{ name: "Maxie", rocket: true, boss: true, team: [[262, 42], [169, 43], [323, 44]], quote: "The Space Center's rocket fuel will awaken the volcano!" }] },
+	{ id: "seafloorCavern", arc: "villain", region: "hoenn", name: "Seafloor Cavern", badges: 7, needs: "spaceCenter", strength: 12, gate: 7, reward: "Kyogre wakes, and Rayquaza, called down from the Sky Pillar, calms it and Groudon: Sootopolis is saved and Juan's Gym opens.",
+		trainers: [AQUA([[319, 40], [42, 40]]), { name: "Aqua Admin Shelly", rocket: true, team: [[319, 41], [262, 41]] },
+			{ name: "Archie", rocket: true, boss: true, team: [[262, 41], [169, 41], [319, 43]], quote: "Kyogre! Expand the sea!" }] },
+	// After the League: Steven at Meteor Falls.
+	{ id: "stevenMeteorFalls", region: "hoenn", name: "Meteor Falls", badges: 8, champion: true, strength: 12, reward: "Steven, Hoenn's former Champion, leaves you his Beldum.",
+		trainers: [{ name: "Steven", team: [[227, 77], [344, 75], [306, 76], [346, 76], [348, 76], [376, 78]], quote: "I'd like to see how far you've come. Let's battle!" }] },
+]
+
 // Kanto's Gyms in Johto's post-game (HeartGold/SoulSilver's first battles, from Serebii). Lt. Surge
 // first (the S.S. Aqua docks in Vermilion), Blue last.
 const KANTO_GYM = (id, name, badge, leader, strength, team, quote, needs = "kantoSurge") => ({
@@ -1302,6 +1361,7 @@ const STORY_CHAPTERS = [
 		reward: "Red, the silent Champion of Kanto, nods and leaves the summit. Fame ×1.5 for this Hall of Fame entry.",
 		trainers: [{ name: "Red", team: JOHTO_RED.team, quote: "…" }] },
 	...KANTO_GYM_CHAPTERS,
+	...HOENN_CHAPTERS,
 	{ id: "route22Final", name: "Route 22 again", badges: 8, strength: 10, gateLeague: true, trainers: [RIVAL(6)], reward: "Your rival steps aside: Victory Road and the League open." },
 	// Kanto: Team Rocket.
 	{ id: "mtMoon", arc: "villain", name: "Mt. Moon", badges: 1, strength: 2.8, gate: 1, reward: "The way through Mt. Moon to Cerulean City (and Misty's Gym) opens.",
@@ -1380,7 +1440,8 @@ function kantoRevisitZones() { return ZONES.filter(z => !z.anime && !KANTO_CLOSE
 function kantoBadges() { return KANTO_GYM_CHAPTERS.filter(ch => chapterCleared(ch.id)).length }
 
 // Gift rules from the story: the Dojo's choice and Silph Co.'s Lapras, Snorlax's Poké Flute.
-const SPECIAL_STORY = { hitmonlee: "dojo", hitmonchan: "dojo", lapras: "silphCo", snorlax: "pokemonTower", whirlLugia: "radioTower", bellTowerHoOh: "bellTower" }
+const SPECIAL_STORY = { hitmonlee: "dojo", hitmonchan: "dojo", lapras: "silphCo", snorlax: "pokemonTower", whirlLugia: "radioTower", bellTowerHoOh: "bellTower",
+	weatherInstituteCastform: "weatherInstitute", hoennKyogre: "seafloorCavern", hoennGroudon: "seafloorCavern", hoennRayquaza: "seafloorCavern", stevensBeldum: "stevenMeteorFalls" }
 const DOJO_CHOICE = ["hitmonlee", "hitmonchan"]
 for (const s of SPECIALS) if (s.id === "hitmonchan") s.text = "...or the punching fiend. You may choose only one."
 

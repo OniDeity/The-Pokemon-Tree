@@ -17,11 +17,13 @@ let modInfo = {
 
 // Set your version in num and name
 let VERSION = {
-	num: "0.21",
-	name: "Hoenn's side systems",
+	num: "0.21.1",
+	name: "Box Training",
 }
 
 let changelog = `<h1>Changelog:</h1><br>
+	<h3>v0.21.1 Box Training</h3><br>
+		- Team Coach's new Box Training switch (on the Automation page, with Team Coach): once you have the Exp. Share, the party keeps only as many Pokémon as it needs to win the next battle and fills the other slots with box Pokémon still waiting to evolve by level, closest to evolving first. They share every wild battle's experience and evolve on their own.<br><br>
 	<h3>v0.21 Hoenn's side systems</h3><br>
 		- Double battles! Beat Roxanne and, for good and in every region, your lead's partner (the next Pokémon in your party) fights beside it for half its damage, without being attacked.<br>
 		- The PokéNav (Hoenn's Pokégear): the TV's mass-outbreak reports (Seedot, Nuzleaf, Skitty, Surskit) and Devon's Net, Dive, Nest and Repeat Balls.<br>

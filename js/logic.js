@@ -75,7 +75,7 @@ function rpMult() {
 function wildRpMult() { return rpMult() * (hasFieldUpgrade(21) ? 1.5 : 1) * (inChallenge(52) ? 0.5 : 1) }
 function passiveRp() {
 	if (!player.t.starter || inChallenge(51)) return 0
-	return caughtCount() * 0.05 * rpMult() * (hasFieldUpgrade(23) ? 5 : 1) * (hofUpgrade(22) ? 3 : 1)
+	return caughtCount() * 0.05 * rpMult() * (hasFieldUpgrade(23) ? 5 : 1) * (hofUpgrade(22) ? 3 : 1) / pace()
 }
 function xpMult() {
 	let m = (1 + fieldBuyableStep(14, 0.25) * fieldBuyable(14)) * (1 + 0.25 * hofBuyable(12))
@@ -86,7 +86,7 @@ function xpMult() {
 	return m
 }
 function searchTime() {
-	let t = BASE_SEARCH_TIME / (1 + fieldBuyableStep(11, 0.25) * fieldBuyable(11)) / (1 + 0.1 * hofBuyable(14))
+	let t = BASE_SEARCH_TIME * pace() / (1 + fieldBuyableStep(11, 0.25) * fieldBuyable(11)) / (1 + 0.1 * hofBuyable(14))
 	if (hasFieldUpgrade(12)) t /= 2
 	if (hasKeyItem("bicycle", badges())) t /= 1.5
 	if (dexMilestone(40)) t /= 1.5
@@ -716,9 +716,9 @@ function inDayCare(key) { return !!player.c && player.c.slots.includes(key) }
 
 /** Experience per second for each Pokémon in the Day Care: grows with the level cap. */
 function dayCareXpRate() {
-	return 0.02 * Math.pow(currentCap(), 2.5) * xpMult() * (hasDayCareUpgrade(11) ? 3 : 1) * (1 + 0.5 * dayCareBuyable(11))
+	return 0.02 * Math.pow(currentCap(), 2.5) * xpMult() * (hasDayCareUpgrade(11) ? 3 : 1) * (1 + 0.5 * dayCareBuyable(11)) / pace()
 }
-function eggSeconds() { return EGG_SECONDS / (hasDayCareUpgrade(12) ? 2 : 1) / (1 + 0.15 * dayCareBuyable(12)) * (inChallenge(52) ? 3 : 1) }
+function eggSeconds() { return EGG_SECONDS * pace() / (hasDayCareUpgrade(12) ? 2 : 1) / (1 + 0.15 * dayCareBuyable(12)) * (inChallenge(52) ? 3 : 1) }
 function eggBattles() { return Math.max(1, Math.ceil(EGG_BATTLES / (hasDayCareUpgrade(13) ? 2 : 1) / (1 + 0.1 * dayCareBuyable(13)) * (inChallenge(52) ? 3 : 1))) }
 /** The Breeder's Journal: Eggs of species hatched in any earlier run hatch after one battle. */
 function eggBattlesFor(species) { return automationOn("journal") && player.d.everHatched?.[species] ? 1 : eggBattles() }
@@ -1483,18 +1483,24 @@ const REGIONS = {
 	kanto: {
 		name: "Kanto", professor: "Oak", starters: STARTERS, zones: ZONES, gyms: GYMS, eliteFour: ELITE_FOUR,
 		champion: () => CHAMPIONS[player.t.starter] || CHAMPIONS[1], gymStrength: GYM_STRENGTH,
-		eliteFourStrength: ELITE_FOUR_STRENGTH, championStrength: CHAMPION_STRENGTH, badgeImage: 1, zoneCost: 1,
+		eliteFourStrength: ELITE_FOUR_STRENGTH, championStrength: CHAMPION_STRENGTH, badgeImage: 1, zoneCost: 1, pace: 3.5,
 		dex: Array.from({ length: 151 }, (_, i) => i + 1), rules: REGION_RULES,
 	},
 	johto: {
 		name: "Johto", professor: "Elm", starters: [152, 155, 158], zones: JOHTO_ZONES, gyms: JOHTO_GYMS,
 		eliteFour: JOHTO_ELITE_FOUR, champion: () => JOHTO_CHAMPION,
 		gymStrength: [3.5, 6, 8, 6.5, 11, 12.5, 13, 11], eliteFourStrength: 10, championStrength: 9.5,
-		badgeImage: 9, dex: JOHTO_DEX, zoneCost: 5,
+		badgeImage: 9, dex: JOHTO_DEX, zoneCost: 5, pace: 2,
 		rules: { keyItems: keyItemsFromGyms(JOHTO_GYMS), levelCaps: [16, 20, 24, 28, 33, 37, 40, 45, 55, 100], stoneBadges: JOHTO_STONES, tradeBadges: 3 },
 	},
 }
 function currentRegion() { return player.t?.region || "kanto" }
+/**
+ * The journey's pace: every timer (searching, so the Safari Zone too, passive Research Points, the
+ * Day Care) runs this many times slower. Tuned so a first run of each region takes about 10-12 h
+ * in the simulator, which plays perfectly; later runs speed up through Fame.
+ */
+function pace() { return region().pace }
 function region() { return REGIONS[currentRegion()] }
 /** Points the engine at the current region's rules (call when the region may have changed). */
 function syncRegionRules() { REGION_RULES = region().rules }

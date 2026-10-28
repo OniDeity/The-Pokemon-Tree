@@ -103,3 +103,14 @@
 .pk-story-locked { opacity: 0.5; }
 .pk-story-selected { outline: 2px solid #fff; }
 .pk-arc-key { display: inline-block; border-left: 6px solid; padding-left: 4px; margin-right: 8px; }
+/* Contests: ribbon chips by category colour, and the contestant's table. */
+.pk-ribbon { display: inline-block; min-width: 14px; margin: 1px; padding: 0 5px; border-radius: 8px; font-size: 12px; font-weight: bold; color: #111; }
+.pk-ribbon.pk-done { opacity: 0.35; }
+.pk-ribbon-red { background: #F08030; }
+.pk-ribbon-blue { background: #6890F0; }
+.pk-ribbon-pink { background: #F85888; }
+.pk-ribbon-green { background: #78C850; }
+.pk-ribbon-yellow { background: #F8D030; }
+.pk-contest-table { margin: 0 auto; border-collapse: collapse; }
+.pk-contest-table td, .pk-contest-table th { padding: 2px 8px; }
+.pk-dex-entry .pk-ribbon { min-width: 0; padding: 0 2px; margin: 0; font-size: 9px; border-radius: 4px; }

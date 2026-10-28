@@ -21,7 +21,7 @@ function chapterLockText(ch) {
 /** What clearing a chapter opens: a Gym, the League, a gift or legendary. */
 function chapterOpens(ch) {
 	const opens = []
-	if (ch.gate !== undefined) opens.push(`${REGIONS[chapterRegion(ch)].gyms[ch.gate].name}'s Gym`)
+	if (ch.gate !== undefined) opens.push(trialName(REGIONS[chapterRegion(ch)].gyms[ch.gate], chapterRegion(ch)))
 	if (ch.gateLeague) opens.push("the League")
 	for (const [sid, need] of Object.entries(SPECIAL_STORY)) {
 		const s = ALL_SPECIALS.find(x => x.id === sid)
@@ -72,7 +72,7 @@ function storyMapHtml() {
 	for (let tier = 0; tier <= league; tier++) {
 		const here = chapters.filter(ch => tier === league ? ch.champion : !ch.champion && ch.badges === tier).sort((a, b) => !!a.red - !!b.red)
 		let marker
-		if (tier === 0) marker = `<span class="pk-story-mark pk-story-mark-on">★</span><b>${r.professor}'s lab</b>`
+		if (tier === 0) marker = `<span class="pk-story-mark pk-story-mark-on">★</span><b>${r.home || `${r.professor}'s lab`}</b>`
 		else if (tier <= allBadges()) {
 			const gym = r.gyms[tier - 1], won = b >= tier
 			marker = `${won ? `<img src="resources/badges/${tier - 1 + r.badgeImage}.png" width="24" height="24">` : `<span class="pk-story-mark"></span>`}<b>${gym.badge}</b> <small>${gym.name}</small>`

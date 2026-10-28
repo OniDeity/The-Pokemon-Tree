@@ -14,7 +14,7 @@ const vm = require("vm")
 
 const root = path.join(__dirname, "..")
 const ctx = vm.createContext({ console, Math, JSON, Object, Array, Set, Number, String })
-for (const file of ["js/technical/break_eternity.js", "js/data/kanto.js", "js/data/johto.js", "js/data/hoenn.js", "js/data/orange.js", "js/engine.js", "js/logic.js"])
+for (const file of ["js/technical/break_eternity.js", "js/data/kanto.js", "js/data/johto.js", "js/data/hoenn.js", "js/data/orange.js", "js/data/sevii.js", "js/engine.js", "js/logic.js"])
 	vm.runInContext(fs.readFileSync(path.join(root, file), "utf8"), ctx, { filename: file })
 
 const starter = Number(process.argv[2] || 1)
@@ -50,7 +50,7 @@ var player = {
 // The game's chooseStarter, without the UI.
 function startRun(id) {
 	player.t.starter = id
-	addToBox(id, hofUpgrade(11) ? 10 : 5)
+	addToBox(id, Math.max(region().startLevel || 0, hofUpgrade(11) ? 10 : 5))
 	if (hofUpgrade(11)) player.points = player.points.add(200)
 	player.f = freshField(fieldKeptUpgrades())
 }

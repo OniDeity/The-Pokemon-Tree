@@ -4,7 +4,7 @@ let modInfo = {
 	author: "Onide",
 	pointsName: "Research Points",
 	modFiles: [
-		"data/kanto.js", "data/johto.js", "data/hoenn.js", "data/orange.js", "engine.js", "logic.js",
+		"data/kanto.js", "data/johto.js", "data/hoenn.js", "data/orange.js", "data/sevii.js", "engine.js", "logic.js",
 		"layers/field.js", "layers/team.js", "layers/gym.js", "layers/daycare.js", "layers/safari.js", "layers/gamecorner.js", "layers/story.js", "layers/pokegear.js", "layers/hunt.js", "layers/contest.js", "layers/hof.js", "layers/dex.js",
 		"tree.js",
 	],
@@ -17,11 +17,16 @@ let modInfo = {
 
 // Set your version in num and name
 let VERSION = {
-	num: "0.26",
-	name: "The Orange Islands",
+	num: "0.27",
+	name: "The Sevii Islands",
 }
 
 let changelog = `<h1>Changelog:</h1><br>
+	<h3>v0.27 The Sevii Islands</h3><br>
+		- A side journey from FireRed and LeafGreen's post-game: after 3 Orange Islands Hall of Fame entries, Celio on One Island offers Chikorita, Cyndaquil or Totodile, already at Lv. 25, with every Kanto HM and rod.<br>
+		- 23 places from Kindle Road to the Tanoby Chambers (and their Unown). Five quests take the Gyms' place: the Ruby at Mt. Ember, Lostelle's rescue, Icefall Cave's Lapras, the Rocket Warehouse and Gideon's Sapphire. The Trainer Tower's three floors are the finale. Moltres, a Togepi Egg, and Ho-Oh and Lugia at Navel Rock after the Tower.<br>
+		- Story battles: Kindle Road's and Bond Bridge's trainers, Lorelei at home on Four Island, the Rockets at Five Isle Meadow (they guard the Rocket Warehouse) and the Tanoby Ruins. The Orange Islands get a story too: Tracey Sketchit and Jessie & James from Tangelo to Shamouti (Pinkan's Pikachu and Lugia wait on them).<br>
+		- After the Trainer Tower, Kanto's League can be visited (Fame ×1.3). Sevii's Champion enters the Hall for Fame ×1.75. A first Sevii journey takes about 5-7 hours.<br><br>
 	<h3>v0.26 The Orange Islands</h3><br>
 		- A side journey from the anime: after 3 Kanto Hall of Fame entries, the starter screen also offers Professor Ivy's Pikachu, Togepi and Lapras on Valencia Island.<br>
 		- 29 islands, from Valencia and Pinkan to Shamouti; Lapras's ferry lets you surf from the start. Four Orange Crew Gyms (Cissy, Danny, Rudy, Luana) and their badges, then Drake alone at the Winner's Cup on Pummelo Island.<br>

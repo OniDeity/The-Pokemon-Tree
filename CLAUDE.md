@@ -187,11 +187,23 @@ Sister project: OniDeity/idle-pokemon (its data is the source of ours).
   from the start as `keyItems.surf` at 0 badges; caps [20, 28, 35, 42, 50, 100]). `allBadges()` is
   the region's Gym count (League, story map tiers, Gym milestones' `unlocked`). Forms `pinkan`
   (1000+), `valencian` (2000+; `FORMS[].filters` per species, read by `pkSprite`), `crystal` (3095);
-  7021 is a plain Snorlax. Badges 25-28 drawn by `scripts/drawOrangeBadges.py`. Visit chapters need
+  7021 is a plain Snorlax. Badges 25-28 drawn by `scripts/drawSideBadges.py`. Visit chapters need
   no badges (`champion` gates them; with `badges: 8` Orange's never opened). Pacing: pace 12, Gyms
   [3.2, 4, 3.6, 4.8], Drake 5.4, Kanto visit 11; `SIM_START=orange` at 200 Fame (about three Kanto
   runs) 4-7.4 h (median ~5.3), 100 Fame 6.3-9.4 h. Rudy walls at 4.2+ (Lv. 32-34 against a Lv. 35
   cap); the visit is a cliff (10 instant, 14 1.75 h, 18 never).
+- The Sevii Islands and side stories (v0.27, side games phase 2): `js/data/sevii.js` (`buildData.py`'s
+  7th argument; sevii.json from sevii.ts: tables from encounters.json with Rock Smash, Unown
+  4000-4027 as `UNOWN_FORMS`; SEVII_GYMS are the five quests, SEVII_TOWER the Trainer Tower's floors,
+  the last as Champion). `REGIONS.sevii` (opens after 3 Orange entries; `giver` Celio and `home` for
+  the starter log and story map; `startLevel` 25, read by `chooseStarter` and the simulator's
+  `startRun`; every rod, Surf, Bicycle and Rock Smash at 0 badges; `trialNoun` "quest", read by
+  `trialName`; caps [38, 44, 48, 52, 56, 64, 100]; pace 18; Fame ×1.75). `SIDE_CHAPTERS` give
+  regions without a story one (the owner's call): Orange's Tracey and Jessie & James (`pinkanRocket`
+  gates Pinkan Pikachu, `shamoutiRocket` Lugia), Sevii's trainers, Lorelei and Five Isle Meadow
+  (`gate` 3, the Warehouse quest). Badges 29-33 in `scripts/drawSideBadges.py` (was
+  drawOrangeBadges.py). Pacing: `SIM_START=sevii SIM_FAME=350` 4.7-7.1 h; the Kanto visit is a
+  cliff again (8 instant, 10 never: Lv. 100 legendaries lose on Sevii's gear), now 9.
 - Challenge highlights: `challengeStatus(key)`; hatching or a Safari catch marks an owned entry's
   `origin`, and `canEvolveInto` lets an entry with an origin evolve into one without.
 - Regions and the run's Pokédex (v0.12): `REGIONS` (`regionDex`, `currentRegion`, `dexRegions`)
@@ -356,6 +368,7 @@ The owner wants every Hall of Fame to feel like a proper reset:
 - Pacing: shorter than main regions, about 5-8 h of simulated play per first side journey. Fame
   factors below Johto's and Hoenn's 2.5 for the islands, at or above them for Orre.
 - Phases: (0) the side-journey framework (branches on the starter screen, region entries, a
-  region-agnostic journey start; done in v0.25.1); (1) Orange Islands (with Pinkan/Valencian; done in v0.26); (2) Sevii; (3)
+  region-agnostic journey start; done in v0.25.1); (1) Orange Islands (with Pinkan/Valencian; done in v0.26); (2) Sevii (with story battles for regions
+  that had none; done in v0.27); (3)
   Shadow Pokémon and Colosseum (trainer-battle places, snagging, hearts, Relic Stone, sprites);
   (4) XD (Poké Spots, carried mechanics); (5) post-game visits and pacing for each.

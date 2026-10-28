@@ -865,8 +865,8 @@ function animeOpen(zone) {
 
 /** Every form Kanto has: "id-form" keys from the anime places and events. */
 const ALL_FORMS = [...new Set([
-	...[...ZONES, ...JOHTO_ZONES, ...HOENN_ZONES, ...ORANGE_ZONES].flatMap(z => Object.values(z.pools).flat().filter(e => e[4]).map(e => `${e[0]}-${e[4]}`)),
-	...[...SPECIALS, ...JOHTO_SPECIALS, ...HOENN_SPECIALS, ...ORANGE_SPECIALS].filter(s => s.form).map(s => `${s.species}-${s.form}`),
+	...[...ZONES, ...JOHTO_ZONES, ...HOENN_ZONES, ...ORANGE_ZONES, ...SEVII_ZONES].flatMap(z => Object.values(z.pools).flat().filter(e => e[4]).map(e => `${e[0]}-${e[4]}`)),
+	...[...SPECIALS, ...JOHTO_SPECIALS, ...HOENN_SPECIALS, ...ORANGE_SPECIALS, ...SEVII_SPECIALS].filter(s => s.form).map(s => `${s.species}-${s.form}`),
 	...Object.values(CONTEST_CATEGORIES).map(c => `25-${c.pikachu}`),
 ])].sort((a, b) => parseInt(a) - parseInt(b))
 function formsCaught() { return ALL_FORMS.filter(k => player.d.forms[k]).length }
@@ -1527,6 +1527,7 @@ const REVISITS = {
 const VISITS = {
 	johto: { kanto: null },
 	orange: { kanto: 11 },
+	sevii: { kanto: 9 },
 	hoenn: { kanto: 22, johto: 26 },
 }
 /** A visit's Story chapter: Hoenn's keep their first ids ("visitKanto"); later hosts prefix theirs. */
@@ -1589,6 +1590,35 @@ const HOENN_CHAPTERS = [
 
 // Kanto's Gyms in Johto's post-game (HeartGold/SoulSilver's first battles, from Serebii). Lt. Surge
 // first (the S.S. Aqua docks in Vermilion), Blue last.
+// The side journeys' stories. The Orange Islands (the anime): Tracey Sketchit, and Jessie & James
+// following you from island to island (Pinkan's poachers keep its Pikachu from you; Shamouti's
+// festival opens Lugia). The Sevii Islands (FireRed/LeafGreen): the islands' trainers, Lorelei at
+// home on Four Island, and the Rockets at Five Isle Meadow who guard the Rocket Warehouse's quest.
+const TRACEY = (team, quote) => ({ name: "Tracey Sketchit", team, quote })
+const SIDE_CHAPTERS = [
+	{ id: "valenciaTracey", region: "orange", name: "Valencia Island", badges: 0, strength: 2, arc: "challenger", reward: "Tracey joins you as you island-hop: Research Points.",
+		trainers: [TRACEY([[183, 10], [48, 11]], "Mind if I sketch your Pokémon while we battle?")] },
+	{ id: "tangeloRocket", arc: "villain", region: "orange", name: "Tangelo Island", badges: 0, strength: 2.6, reward: "Team Rocket blasts off again: Research Points.",
+		trainers: [JESSIE_JAMES([[23, 13], [109, 13], [52, 14]])] },
+	{ id: "pinkanRocket", arc: "villain", region: "orange", name: "Pinkan Island", badges: 2, strength: 3.8, reward: "Officer Jenny thanks you for stopping the poachers: Pinkan's Pikachu may come with you.",
+		trainers: [JESSIE_JAMES([[24, 26], [110, 26], [52, 27]])] },
+	{ id: "trovitaTracey", region: "orange", name: "Trovita Island", badges: 3, strength: 3.6, arc: "challenger", reward: "Tracey's sketchbook fills up: Research Points.",
+		trainers: [TRACEY([[183, 30], [48, 31], [123, 33]], "Scyther's been itching for a rematch!")] },
+	{ id: "kumquatRocket", arc: "villain", region: "orange", name: "Kumquat Island", badges: 3, strength: 4.2, reward: "Team Rocket blasts off again: Research Points.",
+		trainers: [JESSIE_JAMES([[24, 34], [110, 34], [52, 35]])] },
+	{ id: "shamoutiRocket", arc: "villain", region: "orange", name: "Shamouti Island", badges: 4, champion: true, strength: 4.8, reward: "The festival's Chosen One gathers the three treasures: Lugia rises from the sea.",
+		trainers: [JESSIE_JAMES([[24, 46], [110, 46], [52, 47]])] },
+	{ id: "kindleRoad", region: "sevii", name: "Kindle Road", badges: 0, strength: 3, arc: "challenger", reward: "Research Points.",
+		trainers: [{ name: "Black Belt", team: [[66, 33], [67, 35]] }, { name: "Crush Girl", team: [[56, 34], [57, 35]] }, { name: "Swimmer", team: [[72, 33], [118, 33], [119, 34]] }] },
+	{ id: "bondBridge", region: "sevii", name: "Bond Bridge", badges: 1, strength: 3.8, arc: "challenger", reward: "Research Points.",
+		trainers: [{ name: "Twins Joy & Meg", team: [[35, 37], [35, 37]] }, { name: "Fisherman", team: [[129, 36], [130, 38]] }, { name: "Aroma Lady", team: [[43, 37], [44, 38], [45, 39]] }] },
+	{ id: "fourIslandLorelei", region: "sevii", name: "Four Island", badges: 3, strength: 4.6, arc: "challenger", reward: "Lorelei heads back to the Elite Four: Research Points.",
+		trainers: [{ name: "Lorelei", team: [[87, 45], [91, 45], [80, 46], [124, 46], [131, 48]], quote: "I came home to Four Island to rest... and then you came along." }] },
+	{ id: "fiveIsleMeadow", arc: "villain", region: "sevii", name: "Five Isle Meadow", badges: 3, strength: 5.5, gate: 3, reward: "The Rockets flee into their warehouse: the Rocket Warehouse quest opens.",
+		trainers: [GRUNT([[24, 44], [42, 44]]), GRUNT([[89, 45], [110, 45]]), GRUNT([[20, 44], [41, 45], [42, 45]], { quote: "The Network Machine? You'll never get near it!" })] },
+	{ id: "tanobyRuins", region: "sevii", name: "Tanoby Ruins", badges: 5, strength: 5.6, arc: "challenger", reward: "The Ruin Maniac shares his notes on the chambers' Unown: Research Points.",
+		trainers: [{ name: "Ruin Maniac", team: [[74, 50], [95, 51], [111, 51]] }, { name: "Painter", team: [[235, 52]] }] },
+]
 const KANTO_GYM = (id, name, badge, leader, strength, team, quote, needs = "kantoSurge") => ({
 	id, region: "johto", kantoGym: true, name, badges: 8, champion: true, needs, strength, badge,
 	reward: `The ${badge}: Research Points ×${BADGE_RP_BOOST}, like any badge.`,
@@ -1647,6 +1677,7 @@ const STORY_CHAPTERS = [
 		reward: "Red, the silent Champion of Kanto, nods and leaves the summit. Fame ×1.5 for this Hall of Fame entry.",
 		trainers: [{ name: "Red", team: JOHTO_RED.team, quote: "…" }] },
 	...KANTO_GYM_CHAPTERS,
+	...SIDE_CHAPTERS,
 	...HOENN_CHAPTERS,
 	{ id: "route22Final", name: "Route 22 again", badges: 8, strength: 10, gateLeague: true, trainers: [RIVAL(6)], reward: "Your rival steps aside: Victory Road and the League open." },
 	// Kanto: Team Rocket.
@@ -1727,7 +1758,8 @@ function kantoBadges() { return KANTO_GYM_CHAPTERS.filter(ch => chapterCleared(c
 
 // Gift rules from the story: the Dojo's choice and Silph Co.'s Lapras, Snorlax's Poké Flute.
 const SPECIAL_STORY = { hitmonlee: "dojo", hitmonchan: "dojo", lapras: "silphCo", snorlax: "pokemonTower", whirlLugia: "radioTower", bellTowerHoOh: "bellTower",
-	weatherInstituteCastform: "weatherInstitute", hoennKyogre: "seafloorCavern", hoennGroudon: "seafloorCavern", hoennRayquaza: "seafloorCavern", stevensBeldum: "stevenMeteorFalls" }
+	weatherInstituteCastform: "weatherInstitute", hoennKyogre: "seafloorCavern", hoennGroudon: "seafloorCavern", hoennRayquaza: "seafloorCavern", stevensBeldum: "stevenMeteorFalls",
+	pinkanPikachu: "pinkanRocket", shamoutiLugia: "shamoutiRocket" }
 const DOJO_CHOICE = ["hitmonlee", "hitmonchan"]
 for (const s of SPECIALS) if (s.id === "hitmonchan") s.text = "...or the punching fiend. You may choose only one."
 
@@ -1854,6 +1886,8 @@ function storyTick() {
 	return any
 }
 
+/** How a region's trial is named: "Brock's Gym", or Sevii's "the Rocket Warehouse quest". */
+function trialName(gym, r = currentRegion()) { return REGIONS[r].trialNoun ? `the ${gym.name} ${REGIONS[r].trialNoun}` : `${gym.name}'s Gym` }
 /** The chapter that must be cleared before Gym `index`, if any isn't. */
 function gymStoryGate(index) { return STORY_CHAPTERS.find(ch => chapterRegion(ch) === currentRegion() && ch.gate === index && !chapterCleared(ch.id)) || null }
 function leagueStoryGate() { return STORY_CHAPTERS.find(ch => chapterRegion(ch) === currentRegion() && ch.gateLeague && !chapterCleared(ch.id)) || null }
@@ -1926,9 +1960,11 @@ for (const z of HOENN_ZONES) z.region = "hoenn"
 for (const s of HOENN_SPECIALS) s.region = "hoenn"
 for (const z of ORANGE_ZONES) z.region = "orange"
 for (const s of ORANGE_SPECIALS) s.region = "orange"
+for (const z of SEVII_ZONES) z.region = "sevii"
+for (const s of SEVII_SPECIALS) s.region = "sevii"
 for (const z of HOENN_ZONES) if (z.id === "mirageIsland") z.mirage = true
-const ALL_ZONES = [...ZONES, ...JOHTO_ZONES, ...HOENN_ZONES, ...ORANGE_ZONES]
-const ALL_SPECIALS = [...SPECIALS, ...JOHTO_SPECIALS, ...HOENN_SPECIALS, ...ORANGE_SPECIALS]
+const ALL_ZONES = [...ZONES, ...JOHTO_ZONES, ...HOENN_ZONES, ...ORANGE_ZONES, ...SEVII_ZONES]
+const ALL_SPECIALS = [...SPECIALS, ...JOHTO_SPECIALS, ...HOENN_SPECIALS, ...ORANGE_SPECIALS, ...SEVII_SPECIALS]
 
 const KEY_ITEM_NAMES = {
 	oldRod: "Old Rod", goodRod: "Good Rod", superRod: "Super Rod", surf: "Surf", bicycle: "Bicycle", pokeFlute: "Poké Flute",
@@ -1941,6 +1977,7 @@ function keyItemsFromGyms(gyms) {
 	return items
 }
 const JOHTO_STONES = Object.fromEntries(["moonStone", "fireStone", "waterStone", "thunderStone", "leafStone", "sunStone"].map(s => [s, 3]))
+const SEVII_DEX = [...new Set([...SEVII_ZONES.flatMap(z => Object.values(z.pools).flat().map(e => e[0])), ...SEVII_SPECIALS.map(s => s.species), 152, 155, 158])].sort((a, b) => a - b)
 const ORANGE_DEX = [...new Set([...ORANGE_ZONES.flatMap(z => Object.values(z.pools).flat().map(e => e[0])), ...ORANGE_SPECIALS.map(s => s.species), 25, 175, 131])].sort((a, b) => a - b)
 const JOHTO_DEX = [...new Set([
 	...JOHTO_ZONES.filter(z => !z.anime).flatMap(z => Object.values(z.pools).flat().map(e => e[0])),
@@ -1985,8 +2022,24 @@ const REGIONS = {
 		journey: { button: 51, intro: "Professor Ivy, on Valencia Island, studies the Orange Archipelago's unusual Pokémon and has three for a researcher willing to island-hop." },
 		league: { name: "Pummelo Stadium", survey: "Pummelo Island", trainers: "Drake, alone, at the Winner's Cup" },
 		safari: false,
-		storyIntro: "Tracey Sketchit, a Pokémon watcher, sketches your Pokémon as you island-hop toward the Orange League. No story battles here yet.",
+		storyIntro: "Tracey Sketchit, a Pokémon watcher, sketches your Pokémon as you island-hop toward the Orange League, and Team Rocket's Jessie and James are never far behind.",
 		rules: { keyItems: { surf: { badges: 0, name: "Lapras's ferry" } }, levelCaps: [20, 28, 35, 42, 50, 100], stoneBadges: JOHTO_STONES, tradeBadges: 2 },
+	},
+	// The Sevii Islands (FireRed/LeafGreen's post-game): a side journey after the Orange Islands. Celio
+	// hands over Elm's starters at Lv. 25, every Kanto HM and rod comes along, five quests take the
+	// Gyms' place and the Trainer Tower's three floors are the League.
+	sevii: {
+		name: "Sevii Islands", professor: "Celio", giver: "Celio", home: "Celio's Network Center", starters: [152, 155, 158], startLevel: 25,
+		zones: SEVII_ZONES, gyms: SEVII_GYMS, eliteFour: SEVII_TOWER.slice(0, 2), champion: () => SEVII_TOWER[2],
+		gymStrength: [3.15, 4.1, 4.4, 4.8, 5.35], eliteFourStrength: 5.4, championStrength: 5.6,
+		trialNoun: "quest", badgeImage: 29, dex: SEVII_DEX, zoneCost: 1, pace: 18, maxSpecies: 251, fame: 1.75,
+		opens: { after: "orange", entries: 3 },
+		journey: { button: 61, intro: "Bill takes you to One Island, where his friend Celio needs help linking the Network Machine. Celio has three Johto Pokémon for you, already at Lv. 25." },
+		league: { name: "Trainer Tower", survey: "Sevault Canyon and the Tanoby Ruins", trainers: "its three floors in a row" },
+		safari: false,
+		storyIntro: "Team Rocket's last cells dig for the Ruby and the Sapphire across the islands, while Lorelei rests at home on Four Island and the islands' trainers wait on every road.",
+		rules: { keyItems: Object.fromEntries(["oldRod", "goodRod", "superRod", "surf", "bicycle", "rockSmash"].map(id => [id, { badges: 0, name: KEY_ITEM_NAMES[id] || id }])),
+			levelCaps: [38, 44, 48, 52, 56, 64, 100], stoneBadges: JOHTO_STONES, tradeBadges: 0 },
 	},
 	// Hoenn (Emerald): a journey of its own, opened by Johto's Hall of Fame entries. `journey` puts
 	// a region on the starter screen: its professor's starters (clickables from `button`) and intro.

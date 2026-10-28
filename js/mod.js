@@ -17,11 +17,16 @@ let modInfo = {
 
 // Set your version in num and name
 let VERSION = {
-	num: "0.15",
-	name: "Johto's side systems",
+	num: "0.16",
+	name: "Johto's anime and Kanto's post-game",
 }
 
 let changelog = `<h1>Changelog:</h1><br>
+	<h3>v0.16 Johto's anime and Kanto's post-game</h3><br>
+		- 58 places from the Johto anime and movies, from Palm Hills to Mount Quena: the early ones open from your first Johto journey, the rest after one and two Johto Hall of Fame entries.<br>
+		- New one-of-a-kind forms: Pudgy Pidgey, Silver (the young Lugia of Ogi Isle), the Unown's Entei, and the Dark Ball's Tyranitar and Celebi.<br>
+		- Kanto's post-game: once you're Johto's Champion, Kanto's routes open again (Fuchsia's Safari Zone is closed; Cerulean Cave waits for Red), and Kanto's eight Leaders battle with their HeartGold/SoulSilver teams on the Gyms node. Each Kanto badge boosts Research Points like a badge.<br>
+		- Red only battles a trainer with all 16 badges.<br>
 	<h3>v0.15 Johto's side systems</h3><br>
 		- Headbutt trees (from Bugsy's badge) and Rock Smash (from Whitney's) on Johto's routes.<br>
 		- The Ruins of Alph chambers: all 28 Unown letters, as forms for your collection.<br>

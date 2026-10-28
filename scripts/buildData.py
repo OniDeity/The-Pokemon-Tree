@@ -6,7 +6,8 @@ kanto.json is Idle Pokémon's Kanto zones, Gyms, Elite Four, Champions and speci
 dumped as JSON from its TypeScript (src/game/pokemon/zones.ts, trainers.ts, specials.ts).
 anime.json is its Kanto anime places (`zones`: ZONES with `anime`) and Kanto `specials`.
 johto.json is its src/game/pokemon/johto.ts: JOHTO_ZONES, JOHTO_GYMS, johtoFinale() and
-JOHTO_SPECIALS (dumped with tsx).
+JOHTO_SPECIALS, JOHTO_SWARMS, BUG_CONTEST_POOL, plus johtoAnime.ts's JOHTO_ANIME_ZONES and
+JOHTO_ANIME_SPECIALS as `animeZones`/`animeSpecials` (dumped with tsx).
 """
 import json
 import sys
@@ -95,15 +96,17 @@ for s in kanto["specials"]:
 # Idle Pokémon numbers its one-of-a-kind forms; here they're forms of the species (box keys like
 # "150-clone"). Gen 2 species seen in the anime places wait for Johto.
 FORM_IDS = {3012: (12, "pink"), 3101: (25, "balloon"), 10094: (25, "originalCap"),
-            7150: (65, "giant"), 7151: (94, "giant"), 7152: (39, "giant"), 7153: (149, "giant"), 7020: (143, None)}
+            7150: (65, "giant"), 7151: (94, "giant"), 7152: (39, "giant"), 7153: (149, "giant"), 7020: (143, None),
+            # Johto's: Pudgy Pidgey, Silver (the young Lugia), the Unown's Entei, the Dark Ball's Celebi and Tyranitar.
+            3016: (16, "pudgy"), 3249: (249, "young"), 3244: (244, "unown"), 3251: (251, "dark"), 3248: (248, "dark")}
 
 
-def form_of(vid):
+def form_of(vid, max_id=MAX_ID):
     if vid in FORM_IDS:
         return FORM_IDS[vid]
     if 7200 < vid <= 7200 + MAX_ID:
         return (vid - 7200, "clone")
-    return (vid, None) if vid <= MAX_ID else None
+    return (vid, None) if vid <= max_id else None
 
 
 # Anime places open after more and more Hall of Fame entries, by their badge tier.
@@ -201,6 +204,46 @@ for s in johto["specials"]:
     for k in ("price", "wants", "strength", "keyItem", "postGame"):
         if k in s:
             out[k] = s[k]
+    JOHTO_SPECIALS.append(out)
+
+# Johto's anime places open with badges, and with Johto Hall of Fame entries for the later tiers.
+def johto_hof_for(badges, post_game=False):
+    return 2 if post_game else [0, 0, 0, 0, 1, 1, 1, 1, 2][badges]
+
+
+for z in johto["animeZones"]:
+    pools = {}
+    for p, v in z["encounters"].items():
+        entries = []
+        for e in v:
+            f = form_of(e["id"], MAX_SPECIES)
+            if not f:
+                continue
+            entry = [f[0], e["weight"], e["minLevel"], e["maxLevel"]]
+            if f[1]:
+                entry.append(f[1])
+            entries.append(entry)
+        if entries:
+            pools[p] = entries
+    if not pools:
+        continue
+    zone = {"id": z["id"], "name": z["name"], "badges": z["badgesRequired"], "blurb": z["blurb"],
+            "anime": True, "hof": johto_hof_for(z["badgesRequired"], z.get("postGame")), "pools": pools}
+    if z.get("postGame"):
+        zone["postGame"] = True
+    JOHTO_ZONES.append(zone)
+
+for s in johto["animeSpecials"]:
+    f = form_of(s["speciesId"], MAX_SPECIES)
+    out = {k: s[k] for k in ("kind", "id", "level", "place", "badgesRequired", "text") if k in s}
+    out["species"] = f[0]
+    if f[1]:
+        out["form"] = f[1]
+    for k in ("price", "strength", "postGame"):
+        if k in s:
+            out[k] = s[k]
+    out["anime"] = True
+    out["hof"] = johto_hof_for(s["badgesRequired"], s.get("postGame"))
     JOHTO_SPECIALS.append(out)
 
 # The radio's swarms (one species joins a place's pools) and the Bug-Catching Contest's grass.

@@ -283,8 +283,11 @@ addLayer("f", {
 		const keep = fieldKeptUpgrades()
 		const zone = player.f.zone
 		const gear = resettingLayer === "g" && hofUpgrade(13) ? Math.floor(fieldBuyable(13) / 2) : 0
+		// A kept Auto-Search Drone carries on searching through the reset.
+		const searching = player.f.searching && keep.includes(11)
 		freshLayerData("f", ["log"])
 		player.f.upgrades = keep
+		player.f.searching = searching
 		player.f.buyables[13] = new Decimal(gear)
 		player.f.zone = zoneOpen(zoneById(zone)) ? zone : regionZones()[0].id
 	},

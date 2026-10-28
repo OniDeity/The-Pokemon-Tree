@@ -28,6 +28,8 @@ let changelog = `<h1>Changelog:</h1><br>
 		- Hoenn's Safari Zone has Pokéblock feeders that draw Pokémon of their colour's types, and Areas 5 and 6 open after the League.<br>
 		- Feebas under Route 119's river (about 1 cast in 20), and Mirage Island, sighted now and then after the League.<br>
 		- Route 117's Day Care, Match Call, and story popups named for the region.<br>
+		- Auto-buy now buys one-time upgrades too: the Field's (the Auto-Search Drone, Running Shoes...), the Day Care's, Safari Zone's and shiny hunting's, and the Game Corner's with coins.<br>
+		- Searching no longer stops at a Gym reset when you keep the Auto-Search Drone, and a new run starts searching on its own if you start with it.<br>
 	<h3>v0.20 Hoenn's story</h3><br>
 		- May, Professor Birch's daughter: her starter answers yours, from Route 103 to Lilycove City.<br>
 		- Wally, from his first Ralts in Mauville to Victory Road (his last battle opens the League).<br>

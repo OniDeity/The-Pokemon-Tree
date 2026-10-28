@@ -981,7 +981,7 @@ function buyableCost(def, amount) { return new Decimal(def.base).times(Decimal.p
 // Rewards of the automation challenges (31-33), each with an on/off switch in player.h.auto.
 
 const AUTOMATIONS = {
-	buy: { challenge: 31, name: "Auto-buy", text: "Buys Field equipment, opens routes, and buys the Day Care's, Safari Zone's, Game Corner's and shiny hunting's buyables when you can afford them (cheapest first)." },
+	buy: { challenge: 31, name: "Auto-buy", text: "Buys Field equipment and upgrades, opens routes, and buys the Day Care's, Safari Zone's, Game Corner's and shiny hunting's upgrades and buyables when you can afford them (cheapest first)." },
 	eggs: { challenge: 32, name: "Day Care Lady", text: "Keeps the Day Care's pair laying Eggs, choosing pairs whose Eggs hatch into species you haven't hatched yet." },
 	safari: { challenge: 33, name: "Warden's Pass", text: "Safari trips are free and start on their own, and each Pokémon gets the strategy most likely to catch it." },
 	route: { challenge: 41, name: "Route Planner", text: "The Field moves itself to an open route with species you haven't seen, else one with Pokémon your box is missing." },
@@ -1015,13 +1015,29 @@ function toggleAutomation(id) {
 	player.h.auto[id] = !automationOn(id)
 }
 
-/** Auto-buy: everything affordable, cheapest first, a few purchases per tick. */
+/** Auto-buy: everything affordable (equipment, buyables and one-time upgrades), cheapest first, a few per tick. */
 function autoBuyTick() {
 	if (!automationOn("buy")) return
+	// One-time upgrades bought with Research Points: [layer, definitions, open?].
+	const upgradeSets = [["f", FIELD_UPGRADES, true], ["c", DAY_CARE_UPGRADES, dayCareOpen()], ["s", SAFARI_UPGRADES, safariOpen()], ["y", HUNT_UPGRADES, huntOpen()]]
 	for (let guard = 0; guard < 10; guard++) {
 		const options = []
 		const next = nextFrontierZone()
 		if (next) options.push([next.cost, () => unlockNextZone()])
+		for (const [layer, defs, open] of upgradeSets) {
+			if (!open || !player[layer]) continue
+			for (const id in defs) {
+				const owned = player[layer].upgrades.map(Number).includes(Number(id))
+				if (owned || (defs[id].badges !== undefined && badges() < defs[id].badges)) continue
+				const cost = new Decimal(defs[id].cost)
+				options.push([cost, () => {
+					player.points = player.points.sub(cost)
+					player[layer].upgrades.push(Number(id))
+					// The Auto-Search Drone gets to work at once.
+					if (layer === "f" && Number(id) === 11) player.f.searching = true
+				}])
+			}
+		}
 		for (const id in FIELD_BUYABLES) {
 			if (badges() < FIELD_BUYABLES[id].badges || !fieldBuyableAllowed(id)) continue
 			const cost = fieldBuyableCost(id)
@@ -1041,13 +1057,16 @@ function autoBuyTick() {
 		}
 		options.sort((a, b) => a[0].cmp(b[0]))
 		if (options.length && player.points.gte(options[0][0])) { options[0][1](); continue }
-		// The prize counter's buyables cost coins.
+		// The prize counter's buyables and the Game Corner's upgrades cost coins.
 		if (!gameCornerOpen()) return
-		const coinOptions = Object.keys(GAME_CORNER_BUYABLES).map(id => [buyableCost(GAME_CORNER_BUYABLES[id], gameCornerBuyable(id)).toNumber(), id]).sort((a, b) => a[0] - b[0])
+		const coinOptions = [
+			...Object.keys(GAME_CORNER_BUYABLES).map(id => [buyableCost(GAME_CORNER_BUYABLES[id], gameCornerBuyable(id)).toNumber(), () => { player.k.buyables[id] = new Decimal(gameCornerBuyable(id) + 1) }]),
+			...Object.keys(GAME_CORNER_UPGRADES).filter(id => !hasGameCornerUpgrade(id)).map(id => [GAME_CORNER_UPGRADES[id].cost, () => player.k.upgrades.push(Number(id))]),
+		].sort((a, b) => a[0] - b[0])
 		if (!coinOptions.length || coins() < coinOptions[0][0]) return
-		const [cost, id] = coinOptions[0]
+		const [cost, buy] = coinOptions[0]
 		addCoins(-cost)
-		player.k.buyables[id] = new Decimal(gameCornerBuyable(id) + 1)
+		buy()
 	}
 }
 

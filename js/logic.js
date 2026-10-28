@@ -326,9 +326,9 @@ function giveXp(key, xp) {
 	if (into && canEvolveInto(key, into) && player.t.autoEvolve !== false) evolve(key, into)
 }
 
-function partyBattlers() {
+function partyBattlers(party = player.t.party) {
 	const atk = atkMult(), def = defMult()
-	return player.t.party.filter(key => player.t.box[key]).map((key, i) => {
+	return party.filter(key => player.t.box[key]).map((key, i) => {
 		// Challenge rewards: Lone Partner strengthens the lead, Monotype the starter's type.
 		const lead = i === 0 ? (inChallenge(13) ? LONE_PARTNER_BOOST : 1) * (beatChallenge(13) ? 1.2 : 1) : 1
 		const typed = (inChallenge(12) ? MONOTYPE_BOOST : 1) * (beatChallenge(12) && sharesStarterType(key) ? 1.15 : 1)
@@ -986,6 +986,7 @@ const AUTOMATIONS = {
 	safari: { challenge: 33, name: "Warden's Pass", text: "Safari trips are free and start on their own, and each Pokémon gets the strategy most likely to catch it." },
 	route: { challenge: 41, name: "Route Planner", text: "The Field moves itself to an open route with species you haven't seen, else one with Pokémon your box is missing." },
 	coach: { challenge: 42, name: "Team Coach", text: "Your party rebuilds itself with the Pokémon that do best against the next Gym, League or story battle." },
+	train: { challenge: 42, name: "Box Training", text: "With Team Coach and the Exp. Share, the party keeps only as many as it needs to win the next battle and fills the other slots with box Pokémon still waiting to evolve by level, so they catch up and evolve." },
 	items: { challenge: 43, name: "Item Kit", text: "Evolution stones and trades are used, and gifts, trades, prizes and legendaries taken, as soon as you can." },
 	notes: { challenge: 51, name: "Professor's Notes", text: "Each run starts having seen every species your last run saw, so surveys go faster." },
 	journal: { challenge: 52, name: "Breeder's Journal", text: "Eggs of species you've hatched in any run hatch after one battle." },
@@ -1846,10 +1847,36 @@ function bestParty() {
 	}
 	return keys.map(k => [k, score(k)]).sort((a, b) => b[1] - a[1]).slice(0, size).map(([k]) => k)
 }
+/** Box Pokémon with a level evolution still ahead and room under the cap, closest to evolving first. */
+function trainees(skip) {
+	const cap = currentCap()
+	return Object.keys(player.t.box).filter(k => !skip.includes(k) && canJoinParty(k) && !inDayCare(k) && player.t.box[k].level < cap).map(k => {
+		const level = player.t.box[k].level, id = speciesOf(k)
+		const evo = SPECIES[id].evolutions.find(e => e.method === "level" && e.level > level && evolutionOpen(id, e.into) && canEvolveInto(k, e.into))
+		return evo ? [k, evo.level - level] : null
+	}).filter(Boolean).sort((a, b) => a[1] - b[1]).map(([k]) => k)
+}
+/**
+ * Box Training: the fewest of the best party that still win the next battle (the stronger half
+ * when there's none), then trainees in the back slots. They fight only if the core faints, so the
+ * forecast stays a win, and the Exp. Share gives them half of every wild battle's experience.
+ */
+function trainingParty(best) {
+	if (!automationOn("train") || !hasFieldUpgrade(14) || best.length < 2) return best
+	const foes = nextOpponent()
+	let core = Math.ceil(best.length / 2)
+	if (foes) {
+		core = best.length
+		while (core > 1 && battle(partyBattlers(best.slice(0, core - 1)), foes).win) core--
+		if (!battle(partyBattlers(best.slice(0, core)), foes).win) return best
+	}
+	const train = trainees(best.slice(0, core)).slice(0, best.length - core)
+	return [...best.slice(0, core), ...train, ...best.slice(core)].slice(0, best.length)
+}
 function autoPartyTick() {
 	if (!automationOn("coach") || !player.t.starter) return
 	if (inChallenge(42)) return
-	const best = bestParty()
+	const best = trainingParty(bestParty())
 	if (best.length && best.join() !== player.t.party.join()) player.t.party = best
 }
 

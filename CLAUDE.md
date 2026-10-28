@@ -166,7 +166,9 @@ Sister project: OniDeity/idle-pokemon (its data is the source of ours).
   reset layers with `freshLayerData` (field.js) or the box, routes and gifts survive the reset.
 - Automation challenges (31-33) unlock `AUTOMATIONS` (toggles in `player.h.auto`). Auto-buy
   (`autoBuyTick`) also buys the one-time upgrades (Field, Day Care, Safari, hunting; the Game
-  Corner's with coins). The Field's `doReset` keeps `searching` on when the Drone is kept. Hatchling Run
+  Corner's with coins). Box Training (`train`, challenge 42 like Team Coach; `trainingParty`) keeps the
+  fewest of `bestParty` that still win `nextOpponent` and puts `trainees` (level evolutions ahead)
+  in the back slots for the Exp. Share; the simulator doesn't use it. The Field's `doReset` keeps `searching` on when the Drone is kept. Hatchling Run
   and Poacher's Net weaken Pokémon except hatched/Safari ones (`challengeHandicap`, box entries'
   `origin`); the simulator can't breed or go on Safari, so it only shows their worst case.
 - Challenges must stay beatable by the simulator: Battle Gear is most of a team's power, so no

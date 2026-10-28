@@ -102,11 +102,11 @@ function missingBadge(zone) {
 function zoneListHtml() {
 	const b = badges()
 	const areas = {}
-	for (const z of ZONES) {
+	for (const z of regionZones()) {
 		if (z.anime) continue
 		if (z.postGame && !isChampion()) continue
 		if (z.badges > b) continue
-		const label = z.postGame ? "After the League" : z.badges === 0 ? "Before Brock" : `${z.badges} badge${z.badges > 1 ? "s" : ""}`
+		const label = z.postGame ? "After the League" : z.badges === 0 ? `Before ${regionGyms()[0].name}` : `${z.badges} badge${z.badges > 1 ? "s" : ""}`
 		;(areas[label] = areas[label] || []).push(z)
 	}
 	let html = ""
@@ -122,7 +122,7 @@ function zoneListHtml() {
 		}
 		html += "</div>"
 	}
-	return html + animeListHtml()
+	return `<h3>${region().name}</h3>` + html + (currentRegion() === "kanto" ? animeListHtml() : "")
 }
 
 /** The anime's places: tiers open with Hall of Fame entries, then with badges. */
@@ -222,7 +222,7 @@ function specialsHtml() {
 	const groups = { gift: "Gifts and prizes", trade: "In-game trades", legendary: "Legendary encounters" }
 	let html = ""
 	for (const kind in groups) {
-		const list = SPECIALS.filter(s => s.kind === kind && (specialOpen(s) || player.t.specials[s.id]))
+		const list = ALL_SPECIALS.filter(s => s.kind === kind && (specialOpen(s) || player.t.specials[s.id]))
 		if (!list.length) continue
 		html += `<h3>${groups[kind]}</h3><div class="pk-specials">`
 		for (const s of list) {
@@ -237,7 +237,7 @@ function specialsHtml() {
 	}
 	return html || "<i>Nothing here yet. Gifts, trades and legendaries turn up as you earn badges.</i>"
 }
-function takeSpecialById(id) { takeSpecial(SPECIALS.find(s => s.id === id)) }
+function takeSpecialById(id) { takeSpecial(ALL_SPECIALS.find(s => s.id === id)) }
 
 addLayer("f", {
 	name: "Field",
@@ -268,9 +268,10 @@ addLayer("f", {
 		freshLayerData("f", ["log"])
 		player.f.upgrades = keep
 		player.f.buyables[13] = new Decimal(gear)
-		player.f.zone = zoneOpen(zoneById(zone)) ? zone : ZONES[0].id
+		player.f.zone = zoneOpen(zoneById(zone)) ? zone : regionZones()[0].id
 	},
 	update(diff) {
+		syncRegionRules()
 		challengeTick(diff)
 		searchTick(diff)
 		autoBuyTick()
@@ -343,10 +344,12 @@ addLayer("f", {
 		},
 		Events: {
 			content: [["display-text", () => specialsHtml()]],
-			unlocked() { return SPECIALS.some(specialOpen) },
+			unlocked() { return ALL_SPECIALS.some(specialOpen) },
 		},
 	},
 })
+
+resetField = () => layers.f.doReset("g")
 
 // The Map's travel button lives in the same layer; defined after so it can use nextFrontierZone.
 layers.f.clickables[21] = {

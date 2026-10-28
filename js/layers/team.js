@@ -7,7 +7,7 @@ function chooseStarter(id) {
 	addToBox(id, hofUpgrade(11) ? 10 : 5)
 	if (hofUpgrade(11)) player.points = player.points.add(200)
 	for (const up of fieldKeptUpgrades()) if (!hasFieldUpgrade(up)) player.f.upgrades.push(up)
-	player.f.zone = ZONES[0].id
+	player.f.zone = regionZones()[0].id
 	pkLog(`Professor Oak gives you ${speciesName(id)}. Your research begins on Route 1!`, "new", { id })
 	showTab("f")
 }
@@ -43,7 +43,7 @@ function evolutionButtons(key) {
 		// Say why a button is locked: tooltips don't show on phones.
 		let why = null
 		if (!canEvolveInto(key, e.into)) why = `you have ${keyName(boxKey(e.into, variantOf(key)))}`
-		else if (!e.open) why = e.method === "trade" ? `trades at ${TRADE_BADGES} badges` : `sold at ${STONE_BADGES[e.stone]} badge${STONE_BADGES[e.stone] === 1 ? "" : "s"}`
+		else if (!e.open) why = e.method === "trade" ? `trades at ${REGION_RULES.tradeBadges} badges` : `sold at ${REGION_RULES.stoneBadges[e.stone]} badge${REGION_RULES.stoneBadges[e.stone] === 1 ? "" : "s"}`
 		else if (player.points.lt(cost)) why = `need ${format(cost)} RP`
 		if (why) return `<button class="pk-button" disabled>${label}<br><small>(${why})</small></button>`
 		return `<button class="pk-button" onclick="itemEvolveByKey('${key}', ${e.into})">${label}${cost.gt(0) ? `<br><small>(${format(cost)} RP)</small>` : ""}</button>`
@@ -54,7 +54,9 @@ function monCard(key, inParty) {
 	const entry = player.t.box[key]
 	const s = SPECIES[speciesOf(key)]
 	const lvEvo = s.evolutions.find(e => e.method === "level" && e.level)
-	return `<div class="pk-card ${inParty ? "pk-card-party" : ""}">
+	const ch = challengeStatus(key)
+	return `<div class="pk-card ${inParty ? "pk-card-party" : ""} ${ch ? (ch.ok ? "pk-card-exempt" : "pk-card-handicap") : ""}">
+		${ch ? `<small class="${ch.ok ? "pk-exempt" : "pk-handicap"}">${ch.text}</small><br>` : ""}
 		${pkKeySprite(key, 96)}<br>
 		<b>${keyName(key)}</b> Lv. ${entry.level}<br>
 		<small>${s.types.map(t => `<span class="pk-type pk-type-${t}">${t}</span>`).join(" ")}</small>
@@ -117,13 +119,16 @@ addLayer("t", {
 		boxSearch: "",
 		boxFilter: "all",
 		boxPage: 0,
+		region: "kanto",
+		johtoStarter: 0,
+		journey: null,
 	}},
 	// Your Pokémon are kept through badges; the Hall of Fame (or a challenge) starts over.
 	doReset(resettingLayer) {
 		if (resettingLayer === "h") freshLayerData("t", ["autoEvolve", "sort", "boxSearch", "boxFilter", "boxPage"])
 	},
-	tooltip() { return player.t.starter ? `${Object.keys(player.t.box).length} Pokémon` : "Choose your starter!" },
-	shouldNotify() { return !player.t.starter },
+	tooltip() { return !player.t.starter || needsJohtoStarter() ? "Choose your starter!" : `${Object.keys(player.t.box).length} Pokémon` },
+	shouldNotify() { return !player.t.starter || needsJohtoStarter() },
 	clickables: {
 		...Object.fromEntries([...STARTERS, 25, 133].map((id, i) => [11 + i, {
 			title: () => speciesName(id),
@@ -131,6 +136,14 @@ addLayer("t", {
 			canClick: () => !player.t.starter,
 			onClick: () => chooseStarter(id),
 			unlocked: () => !player.t.starter && starterChoices().includes(id),
+			style: { width: "160px", height: "180px" },
+		}])),
+		...Object.fromEntries(REGIONS.johto.starters.map((id, i) => [31 + i, {
+			title: () => speciesName(id),
+			display: () => `${pkSprite(id, false, 96)}<br>${SPECIES[id].types.join(" / ")}`,
+			canClick: () => needsJohtoStarter(),
+			onClick: () => chooseJohtoStarter(id),
+			unlocked: () => needsJohtoStarter(),
 			style: { width: "160px", height: "180px" },
 		}])),
 		21: {
@@ -147,6 +160,8 @@ addLayer("t", {
 		["display-text", () => !player.t.starter && anyChallenge() ? `<br><b>Challenge: ${CHALLENGES[player.h.activeChallenge].name}.</b> ${CHALLENGES[player.h.activeChallenge].rules}` : ""],
 		"blank",
 		["row", [["clickable", 11], ["clickable", 12], ["clickable", 13], ["clickable", 14], ["clickable", 15]]],
+		["display-text", () => needsJohtoStarter() ? `<h2>Welcome to Johto!</h2><br><br>Professor Elm has three Pokémon for a researcher starting over. Your other Pokémon are back at Lv. ${JOHTO_START_LEVEL}.<br>Pick one:` : ""],
+		["row", [["clickable", 31], ["clickable", 32], ["clickable", 33]]],
 		["display-text", () => player.t.starter ? `<h3>Party (${player.t.party.length}/${partySize()})</h3><br><small>The lead fights first; the next one steps in if it faints. Level cap: ${currentCap()} (earn badges to raise it).</small>` : ""],
 		["display-text", () => player.t.starter ? partyHtml() : ""],
 		"blank",

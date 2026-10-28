@@ -12,13 +12,19 @@ function hatchMark(key) {
 
 function breederNotesHtml() {
 	const mode = player.c.notesFilter
-	const ids = HATCHABLE.filter(id => mode === "missing" ? !player.d.hatched[id] : mode === "hatched" ? !!player.d.hatched[id] : true)
-	return `<h3>Breeder's notes (${hatchedSpecies()}/${HATCHABLE.length})</h3><br><small>Every species hatched gives +2% Research Points for good. Unhatched ones are dark.</small><br>${filterBar("c", "notesFilter", { all: "All", missing: "Not hatched", hatched: "Hatched" })}<br><div class="pk-dex">${ids.map(id => {
+	const list = hatchable(maxSpecies())
+	const ids = list.filter(id => mode === "missing" ? !player.d.hatched[id] : mode === "hatched" ? !!player.d.hatched[id] : true)
+	return `<h3>Breeder's notes (${hatchedSpecies()}/${list.length})</h3><br><small>Every species hatched gives +2% Research Points for good. Unhatched ones are dark.</small><br>${filterBar("c", "notesFilter", { all: "All", missing: "Not hatched", hatched: "Hatched" })}<br><div class="pk-dex">${ids.map(id => {
 		const done = player.d.hatched[id]
 		return `<span class="pk-dex-entry ${done ? "" : "pk-unseen"}" title="${speciesName(id)}${done ? ` (hatched ${done})` : " (not hatched yet)"}">${pkSprite(id, false, 48)}<br><small>${done ? speciesName(id) : "???"}</small></span>`
 	}).join("")}</div>`
 }
 function withdrawKey(key) { withdrawFromDayCare(key) }
+/** A short note on how the active challenge treats this Pokémon. */
+function challengeMark(key) {
+	const ch = challengeStatus(key)
+	return ch ? `<br><span class="${ch.ok ? "pk-exempt" : "pk-handicap"}">${ch.ok ? "✓ full strength" : "weakened"}</span>` : ""
+}
 
 function dayCareSlotsHtml() {
 	const cards = player.c.slots.filter(key => player.t.box[key]).map(key => `<div class="pk-card">
@@ -67,7 +73,7 @@ function depositListHtml() {
 	if (!keys.length) return "<i>No Pokémon match.</i>"
 	return `<div class="pk-dex">${keys.map(key => {
 		const lonely = player.t.party.length === 1 && player.t.party[0] === key
-		return `<button class="pk-dex-entry pk-button" ${lonely ? "disabled title='Your only party Pokémon'" : `onclick="depositKey('${key}')"`}>${pkKeySprite(key, 48)}<br><small>${keyName(key)}<br>Lv. ${player.t.box[key].level}<br>${hatchMark(key)}</small></button>`
+		return `<button class="pk-dex-entry pk-button" ${lonely ? "disabled title='Your only party Pokémon'" : `onclick="depositKey('${key}')"`}>${pkKeySprite(key, 48)}<br><small>${keyName(key)}<br>Lv. ${player.t.box[key].level}<br>${hatchMark(key)}${challengeMark(key)}</small></button>`
 	}).join("")}</div>`
 }
 

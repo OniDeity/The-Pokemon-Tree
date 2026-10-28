@@ -69,7 +69,7 @@ addLayer("r", {
 	branches: ["k"],
 	layerShown() { return player.t.starter > 0 && badges() >= 1 && STORY_CHAPTERS.some(ch => ch.layer === "r" && chapterRegion(ch) === currentRegion()) },
 	tabFormat: [
-		["display-text", () => `<h2>Team Rocket</h2><br><i>Team Rocket is up to no good all over Kanto. Some of its schemes stand in your way.</i>${player.r.masterBall ? "<br><b>You hold the Master Ball.</b>" : ""}`],
+		["display-text", () => `<h2>Team Rocket</h2><br><i>${currentRegion() === "johto" ? "Team Rocket is back in Johto, three years after Giovanni disbanded it, and plans to call him home." : "Team Rocket is up to no good all over Kanto."} Some of its schemes stand in your way.</i>${player.r.masterBall ? "<br><b>You hold the Master Ball.</b>" : ""}`],
 		"blank",
 		["display-text", () => chaptersHtml("r")],
 		"blank",
@@ -88,7 +88,7 @@ addLayer("v", {
 	branches: ["t"],
 	layerShown() { return player.t.starter > 0 },
 	tabFormat: [
-		["display-text", () => `<h2>Trainers</h2><br><i>Your rival keeps turning up, and Kanto's toughest trainers wait on the S.S. Anne and in Saffron's Fighting Dojo.</i>`],
+		["display-text", () => `<h2>Trainers</h2><br><i>${currentRegion() === "johto" ? "Silver, the boy who stole a Pokémon from Professor Elm, keeps turning up, and Johto's trainers wait in its towers." : "Your rival keeps turning up, and Kanto's toughest trainers wait on the S.S. Anne and in Saffron's Fighting Dojo."}</i>`],
 		"blank",
 		["display-text", () => chaptersHtml("v")],
 		"blank",

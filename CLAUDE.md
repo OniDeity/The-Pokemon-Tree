@@ -69,7 +69,11 @@ Sister project: OniDeity/idle-pokemon (its data is the source of ours).
   `regionZones()`/`ALL_SPECIALS` + `specialOpen`. After `JOHTO_ENTRIES` (3) entries Kanto's
   Champion may `sailToJohto()` (Field and badges reset, every Pokémon to Lv. 5, Elm's starter via
   `chooseJohtoStarter`); Johto's Champion enters the Hall (Fame ×`JOHTO_FAME`, `regionsBeaten`).
-  Story chapters carry `region`; Red is the `mtSilver` chapter (`champion: true`). Gen 1↔2
+  Story chapters carry `region`; Red is the `mtSilver` chapter (`champion: true`). Johto's story
+  (v0.14): Sprout Tower, Slowpoke Well, the Lighthouse, Mahogany Hideout, the Radio Tower and
+  Victory Road gate Falkner, Bugsy, Jasmine, Pryce, Clair and the League; Silver (`silverTeam`,
+  answering Elm's starter); the Bell Tower's Kimono Girls gate Ho-Oh and the Radio Tower Lugia.
+  The journey still takes 5.1-6.6 h in the simulator (the Radio Tower is the main Johto gate). Gen 1↔2
   evolution and breeding links go through the engine's `evolutionOpen`/`crossGenOpen`
   (= `johtoBeaten`). `SIM_JOHTO=1` plays the whole journey: 5.0-5.6 h for all starters and two
   seeds, Red about 3.8 h after Johto's League (`SIM_RED=h` waits for him).
@@ -149,8 +153,7 @@ The owner wants every Hall of Fame to feel like a proper reset:
 - Phases: (1) regions + the Pokédex reset + lifetime records (save-risky, ships alone: data per
   region from buildData.py, `player.region`, region pages in the Pokédex, nothing hard-wired to
   151); (2) the Kanto → Johto journey and Johto's core (50 places, Gyms, Will/Koga/Bruno/Karen/
-  Lance, gifts, roaming beasts, Lugia, Ho-Oh, Celebi, Red); (3) Johto's story (Rocket: Slowpoke
-  Well, Lake of Rage, Mahogany, Radio Tower; Silver; Kimono Girls, Sudowoodo, the Lighthouse);
+  Lance, gifts, roaming beasts, Lugia, Ho-Oh, Celebi, Red); (3) Johto's story (done in v0.14);
   (4) Johto in the side nodes; (5) Johto's anime places and Kanto's post-game; (6) pacing (about a
   day per first journey).
 - More automation challenges, to soften the resets (rewards for good, switches on the Automation

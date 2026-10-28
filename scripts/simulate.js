@@ -14,7 +14,7 @@ const vm = require("vm")
 
 const root = path.join(__dirname, "..")
 const ctx = vm.createContext({ console, Math, JSON, Object, Array, Set, Number, String })
-for (const file of ["js/technical/break_eternity.js", "js/data/kanto.js", "js/data/johto.js", "js/data/hoenn.js", "js/data/orange.js", "js/engine.js", "js/logic.js"])
+for (const file of ["js/technical/break_eternity.js", "js/data/kanto.js", "js/data/johto.js", "js/data/hoenn.js", "js/data/orange.js", "js/data/sevii.js", "js/engine.js", "js/logic.js"])
 	vm.runInContext(fs.readFileSync(path.join(root, file), "utf8"), ctx, { filename: file })
 
 const starter = Number(process.argv[2] || 1)
@@ -50,7 +50,7 @@ var player = {
 // The game's chooseStarter, without the UI.
 function startRun(id) {
 	player.t.starter = id
-	addToBox(id, hofUpgrade(11) ? 10 : 5)
+	addToBox(id, Math.max(region().startLevel || 0, hofUpgrade(11) ? 10 : 5))
 	if (hofUpgrade(11)) player.points = player.points.add(200)
 	player.f = freshField(fieldKeptUpgrades())
 }
@@ -75,12 +75,15 @@ function hallOfFameReset(challenge) {
 function fameShop() {
 	for (let guard = 0; guard < 200; guard++) {
 		const options = []
-		for (const id in HOF_UPGRADES) if (!hofUpgrade(id)) options.push([HOF_UPGRADES[id].cost, () => player.h.upgrades.push(Number(id))])
-		for (const id in HOF_BUYABLES) options.push([hofBuyableCost(id).toNumber(), () => { player.h.buyables[id] = new Decimal(hofBuyable(id) + 1) }])
-		options.sort((a, b) => a[0] - b[0])
+		// Cheapest first, but the regions' own items as if they cost three times as much: most of them
+		// help less than the core ones, so a player fills those up first.
+		const weight = def => def.region ? 3 : 1
+		for (const id in HOF_UPGRADES) if (!hofUpgrade(id) && fameItemOpen(HOF_UPGRADES[id])) options.push([HOF_UPGRADES[id].cost, weight(HOF_UPGRADES[id]), () => player.h.upgrades.push(Number(id))])
+		for (const id in HOF_BUYABLES) if (canBuyHofBuyable(id)) options.push([hofBuyableCost(id).toNumber(), weight(HOF_BUYABLES[id]), () => { player.h.buyables[id] = new Decimal(hofBuyable(id) + 1) }])
+		options.sort((a, b) => a[0] * a[1] - b[0] * b[1])
 		if (!options.length || player.h.points.lt(options[0][0])) return
 		player.h.points = player.h.points.sub(options[0][0])
-		options[0][1]()
+		options[0][2]()
 	}
 }
 `, ctx)

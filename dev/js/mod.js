@@ -17,11 +17,15 @@ let modInfo = {
 
 // Set your version in num and name
 let VERSION = {
-	num: "0.22",
-	name: "Pokémon Contests",
+	num: "0.23",
+	name: "Albino and Melanistic",
 }
 
 let changelog = `<h1>Changelog:</h1><br>
+	<h3>v0.23 Albino and Melanistic</h3><br>
+		- Albino Pokémon (◇): pale, with the same base odds as shinies but rolled separately. Lower them with the Pale Charm and Snow Lens on the Shiny hunting node, albino milestones, an albino parent in the Day Care, or by switching your hunting chain to Albino.<br>
+		- Melanistic Pokémon (✦): dark, shiny and albino at once (both rolls in the same encounter). They count as both.<br>
+		- Their own pages beside the Shiny Pokédex, Pokédex marks, a box filter and achievements. Every albino species gives +1% experience, every melanistic species +2% RP and +2% experience, for good.<br><br>
 	<h3>v0.22 Pokémon Contests</h3><br>
 		- Contests, a new node: Verdanturf's Contest Hall opens with Hoenn's Dynamo Badge, and from then on there's a Contest Hall in every region.<br>
 		- Feed a Pokémon Pokéblocks to raise its Cool, Beauty, Cute, Smart or Tough condition, then enter it from Normal to Master Rank. Its condition, how well its types suit the category, and half its level make its score.<br>

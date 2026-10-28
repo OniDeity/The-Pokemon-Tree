@@ -122,16 +122,33 @@ function zoneListHtml() {
 		}
 		html += "</div>"
 	}
-	return `<h3>${region().name}</h3>` + html + (currentRegion() === "kanto" ? animeListHtml() : "")
+	return `<h3>${region().name}</h3>` + html + kantoRevisitHtml() + animeListHtml()
 }
 
-/** The anime's places: tiers open with Hall of Fame entries, then with badges. */
+/** Johto's post-game: Kanto's routes again, all open (Cerulean Cave after Red). */
+function kantoRevisitHtml() {
+	if (!kantoRevisit()) return ""
+	let html = `<div class="pk-area"><b>Kanto</b> <small>(by the S.S. Aqua)</small><br>`
+	for (const z of kantoRevisitZones()) {
+		const open = zoneOpen(z)
+		const species = zoneSpecies(z, badges())
+		const caught = species.filter(id => player.d.caught[id]).length
+		const cls = player.f.zone === z.id ? "pk-zone pk-zone-on" : open ? "pk-zone" : "pk-zone pk-zone-locked"
+		html += `<button class="${cls}" ${open ? `onclick="setZone('${z.id}')"` : "disabled"} title="${z.blurb}">${z.name}<br><small>${open ? `${caught}/${species.length} caught` : "After Red"}</small>${open ? missingBadge(z) : ""}</button>`
+	}
+	return html + "</div>"
+}
+
+/** The anime's places: tiers open with Hall of Fame entries (Johto's with Johto's), then with badges. */
 function animeListHtml() {
-	if (hofEntries() < 1) return `<div class="pk-area"><b>Anime places</b><br><small>Enter the Hall of Fame to start finding places from the anime.</small></div>`
+	const johto = currentRegion() === "johto", entries = animeEntries()
+	const places = regionZones().filter(z => z.anime)
+	const nextTier = places.filter(z => z.hof > entries).reduce((m, z) => Math.min(m, z.hof), Infinity)
+	const entryText = n => `${n} ${johto ? "Johto " : ""}Hall of Fame entr${n > 1 ? "ies" : "y"}`
+	if (!places.some(z => z.hof <= entries)) return `<div class="pk-area"><b>Anime places</b><br><small>Enter the Hall of Fame to start finding places from the anime.</small></div>`
 	const b = badges()
 	let html = `<div class="pk-area"><b>Anime places</b> <small>(${formsCaught()}/${ALL_FORMS.length} forms caught)</small><br>`
-	const nextTier = ZONES.filter(z => z.anime && z.hof > hofEntries()).reduce((m, z) => Math.min(m, z.hof), Infinity)
-	for (const z of ZONES.filter(z => z.anime && z.hof <= hofEntries())) {
+	for (const z of places.filter(z => z.hof <= entries)) {
 		const open = zoneOpen(z)
 		const species = zoneSpecies(z, b)
 		const caught = species.filter(id => player.d.caught[id]).length
@@ -140,8 +157,8 @@ function animeListHtml() {
 		html += `<button class="${cls}" ${open ? `onclick="setZone('${z.id}')"` : "disabled"} title="${z.blurb}">${z.name}<br><small>${open ? `${caught}/${species.length} caught` : why}</small>${open ? missingBadge(z) : ""}</button>`
 	}
 	if (nextTier < Infinity) {
-		const more = ZONES.filter(z => z.anime && z.hof === nextTier).length
-		html += `<br><small>${more} more place${more > 1 ? "s" : ""} after ${nextTier} Hall of Fame entr${nextTier > 1 ? "ies" : "y"}.</small>`
+		const more = places.filter(z => z.hof === nextTier).length
+		html += `<br><small>${more} more place${more > 1 ? "s" : ""} after ${entryText(nextTier)}.</small>`
 	}
 	return html + "</div>"
 }

@@ -36,6 +36,16 @@ function badgeCaseHtml() {
 		: `<span class="pk-badge-empty" title="${g.badge}"></span>`).join("")}</div>`
 }
 
+/** Johto's post-game: Kanto's eight Leaders (badge images 1-8, in Kanto's order). */
+const KANTO_BADGE_ORDER = ["kantoBrock", "kantoMisty", "kantoSurge", "kantoErika", "kantoJanine", "kantoSabrina", "kantoBlaine", "kantoBlue"]
+function kantoGymsHtml() {
+	if (!kantoRevisit()) return ""
+	const badgesHtml = KANTO_BADGE_ORDER.map((id, i) => chapterCleared(id)
+		? `<img src="resources/badges/${i + 1}.png" width="40" height="40" title="${chapterById(id).badge}">`
+		: `<span class="pk-badge-empty" title="${chapterById(id).badge}"></span>`).join("")
+	return `<h2>Kanto's Gyms</h2><br><i>The S.S. Aqua docks in Vermilion. Kanto's Leaders have grown stronger in three years, and Red won't battle anyone without all 16 badges.</i><br><div class="pk-badges">${badgesHtml}</div>${KANTO_GYM_CHAPTERS.map(chapterHtml).join("")}`
+}
+
 addLayer("g", {
 	name: "Gyms",
 	symbol: "G",
@@ -107,6 +117,7 @@ addLayer("g", {
 	},
 	tabFormat: [
 		["display-text", () => badgeCaseHtml()],
+		["display-text", () => kantoGymsHtml()],
 		["display-text", () => `Every badge: Research Points ×${BADGE_RP_BOOST}, your Pokémon's stats ×${BADGE_STAT_BOOST}, and a higher level cap.`],
 		"blank",
 		["display-text", () => {

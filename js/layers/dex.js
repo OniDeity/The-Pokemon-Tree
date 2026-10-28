@@ -65,6 +65,7 @@ addLayer("d", {
 		rivalWins: 0,
 		storyWins: 0,
 		missingno: 0,
+		ribbons: {},
 		dexSearch: "",
 		dexFilter: "all",
 		dexRegion: "",

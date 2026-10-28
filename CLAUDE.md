@@ -141,6 +141,14 @@ Sister project: OniDeity/idle-pokemon (its data is the source of ours).
   League wild battles a 1/3 chance it shows for `MIRAGE_SHOWN`). Safari: `withPokeblock`
   (`POKEBLOCKS`, one feeder colour per run ×`POKEBLOCK_DRAW`) and `safariZone()` merging
   `safariZoneExpansion` after the League. Feebas: `HOENN_EXTRA` in buildData.py (Route 119 rods).
+- Contests (v0.22, layer `n`, `layers/contest.js`): mechanic `contests`, unlocked by Hoenn's third
+  Gym (`winGymBattle`), then a Contest Hall in every region. `CONTEST_CATEGORIES` (Idle Pokémon's
+  types, Pokéblock colours from `POKEBLOCKS`, a Cosplay Pikachu form each: `rockStar`, `belle`,
+  `popStar`, `phd`, `libre`; `FORMS[].ownName`), `CONTEST_RANKS` (score 40/75/110/145, seconds,
+  prize ×`contestBlockCost()`). Condition lives on box entries (`entry.condition`, kept by
+  `addToBox`), ribbons for good in `player.d.ribbons` (species → category → rank index;
+  `ribbonCount` counts every rank: +0.5% RP each, `RIBBON_MILESTONES`, the 30-ribbon Contest Pass
+  `contestAutoEnter`). The simulator doesn't play contests.
 - Challenge highlights: `challengeStatus(key)`; hatching or a Safari catch marks an owned entry's
   `origin`, and `canEvolveInto` lets an entry with an origin evolve into one without.
 - Regions and the run's Pokédex (v0.12): `REGIONS` (`regionDex`, `currentRegion`, `dexRegions`)
@@ -267,7 +275,7 @@ The owner wants every Hall of Fame to feel like a proper reset:
 - Anime: hoennAnime.ts's 34 places, Meta Groudon (post-League), Hoenn Cap Pikachu.
 - Pacing: about 10-12 h of simulated play per first Hoenn journey (`pace`).
 - Phases: (0) the Story node (done in v0.18); (1) Hoenn's core and the journey (done in v0.19); (2) Hoenn's story (done in v0.20); (3) the side
-  nodes, Dive, Feebas, double battles (done in v0.21); (4) Contests; (5) Albino/Melanistic; (6) anime places;
+  nodes, Dive, Feebas, double battles (done in v0.21); (4) Contests (done in v0.22); (5) Albino/Melanistic; (6) anime places;
   (7) post-game visits and pacing.
 
 - Albino and Melanistic Pokémon (the owner's idea, part of the Hoenn update): Albino has the same

@@ -4,8 +4,17 @@
 function setSafariStrategy(id) { player.s.strategy = id }
 function ballName() { return inJohtoContest() ? "Park Ball" : "Safari Ball" }
 
+function setPokeblockByColor(color) { setPokeblock(color) }
+function pokeblockHtml() {
+	if (!pokeblockOpen()) return ""
+	const current = POKEBLOCKS[player.s.pokeblock]
+	return `<b>Pokéblock feeder</b>: ${current ? `${current.name} (${current.flavor}) in the feeder: ${current.types.join(", ")} Pokémon turn up ×${POKEBLOCK_DRAW} as often.` : "<i>Empty.</i> Fill it to draw Pokémon of the block's types."}<br>
+		${Object.entries(POKEBLOCKS).map(([c, b]) => `<button class="pk-button ${player.s.pokeblock === c ? "pk-on" : ""}" title="${b.flavor}: ${b.types.join(", ")}" ${player.s.pokeblock !== c && player.points.gte(pokeblockCost()) ? `onclick="setPokeblockByColor('${c}')"` : "disabled"}>${b.name}</button>`).join(" ")}
+		<br><small>Changing the block costs ${format(pokeblockCost())} Research Points.</small>`
+}
+
 function safariSpeciesHtml() {
-	const zone = safariZone()
+	const zone = withPokeblock(safariZone())
 	let html = ""
 	for (const pool of zonePools(zone, badges())) {
 		const entries = zone.pools[pool]
@@ -39,6 +48,7 @@ addLayer("s", {
 		unlocked: true,
 		points: new Decimal(0),
 		balls: 0,
+		pokeblock: "",
 		trips: 0,
 		progress: 0,
 		strategy: "balls",
@@ -90,7 +100,8 @@ addLayer("s", {
 	tabFormat: [
 		["display-text", () => inJohtoContest()
 			? `<h2>National Park Bug-Catching Contest</h2><br><i>Only bugs, and only Park Balls: no battles, just throws. Bait and Rocks work as in the Safari Zone. Each Pokémon shows its catch and run chances per ball.</i>`
-			: `<h2>Fuchsia City Safari Zone</h2><br><i>No battles here: throw Safari Balls, Bait or Rocks. Each Pokémon shows its catch and run chances per ball.</i>`],
+			: `<h2>${currentRegion() === "hoenn" ? "Hoenn" : "Fuchsia City"} Safari Zone</h2><br><i>No battles here: throw Safari Balls, Bait or Rocks. Each Pokémon shows its catch and run chances per ball.${currentRegion() === "hoenn" ? " Areas 5 and 6 open after the League." : ""}</i>`],
+		["display-text", () => pokeblockHtml()],
 		"blank",
 		["row", [["clickable", 11], "blank", ["bar", "search"]]],
 		"blank",

@@ -17,11 +17,13 @@ let modInfo = {
 
 // Set your version in num and name
 let VERSION = {
-	num: "0.25",
-	name: "Post-game visits",
+	num: "0.25.1",
+	name: "Journeys",
 }
 
 let changelog = `<h1>Changelog:</h1><br>
+	<h3>v0.25.1 Journeys</h3><br>
+		- Behind the scenes: regions, the Hall of Fame entries that open them, their starters and post-game visits are now data, ready for the side games (Orange Islands, Sevii Islands, Orre). Nothing changes in play.<br><br>
 	<h3>v0.25 Post-game visits</h3><br>
 		- Hoenn's Champion can visit the earlier regions: Kanto's and Johto's routes open on the Field's Map, and their Elite Four and Champion wait on the Story node (Kanto's Champion answers your Hoenn starter). Each League beaten gives Fame ×1.3 for that Hall of Fame entry. Later regions will follow the same pattern.<br>
 		- Pacing: a first Hoenn journey is now about 10-12 hours, visits included (Hoenn's timers are slower, like Kanto's and Johto's first runs).<br><br>

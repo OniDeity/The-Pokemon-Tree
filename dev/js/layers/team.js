@@ -4,13 +4,13 @@
 function chooseStarter(id) {
 	if (player.t.starter) return
 	player.t.starter = id
-	addToBox(id, hofUpgrade(11) ? 10 : 5)
+	addToBox(id, Math.max(region().startLevel || 0, hofUpgrade(11) ? 10 : 5))
 	if (hofUpgrade(11)) player.points = player.points.add(200)
 	for (const up of fieldKeptUpgrades()) if (!hasFieldUpgrade(up)) player.f.upgrades.push(up)
 	// With the Auto-Search Drone kept from the start, the search starts on its own.
 	if (hasFieldUpgrade(11)) player.f.searching = true
 	player.f.zone = regionZones()[0].id
-	pkLog(`Professor ${region().professor} gives you ${speciesName(id)}. Your research begins on ${regionZones()[0].name}!`, "new", { id })
+	pkLog(`${region().giver || `Professor ${region().professor}`} gives you ${speciesName(id)}. Your research begins on ${regionZones()[0].name}!`, "new", { id })
 	showTab("f")
 }
 /** A journey region's starters (Birch's, and the side games') begin the run there. */

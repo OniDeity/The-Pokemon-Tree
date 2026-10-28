@@ -34,7 +34,7 @@ function fieldBuyableAllowed(id) { return !(inChallenge(21) && LIGHT_PACK_ITEMS.
 function fieldBuyableStep(id, base) { return base * (beatChallenge(21) && LIGHT_PACK_ITEMS.includes(Number(id)) ? 1.25 : 1) }
 function caughtCount() { return Object.keys(player.d.caught).length }
 function seenCount() { return Object.keys(player.d.seen).length }
-function dexMilestone(n) { return caughtCount() >= n }
+function dexMilestone(n) { return !inChallenge(51) && caughtCount() >= n }
 function currentCap() {
 	return levelCap(badges() + (isChampion() ? 1 : 0)) - (inChallenge(22) ? 5 : 0) + (beatChallenge(22) ? 2 : 0)
 }
@@ -53,7 +53,7 @@ const DEX_MILESTONES = [
 
 function fieldBuyableCost(id, amount = fieldBuyable(id)) {
 	const b = FIELD_BUYABLES[id]
-	return new Decimal(b.base).times(Decimal.pow(b.growth, amount))
+	return new Decimal(b.base).times(Decimal.pow(b.growth, amount)).times(inChallenge(43) ? 4 : 1)
 }
 
 function rpMult() {
@@ -72,9 +72,9 @@ function rpMult() {
 	if (rivalMilestone(15)) m *= 1.1
 	return m
 }
-function wildRpMult() { return rpMult() * (hasFieldUpgrade(21) ? 1.5 : 1) }
+function wildRpMult() { return rpMult() * (hasFieldUpgrade(21) ? 1.5 : 1) * (inChallenge(52) ? 0.5 : 1) }
 function passiveRp() {
-	if (!player.t.starter) return 0
+	if (!player.t.starter || inChallenge(51)) return 0
 	return caughtCount() * 0.05 * rpMult() * (hasFieldUpgrade(23) ? 5 : 1) * (hofUpgrade(22) ? 3 : 1)
 }
 function xpMult() {
@@ -93,7 +93,7 @@ function searchTime() {
 	return t
 }
 function catchMult() {
-	let m = (1 + fieldBuyableStep(12, 0.15) * fieldBuyable(12)) * (1 + 0.1 * hofBuyable(15)) * (inChallenge(33) ? 0.1 : 1)
+	let m = (1 + fieldBuyableStep(12, 0.15) * fieldBuyable(12)) * (1 + 0.1 * hofBuyable(15)) * (inChallenge(33) ? 0.1 : 1) * 1
 	if (dexMilestone(25)) m *= 1.25
 	if (formMilestone(10)) m *= 1.25
 	if (wardenMilestone(50)) m *= 1.1
@@ -123,6 +123,7 @@ function shinyOdds() {
 	if (dexMilestone(100)) odds /= 3
 	if (shinyMilestone(10)) odds /= 2
 	odds /= 1 + 0.1 * huntBuyable(13)
+	if (inChallenge(53)) odds *= 4
 	return odds
 }
 function partySize() {
@@ -307,7 +308,7 @@ function partyBattlers() {
 		const lead = i === 0 ? (inChallenge(13) ? LONE_PARTNER_BOOST : 1) * (beatChallenge(13) ? 1.2 : 1) : 1
 		const typed = (inChallenge(12) ? MONOTYPE_BOOST : 1) * (beatChallenge(12) && sharesStarterType(key) ? 1.15 : 1)
 		const form = FORMS[formOf(key)] || {}
-		const handicap = challengeHandicap(player.t.box[key]) * (shinyMilestone(25) && isShiny(key) ? 1.25 : 1)
+		const handicap = challengeHandicap(player.t.box[key], key) * (shinyMilestone(25) && isShiny(key) ? 1.25 : 1)
 		return battler(speciesOf(key), player.t.box[key].level, atk * lead * typed * (form.atk || 1) * handicap, def * lead * (form.def || 1) * handicap)
 	})
 }
@@ -455,7 +456,7 @@ const PRICE_TO_RP = 2
 
 function specialCost(s) {
 	if (isPrize(s)) return new Decimal(0)
-	return new Decimal(s.price ? s.price * PRICE_TO_RP * (hofUpgrade(21) ? 0.25 : 1) : 0)
+	return new Decimal(s.price ? s.price * PRICE_TO_RP * (hofUpgrade(21) ? 0.25 : 1) * (inChallenge(43) ? 3 : 1) : 0)
 }
 function specialOpen(s) {
 	if (s.anime && hofEntries() < s.hof) return false
@@ -495,7 +496,7 @@ function takeSpecial(s) {
 /** Research Points for an evolution stone (₽2,100 in the games); trades are free. */
 function itemEvolutionCost(e) { return new Decimal(e.method === "trade" ? 0 : 2100 * PRICE_TO_RP) }
 function canItemEvolve(key, e) {
-	return !!player.t.box[key] && e.open && canEvolveInto(key, e.into) && player.points.gte(itemEvolutionCost(e))
+	return !inChallenge(43) && !!player.t.box[key] && e.open && canEvolveInto(key, e.into) && player.points.gte(itemEvolutionCost(e))
 }
 function itemEvolve(key, into) {
 	const e = itemEvolutions(speciesOf(key), badges()).find(e => e.into === Number(into))
@@ -515,7 +516,7 @@ function fieldKeptUpgrades() {
 
 // ---- Hall of Fame and challenges ----
 // Becoming Champion lets you enter the Hall of Fame: a reset of the whole region (badges, Pokémon,
-// gifts) for Fame. The Pokédex, achievements and the Hall itself are kept.
+// gifts, the Pokédex) for Fame. Records of special looks, achievements and the Hall itself are kept.
 
 const HOF_BUYABLES = {
 	11: { title: "Professor's Grant", base: 5, growth: 1.6, text: "+25% Research Points per level." },
@@ -571,6 +572,36 @@ const CHALLENGES = {
 		rules: "Catch chance in the Field ×0.1, and your Pokémon fight at 60% strength, except those caught in the Safari Zone.",
 		reward: "The Warden's Pass: free Safari trips that start on their own, with the best strategy for each Pokémon.",
 	},
+	41: {
+		name: "Wanderer",
+		rules: "You can't choose where to search: every 3 minutes the Field moves to a random open route of the area.",
+		reward: "The Route Planner: the Field moves itself to routes with unseen species first, then ones your box is missing.",
+	},
+	42: {
+		name: "Locked Party",
+		rules: "Pokémon can join empty party slots but never leave the party.",
+		reward: "The Team Coach: your party rebuilds itself for the next Gym, League or story battle.",
+	},
+	43: {
+		name: "No Items",
+		rules: "No evolution stones or trade evolutions; gifts and Game Corner prizes cost three times as much and the Field's equipment four times as much.",
+		reward: "The Item Kit: evolution stones and trades are used, and gifts, trades and prizes taken, as soon as you can.",
+	},
+	51: {
+		name: "Amnesia",
+		rules: "Your Pokédex gives no Research Points over time and no milestones.",
+		reward: "Professor's Notes: each run starts having seen every species your last run saw.",
+	},
+	52: {
+		name: "Empty Nest",
+		rules: "Eggs take three times as long to come and to hatch, and wild Pokémon give half the Research Points.",
+		reward: "The Breeder's Journal: Eggs of species you've hatched in any run hatch after one battle.",
+	},
+	53: {
+		name: "Plain Pokémon",
+		rules: "Shiny Pokémon are four times rarer, and your Pokémon fight at 75% strength, except shiny ones.",
+		reward: "Hunter's Instinct: shiny hunting targets your route's species with no shiny yet.",
+	},
 	22: {
 		name: "Underleveled",
 		rules: "Level caps are 5 lower.",
@@ -607,11 +638,12 @@ function fameGain() {
 	if (formMilestone(20)) fame *= 1.2
 	return Math.floor(fame)
 }
-/** Records the run in the Hall of Fame (the reset itself is TMT's). */
+/** Records the run in the Hall of Fame and starts the Pokédex over (the rest of the reset is TMT's). */
 function enterHallOfFame() {
 	const team = player.l.team || []
 	for (const [id] of team) player.h.enshrined[id] = true
 	player.h.hall.push({ team, time: player.h.resetTime || 0, challenge: player.h.activeChallenge || null })
+	resetRunPokedex()
 }
 
 function starterChoices() { return hofEntries() >= 3 ? [...STARTERS, 25, 133] : STARTERS }
@@ -666,8 +698,10 @@ function inDayCare(key) { return !!player.c && player.c.slots.includes(key) }
 function dayCareXpRate() {
 	return 0.02 * Math.pow(currentCap(), 2.5) * xpMult() * (hasDayCareUpgrade(11) ? 3 : 1) * (1 + 0.5 * dayCareBuyable(11))
 }
-function eggSeconds() { return EGG_SECONDS / (hasDayCareUpgrade(12) ? 2 : 1) / (1 + 0.15 * dayCareBuyable(12)) }
-function eggBattles() { return Math.max(1, Math.ceil(EGG_BATTLES / (hasDayCareUpgrade(13) ? 2 : 1) / (1 + 0.1 * dayCareBuyable(13)))) }
+function eggSeconds() { return EGG_SECONDS / (hasDayCareUpgrade(12) ? 2 : 1) / (1 + 0.15 * dayCareBuyable(12)) * (inChallenge(52) ? 3 : 1) }
+function eggBattles() { return Math.max(1, Math.ceil(EGG_BATTLES / (hasDayCareUpgrade(13) ? 2 : 1) / (1 + 0.1 * dayCareBuyable(13)) * (inChallenge(52) ? 3 : 1))) }
+/** The Breeder's Journal: Eggs of species hatched in any earlier run hatch after one battle. */
+function eggBattlesFor(species) { return automationOn("journal") && player.d.everHatched?.[species] ? 1 : eggBattles() }
 function maxEggs() { return MAX_EGGS + (hasDayCareUpgrade(14) ? 2 : 0) }
 
 /** What the two Pokémon in the Day Care's Eggs hatch into (species ids), or null. */
@@ -680,6 +714,7 @@ function dayCareEggs() {
 function depositInDayCare(key) {
 	if (!dayCareOpen() || !player.t.box[key] || inDayCare(key) || player.c.slots.length >= DAY_CARE_SLOTS) return false
 	if (player.t.party.length === 1 && player.t.party[0] === key) return false
+	if (player.t.party.includes(key) && !canLeaveParty(key)) return false
 	player.t.party = player.t.party.filter(k => k !== key)
 	player.c.slots.push(key)
 	return true
@@ -702,7 +737,9 @@ function dayCareTick(diff) {
 		player.c.eggProgress -= 1
 		const options = dayCareEggs()
 		const shinyParent = player.c.slots.some(isShiny)
-		player.c.eggs.push({ species: options[Math.floor(rand() * options.length)], battles: eggBattles(), shinyBoost: shinyParent ? (hasHuntUpgrade(12) ? 4 : 2) : 1 })
+		const species = options[Math.floor(rand() * options.length)]
+		const battles = eggBattlesFor(species)
+		player.c.eggs.push({ species, battles, total: battles, shinyBoost: shinyParent ? (hasHuntUpgrade(12) ? 4 : 2) : 1 })
 		pkLog("The Day Care couple left an Egg!", "egg")
 	}
 	if (player.c.eggs.length >= maxEggs()) player.c.eggProgress = 0
@@ -716,6 +753,7 @@ function eggStep() {
 		const shiny = rand() < egg.shinyBoost / shinyOdds()
 		const isNew = !player.d.hatched[egg.species]
 		player.d.hatched[egg.species] = (player.d.hatched[egg.species] || 0) + 1
+		player.d.everHatched = { ...player.d.everHatched, [egg.species]: true }
 		addToBox(egg.species, 5, shiny ? "shiny" : "normal", "egg")
 		pkLog(`Oh? The Egg hatched into ${shiny ? "★ " : ""}${speciesName(egg.species)}!`, isNew || shiny ? "new" : "catch", { id: egg.species }, shiny)
 	}
@@ -853,11 +891,18 @@ const AUTOMATIONS = {
 	buy: { challenge: 31, name: "Auto-buy", text: "Buys Field equipment, opens routes, and buys the Day Care's, Safari Zone's, Game Corner's and shiny hunting's buyables when you can afford them (cheapest first)." },
 	eggs: { challenge: 32, name: "Day Care Lady", text: "Keeps the Day Care's pair laying Eggs, choosing pairs whose Eggs hatch into species you haven't hatched yet." },
 	safari: { challenge: 33, name: "Warden's Pass", text: "Safari trips are free and start on their own, and each Pokémon gets the strategy most likely to catch it." },
+	route: { challenge: 41, name: "Route Planner", text: "The Field moves itself to an open route with species you haven't seen, else one with Pokémon your box is missing." },
+	coach: { challenge: 42, name: "Team Coach", text: "Your party rebuilds itself with the Pokémon that do best against the next Gym, League or story battle." },
+	items: { challenge: 43, name: "Item Kit", text: "Evolution stones and trades are used, and gifts, trades, prizes and legendaries taken, as soon as you can." },
+	notes: { challenge: 51, name: "Professor's Notes", text: "Each run starts having seen every species your last run saw, so surveys go faster." },
+	journal: { challenge: 52, name: "Breeder's Journal", text: "Eggs of species you've hatched in any run hatch after one battle." },
+	hunter: { challenge: 53, name: "Hunter's Instinct", text: "Shiny hunting targets a species on your route with no shiny yet." },
 }
 /** Hatchling Run and Poacher's Net weaken your Pokémon, except those hatched or caught in the Safari. */
-function challengeHandicap(entry) {
+function challengeHandicap(entry, key = "") {
 	if (inChallenge(32) && entry.origin !== "egg") return 0.5
 	if (inChallenge(33) && entry.origin !== "safari") return 0.6
+	if (inChallenge(53) && !isShiny(key)) return 0.75
 	return 1
 }
 function automationUnlocked(id) { return beatChallenge(AUTOMATIONS[id].challenge) }
@@ -992,7 +1037,7 @@ function buyCoins(n) {
 }
 
 function isPrize(s) { return s.id in PRIZE_COINS }
-function prizeCoins(s) { return Math.ceil(PRIZE_COINS[s.id] * (hofUpgrade(21) ? 0.25 : 1)) }
+function prizeCoins(s) { return Math.ceil(PRIZE_COINS[s.id] * (hofUpgrade(21) ? 0.25 : 1) * (inChallenge(43) ? 3 : 1)) }
 
 function slotPayoutMult() { return (hasGameCornerUpgrade(11) ? 1.25 : 1) * (jackpotMilestone(15) ? 1.1 : 1) }
 function spinTime() { return SPIN_SECONDS / (hasGameCornerUpgrade(12) ? 2 : 1) }
@@ -1271,7 +1316,7 @@ function migrateStory() {
 // ---- The Game Freak Diploma and Missingno. ----
 
 /** The Diploma: every Kanto species but Mew caught (as in the games). */
-function hasDiploma() { return !!player.d && Object.keys(player.d.caught).filter(id => id >= 1 && id <= 150).length >= 150 }
+function hasDiploma() { return !!player.d && (!!player.d.diploma || Object.keys(player.d.caught).filter(id => id >= 1 && id <= 150).length >= 150) }
 
 const MISSINGNO_ZONES = ["route20", "route21"]
 const MISSINGNO_CHANCE = 1 / 1000
@@ -1283,4 +1328,127 @@ function missingnoCheck(zone, enc, rng) {
 	const bonus = Math.min(coins(), 10000)
 	if (player.k) addCoins(bonus)
 	pkLog(`W̷i̴l̸d̵ M̶i̷s̴s̵i̶n̷g̸n̴o̵.̸ appeared! ...Your coins were duplicated (+${formatCoins(bonus)}).`, "glitch")
+}
+
+// ---- Regions and the run's Pokédex ----
+// Each Hall of Fame entry starts the Pokédex over (seen, caught, hatched). Kept for good: records of
+// special looks (player.d.shiny, player.d.forms), player.d.everHatched, the best Pokédex, the
+// Diploma and the lifetime counters. Regions list their Pokédex (more come with Johto).
+
+const REGIONS = { kanto: { name: "Kanto", dex: Array.from({ length: 151 }, (_, i) => i + 1) } }
+function currentRegion() { return "kanto" }
+function regionDex(region = currentRegion()) { return REGIONS[region].dex }
+function regionCaught(region = currentRegion()) { return regionDex(region).filter(id => player.d.caught[id]).length }
+
+function resetRunPokedex() {
+	const d = player.d
+	if (hasDiploma()) d.diploma = true
+	d.bestCaught = Math.max(d.bestCaught || 0, caughtCount())
+	d.lastSeen = { ...d.seen }
+	d.everHatched = { ...d.everHatched, ...Object.fromEntries(Object.keys(d.hatched).map(id => [id, true])) }
+	d.seen = automationOn("notes") ? Object.fromEntries(Object.keys(d.lastSeen).map(id => [id, 1])) : {}
+	d.caught = {}
+	d.hatched = {}
+	// The Pokédex milestones are this run's goals again.
+	if (d.milestones) d.milestones = []
+}
+
+// ---- The rules of challenges 41-53 and the automations they unlock ----
+
+const WANDER_SECONDS = 180
+/** Wanderer: the Field hops to a random open route of the current area every few minutes. */
+function challengeTick(diff, rng) {
+	if (!inChallenge(41) || !player.t.starter) return
+	player.f.wanderTimer = (player.f.wanderTimer || 0) - diff
+	if (player.f.wanderTimer > 0) return
+	player.f.wanderTimer = WANDER_SECONDS
+	const area = frontierZones().filter(zoneOpen)
+	const open = area.length ? area : ZONES.filter(zoneOpen)
+	player.f.zone = open[Math.floor(rand(rng) * open.length)].id
+}
+function canChooseRoute() { return !inChallenge(41) || !player.t.starter }
+/** Locked Party: after the first badge nobody leaves the party. */
+function canLeaveParty(key) { return !inChallenge(42) }
+
+/** The next battle the party is preparing for: the Gym, the League, or a story battle that gates one. */
+function nextOpponent() {
+	const gym = nextGym()
+	if (gym && gymStoryGate(badges())) return storyFoes(gymStoryGate(badges()))
+	if (gym) return trainerBattlers(gym, GYM_STRENGTH[badges()])
+	if (badges() >= 8 && !isChampion()) {
+		if (leagueStoryGate()) return storyFoes(leagueStoryGate())
+		const t = leagueTrainers()[player.l.beaten]
+		if (t) return trainerBattlers(t, t.strength)
+	}
+	return null
+}
+function storyFoes(ch) {
+	const t = nextStoryTrainer(ch)
+	return t && chapterOpen(ch) ? trainerBattlers({ team: trainerTeam(t) }, t.strength || ch.strength) : null
+}
+/** The box Pokémon that do best against the next opponent, else the strongest (the Team Coach and the simulator). */
+function bestParty() {
+	const size = partySize(), atk = atkMult(), def = defMult()
+	const foes = nextOpponent()
+	const keys = Object.keys(player.t.box).filter(k => canJoinParty(k) && !inDayCare(k))
+	const score = k => {
+		const entry = player.t.box[k], hc = challengeHandicap(entry, k)
+		const base = battlerScore(speciesOf(k), entry.level)
+		if (!foes) return base
+		const r = battle([battler(speciesOf(k), entry.level, atk * hc, def * hc)], foes)
+		return r.defeated + r.hpLeft + base * 1e-12
+	}
+	return keys.map(k => [k, score(k)]).sort((a, b) => b[1] - a[1]).slice(0, size).map(([k]) => k)
+}
+function autoPartyTick() {
+	if (!automationOn("coach") || !player.t.starter) return
+	if (inChallenge(42)) return
+	const best = bestParty()
+	if (best.length && best.join() !== player.t.party.join()) player.t.party = best
+}
+
+/** The Route Planner: unseen species first, then Pokémon the box is missing; otherwise stay. */
+function autoRouteTick() {
+	if (!automationOn("route") || !player.t.starter || !canChooseRoute()) return
+	const open = ZONES.filter(zoneOpen)
+	const unseen = z => zoneSpecies(z, badges()).filter(id => !player.d.seen[id]).length
+	const here = currentZone()
+	if (unseen(here) > 0) return
+	const withUnseen = open.filter(z => unseen(z) > 0)
+	if (withUnseen.length) { player.f.zone = withUnseen[withUnseen.length - 1].id; return }
+	if (zoneMissing(here) > 0) return
+	const missing = open.filter(z => zoneMissing(z) > 0)
+	if (missing.length) player.f.zone = missing[missing.length - 1].id
+}
+
+/** The Item Kit: stones and trades, then gifts, trades, prizes and legendaries, whenever possible. */
+function autoItemTick() {
+	if (!automationOn("items") || !player.t.starter) return
+	for (const key of Object.keys(player.t.box)) for (const e of itemEvolutions(speciesOf(key), badges()))
+		if (canItemEvolve(key, e)) { itemEvolve(key, e.into); return }
+	for (const s of SPECIALS) {
+		if (player.t.specials[s.id] || !specialOpen(s)) continue
+		if (isPrize(s) && coins() < prizeCoins(s) && gameCornerOpen()) {
+			const need = prizeCoins(s) - coins()
+			if (player.points.gte(coinsCost(need))) buyCoins(need)
+		}
+		if (specialStatus(s).ok) { takeSpecial(s); return }
+	}
+}
+
+/** Hunter's Instinct: keep the target on a species of this route with no shiny yet. */
+function autoHuntTick() {
+	if (!automationOn("hunter") || !huntOpen() || !player.y) return
+	const target = huntTarget()
+	const here = zoneSpecies(currentZone(), badges())
+	if (target && here.includes(target) && !player.d.shiny[target]) return
+	const choices = here.filter(id => player.d.seen[id] && !player.d.shiny[id])
+	if (choices.length) setHuntTarget(choices[0])
+}
+
+function automationTick() {
+	autoRouteTick()
+	autoPartyTick()
+	autoItemTick()
+	autoHuntTick()
 }

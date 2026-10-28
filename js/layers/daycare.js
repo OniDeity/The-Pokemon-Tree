@@ -47,7 +47,7 @@ function dayCareStatusHtml() {
 function eggsHtml() {
 	if (!player.c.eggs.length) return `<i>No Eggs yet.</i>`
 	return `<div class="pk-cards">${player.c.eggs.map(egg => `<div class="pk-card"><span class="pk-egg">🥚</span><br><b>Egg</b><br><small>Hatches in ${egg.battles} wild battle${egg.battles === 1 ? "" : "s"}</small>
-		<div class="pk-xp"><div style="width:${100 * (1 - egg.battles / eggBattles())}%;background:#F8A0C0"></div></div></div>`).join("")}</div>`
+		<div class="pk-xp"><div style="width:${100 * (1 - egg.battles / (egg.total || eggBattles()))}%;background:#F8A0C0"></div></div></div>`).join("")}</div>`
 }
 
 const DEPOSIT_FILTERS = { all: "All", new: "New Eggs", breeds: "Lays Eggs", noShiny: "No shiny yet", box: "Not in party" }

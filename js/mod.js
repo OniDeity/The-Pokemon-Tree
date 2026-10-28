@@ -17,11 +17,16 @@ let modInfo = {
 
 // Set your version in num and name
 let VERSION = {
-	num: "0.11",
-	name: "Kanto's story",
+	num: "0.12",
+	name: "Fresh starts",
 }
 
 let changelog = `<h1>Changelog:</h1><br>
+	<h3>v0.12 Fresh starts</h3><br>
+		- Every Hall of Fame entry is a real fresh start: the Pokédex and the Breeder's notes start over too. Kept for good: shiny and form records, the Hall of Fame, achievements, Fame, challenges, automations, the Diploma once earned, and the lifetime counts (Rockets, rival wins, jackpots, Safari catches). Your current Pokédex stays until your next entry.<br>
+		- Six new automation challenges: Wanderer (Route Planner), Locked Party (Team Coach), No Items (Item Kit), Amnesia (Professor's Notes), Empty Nest (Breeder's Journal) and Plain Pokémon (Hunter's Instinct).<br>
+		- Becoming Champion no longer pauses the game on a victory screen.<br>
+		- Behind the scenes: the Pokédex is organised by region, ready for Johto.<br>
 	<h3>v0.11 Kanto's story</h3><br>
 		- Team Rocket (R) now schemes all over Kanto: Mt. Moon (with Jessie & James), Nugget Bridge, the Rocket Hideout, the Pokémon Tower (the ghost Marowak and Mr. Fuji's Poké Flute) and Silph Co. (Giovanni again, and the Master Ball). About 30 Rockets a run.<br>
 		- A new Trainers node (V): your rival (his team answers your starter), the S.S. Anne (Cut) and the Fighting Dojo (choose Hitmonlee or Hitmonchan).<br>
@@ -106,12 +111,13 @@ function addedPlayerData() { return {
 
 // Display extra things at the top of the page
 var displayThings = [
-	() => player.t.starter ? `${badges()} badge${badges() === 1 ? "" : "s"} · ${caughtCount()}/151 caught` : "",
+	() => player.t.starter ? `${badges()} badge${badges() === 1 ? "" : "s"} · ${regionCaught()}/${regionDex().length} caught` : "",
 ]
 
 // Determines when the game "ends"
+// TMT's victory screen pauses the game until "Keep going": no end yet, while regions keep coming.
 function isEndgame() {
-	return isChampion()
+	return false
 }
 
 

@@ -59,6 +59,13 @@ Sister project: OniDeity/idle-pokemon (its data is the source of ours).
   `pk-notify-settings`, and `game.js`'s `shouldNotify` checks `glow`). Long lists of Pokémon get a
   `["pk-search", field]` box and `filterBar(layer, field, modes)`; their fields live in the layer
   and survive its reset.
+- Regions and the run's Pokédex (v0.12): `REGIONS` (only Kanto so far; `regionDex`, `currentRegion`)
+  and `resetRunPokedex()` (called by `enterHallOfFame` and on entering or leaving a challenge)
+  clears seen, caught, hatched and the Pokédex milestones; records of special looks
+  (`player.d.shiny`, `forms`), `everHatched`, `lastSeen`, `bestCaught`, `diploma` and the counters
+  stay. Challenges 41-53 unlock the automations `route`, `coach`, `items`, `notes`, `journal`,
+  `hunter` (`automationTick` in the Field's update; `bestParty` is shared with the simulator,
+  `challengeTick` runs Wanderer's hops). `isEndgame()` is false: no victory screen yet.
 - Hall of Fame and challenge rules (`HOF_*`, `CHALLENGES`, `fameGain`) live in `logic.js` with
   the rest, so the simulator plays them: `SIM_RUNS=n` replays n runs buying Fame upgrades,
   `SIM_CHALLENGE=id` plays the runs after the first under a challenge.
@@ -104,7 +111,7 @@ Sister project: OniDeity/idle-pokemon (its data is the source of ours).
 ## Johto plan (agreed with the owner, not built yet)
 
 The owner wants every Hall of Fame to feel like a proper reset:
-- The Pokédex (seen, caught) and the Breeder's notes (hatched) reset at every Hall of Fame entry;
+- (Done in v0.12.) The Pokédex (seen, caught) and the Breeder's notes (hatched) reset at every Hall of Fame entry;
   Pokédex milestones become per-run goals and the Diploma must be earned within one run (its
   reward stays for good). Kept for good: records of special looks (shiny, the anime's forms, later
   Albino, Melanistic and Delta), the Hall of Fame, achievements, Fame and its shop, challenges and

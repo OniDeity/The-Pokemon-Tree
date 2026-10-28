@@ -1196,7 +1196,50 @@ const RIVAL = stage => ({ name: "Rival Blue", rival: true, team: () => rivalTeam
 const GRUNT = (team, extra = {}) => ({ name: "Team Rocket Grunt", rocket: true, team, ...extra })
 const JESSIE_JAMES = team => ({ name: "Jessie & James", rocket: true, team, quote: "Prepare for trouble... and make it double!" })
 
+// Johto: Silver takes the starter strong against yours (Elm's), like Blue; his other Pokémon follow
+// HeartGold/SoulSilver. Team Rocket's Executives' teams are HGSS's, the rest close to the games'.
+const SILVER_LINES = { 152: [155, 156, 157], 155: [158, 159, 160], 158: [152, 153, 154] }
+function silverTeam(stage) {
+	const [s0, s1, s2] = SILVER_LINES[player.t.johtoStarter] || SILVER_LINES[152]
+	return [
+		[[s0, 5]],
+		[[92, 12], [41, 14], [s1, 16]],
+		[[92, 20], [41, 20], [81, 18], [s1, 22]],
+		[[42, 30], [81, 28], [93, 30], [215, 32], [s2, 32]],
+		[[215, 36], [42, 38], [82, 37], [94, 39], [65, 37], [s2, 40]],
+	][stage]
+}
+const SILVER = stage => ({ name: "Rival Silver", rival: true, team: () => silverTeam(stage), quote: "...Hmph. Weaklings like you shouldn't have Pokémon." })
+const EXECUTIVE = (name, team, quote) => ({ name: `Executive ${name}`, rocket: true, team, quote })
+
 const STORY_CHAPTERS = [
+	// Johto: the Trainers node.
+	{ id: "newBark", layer: "v", region: "johto", name: "Cherrygrove City", badges: 0, strength: 1.5, trainers: [SILVER(0)], reward: "Your rival's first battle: Research Points." },
+	{ id: "sproutTower", layer: "v", region: "johto", name: "Sprout Tower", badges: 0, strength: 5, gate: 0, reward: "Elder Li gives you Flash: Falkner's Gym opens.",
+		trainers: [{ name: "Sage", team: [[69, 6], [69, 6]] }, { name: "Sage", team: [[69, 7]] }, { name: "Sage", team: [[69, 6], [69, 6], [69, 6]] },
+			{ name: "Elder Li", team: [[69, 7], [69, 7], [163, 10]], quote: "The flexible Bellsprout teaches us to bend with the wind." }] },
+	{ id: "azaleaRival", layer: "v", region: "johto", name: "Azalea Town", badges: 2, strength: 8, trainers: [SILVER(1)], reward: "Research Points." },
+	{ id: "burnedTowerRival", layer: "v", region: "johto", name: "Burned Tower", badges: 3, strength: 9, trainers: [SILVER(2)], reward: "Research Points." },
+	{ id: "lighthouse", layer: "v", region: "johto", name: "Olivine Lighthouse", badges: 5, strength: 15, gate: 5, reward: "Chuck's wife's medicine heals Amphy: Jasmine returns to her Gym.",
+		trainers: [{ name: "Sailor", team: [[66, 22], [61, 22]] }, { name: "Gentleman", team: [[58, 22], [164, 22]] }, { name: "Lass", team: [[183, 21], [209, 21]] },
+			{ name: "Bird Keeper", team: [[17, 22], [83, 22]] }, { name: "Sailor", team: [[72, 24], [73, 24]] }] },
+	{ id: "bellTower", layer: "v", region: "johto", name: "Bell Tower", badges: 7, needs: "radioTower", strength: 17, reward: "The Kimono Girls dance, and the Rainbow Wing calls Ho-Oh to the Bell Tower.",
+		trainers: [{ name: "Kimono Girl Zuki", team: [[197, 38]] }, { name: "Kimono Girl Naoko", team: [[196, 38]] }, { name: "Kimono Girl Miki", team: [[136, 38]] },
+			{ name: "Kimono Girl Sayo", team: [[134, 38]] }, { name: "Kimono Girl Kuni", team: [[135, 38]] }] },
+	{ id: "victoryRoadSilver", layer: "v", region: "johto", name: "Victory Road", badges: 8, strength: 15, gateLeague: true, trainers: [SILVER(4)], reward: "Silver steps aside: the Indigo Plateau opens." },
+	// Johto: Team Rocket.
+	{ id: "slowpokeWell", layer: "r", region: "johto", name: "Slowpoke Well", badges: 1, strength: 8, gate: 1, reward: "The Slowpoke are safe: Kurt thanks you, and Bugsy's Gym opens.",
+		trainers: [GRUNT([[19, 9], [19, 9]]), GRUNT([[41, 11], [41, 11]]), GRUNT([[23, 14]]),
+			EXECUTIVE("Proton", [[41, 8], [109, 12]], "Cutting off Slowpoke tails is a fine business!")] },
+	{ id: "mahoganyHideout", layer: "r", region: "johto", name: "Mahogany Hideout", badges: 6, strength: 16, gate: 6, reward: "Lance and you shut down the Rage signal: Pryce's Gym opens.",
+		trainers: [GRUNT([[19, 21], [41, 22]]), GRUNT([[88, 21], [109, 22]]), EXECUTIVE("Petrel", [[41, 22], [109, 22], [109, 24]], "...You think you can stop us?"),
+			GRUNT([[24, 23], [42, 23]]), EXECUTIVE("Ariana", [[24, 23], [44, 23], [198, 25]], "You've meddled enough!"),
+			{ name: "Electrode (the generator)", team: [[101, 23], [101, 23], [101, 23]] }] },
+	{ id: "radioTower", layer: "r", region: "johto", name: "Radio Tower", badges: 7, strength: 17, gate: 7, reward: "Team Rocket disbands: Clair's Gym opens, and the Director gives you the Silver Wing (Lugia).",
+		trainers: [GRUNT([[20, 26], [42, 26]], { floor: "Underground" }), { ...SILVER(3), floor: "Underground" }, EXECUTIVE("Proton", [[42, 30], [110, 30]], "Do you know how hard we work?"),
+			GRUNT([[89, 28], [24, 28]], { floor: "2F" }), EXECUTIVE("Petrel", [[110, 32], [109, 30], [109, 30]], "Fooled you!"),
+			GRUNT([[229, 29], [42, 29]], { floor: "4F" }), EXECUTIVE("Ariana", [[24, 32], [45, 32], [198, 32]], "We will not be stopped!"),
+			{ ...EXECUTIVE("Archer", [[228, 35], [110, 35], [229, 38]], "We will revive Team Rocket... and await Giovanni's return!"), boss: true, floor: "5F" }] },
 	// The Trainers node ("v").
 	{ id: "oakLab", layer: "v", name: "Oak's Lab", badges: 0, strength: 1, trainers: [RIVAL(0)], reward: "Your rival's first lesson: Research Points." },
 	{ id: "route22", layer: "v", name: "Route 22", badges: 0, strength: 1.2, trainers: [RIVAL(1)], reward: "Research Points." },
@@ -1250,7 +1293,7 @@ const RIVAL_MILESTONES = [
 ]
 
 // Gift rules from the story: the Dojo's choice and Silph Co.'s Lapras, Snorlax's Poké Flute.
-const SPECIAL_STORY = { hitmonlee: "dojo", hitmonchan: "dojo", lapras: "silphCo", snorlax: "pokemonTower" }
+const SPECIAL_STORY = { hitmonlee: "dojo", hitmonchan: "dojo", lapras: "silphCo", snorlax: "pokemonTower", whirlLugia: "radioTower", bellTowerHoOh: "bellTower" }
 const DOJO_CHOICE = ["hitmonlee", "hitmonchan"]
 for (const s of SPECIALS) if (s.id === "hitmonchan") s.text = "...or the punching fiend. You may choose only one."
 

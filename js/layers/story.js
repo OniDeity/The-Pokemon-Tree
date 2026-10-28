@@ -108,6 +108,7 @@ function milestonesHtml(title, count, list) {
 	return `${title}: <b>${count}</b><br>${list.map(([n, text]) => `<span class="${count >= n ? "" : "pk-done"}">${n}: ${text}${count >= n ? " ✓" : ""}</span>`).join("<br>")}`
 }
 function storyIntro() {
+	if (currentRegion() === "hoenn") return "Hoenn's story is still being written: for now its Gyms and League wait for you."
 	return currentRegion() === "johto"
 		? "Silver, the boy who stole a Pokémon from Professor Elm, keeps turning up, Team Rocket is back three years after Giovanni disbanded it, and Johto's trainers wait in its towers."
 		: "Your rival keeps turning up, Team Rocket is up to no good all over Kanto, and Kanto's toughest trainers wait on the S.S. Anne and in Saffron's Fighting Dojo."

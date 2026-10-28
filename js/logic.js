@@ -160,8 +160,9 @@ function frontierZones() {
 	const b = badges()
 	return regionZones().filter(z => z.badges === b && !z.postGame && !z.anime)
 }
+/** Each route of an area costs ×1.8 the last, up to the 8th (Hoenn's larger areas go ×1.2 after). */
 function zoneUnlockCost(index) {
-	return new Decimal(25).times(Decimal.pow(1.8, index)).times(Decimal.pow(5, badges())).times(hofUpgrade(12) ? 0.5 : 1).times(region().zoneCost)
+	return new Decimal(25).times(Decimal.pow(1.8, Math.min(index, 7))).times(Decimal.pow(1.2, Math.max(0, index - 7))).times(Decimal.pow(5, badges())).times(hofUpgrade(12) ? 0.5 : 1).times(region().zoneCost)
 }
 function zoneOpen(zone) {
 	if (zone.region !== currentRegion()) return kantoRevisitOpen(zone)
@@ -668,6 +669,7 @@ function fameGain() {
 	if (storyMilestone(1000)) fame *= 1.1
 	// A journey through Johto pays more, and beating Red on Mt. Silver more again.
 	if (currentRegion() === "johto") fame *= JOHTO_FAME
+	if (currentRegion() === "hoenn") fame *= HOENN_FAME
 	if (chapterCleared("mtSilver")) fame *= 1.5
 	return Math.floor(fame)
 }
@@ -676,7 +678,7 @@ function enterHallOfFame() {
 	const team = player.l.team || []
 	for (const [id] of team) player.h.enshrined[id] = true
 	player.h.hall.push({ team, time: player.h.resetTime || 0, challenge: player.h.activeChallenge || null, region: currentRegion() })
-	if (currentRegion() === "johto") player.h.regionsBeaten = { ...player.h.regionsBeaten, johto: true }
+	if (currentRegion() !== "kanto") player.h.regionsBeaten = { ...player.h.regionsBeaten, [currentRegion()]: true }
 	resetRunPokedex()
 }
 
@@ -829,7 +831,7 @@ const WARDEN_MILESTONES = [
 /** Johto's National Park holds the Bug-Catching Contest instead (Park Balls, its own bugs). */
 const BUG_CONTEST_ZONE = { id: "bugContest", name: "Bug-Catching Contest", region: "johto", badges: 2, blurb: "National Park's contest: Park Balls only, and the biggest bug wins.", pools: { walk: BUG_CONTEST } }
 function inJohtoContest() { return currentRegion() === "johto" }
-function safariZone() { return inJohtoContest() ? BUG_CONTEST_ZONE : zoneById("safariZone") }
+function safariZone() { return inJohtoContest() ? BUG_CONTEST_ZONE : zoneById(currentRegion() === "hoenn" ? "hoennSafariZone" : "safariZone") }
 function safariOpen() { return hofEntries() >= 2 || badges() >= safariZone().badges }
 function hasSafariUpgrade(id) { return !!player.s && player.s.upgrades.map(Number).includes(Number(id)) }
 function safariCaught() { return player.d.safari || 0 }
@@ -1573,12 +1575,14 @@ for (const z of ZONES) z.region = z.region || "kanto"
 for (const z of JOHTO_ZONES) z.region = "johto"
 for (const s of SPECIALS) s.region = s.region || "kanto"
 for (const s of JOHTO_SPECIALS) s.region = "johto"
-const ALL_ZONES = [...ZONES, ...JOHTO_ZONES]
-const ALL_SPECIALS = [...SPECIALS, ...JOHTO_SPECIALS]
+for (const z of HOENN_ZONES) z.region = "hoenn"
+for (const s of HOENN_SPECIALS) s.region = "hoenn"
+const ALL_ZONES = [...ZONES, ...JOHTO_ZONES, ...HOENN_ZONES]
+const ALL_SPECIALS = [...SPECIALS, ...JOHTO_SPECIALS, ...HOENN_SPECIALS]
 
 const KEY_ITEM_NAMES = {
 	oldRod: "Old Rod", goodRod: "Good Rod", superRod: "Super Rod", surf: "Surf", bicycle: "Bicycle", pokeFlute: "Poké Flute",
-	headbutt: "Headbutt", rockSmash: "Rock Smash", squirtBottle: "SquirtBottle", radioCard: "Radio Card",
+	headbutt: "Headbutt", rockSmash: "Rock Smash", squirtBottle: "SquirtBottle", radioCard: "Radio Card", dive: "Dive",
 }
 /** Key items from the Gyms' rewards: each comes with the badge of the Gym that gives it. */
 function keyItemsFromGyms(gyms) {
@@ -1591,6 +1595,12 @@ const JOHTO_DEX = [...new Set([
 	...JOHTO_ZONES.filter(z => !z.anime).flatMap(z => Object.values(z.pools).flat().map(e => e[0])),
 	...JOHTO_SPECIALS.map(s => s.species),
 	...Array.from({ length: 100 }, (_, i) => i + 152),
+])].sort((a, b) => a - b)
+
+const HOENN_DEX = [...new Set([
+	...HOENN_ZONES.flatMap(z => Object.values(z.pools).flat().map(e => e[0])),
+	...HOENN_SPECIALS.map(s => s.species),
+	...Array.from({ length: 135 }, (_, i) => i + 252),
 ])].sort((a, b) => a - b)
 
 /**
@@ -1611,6 +1621,14 @@ const REGIONS = {
 		badgeImage: 9, dex: JOHTO_DEX, zoneCost: 2, pace: 2,
 		rules: { keyItems: keyItemsFromGyms(JOHTO_GYMS), levelCaps: [16, 20, 24, 28, 33, 37, 40, 45, 55, 100], stoneBadges: JOHTO_STONES, tradeBadges: 3 },
 	},
+	// Hoenn (Emerald): a journey of its own, opened by Johto's Hall of Fame entries (HOENN_ENTRIES).
+	hoenn: {
+		name: "Hoenn", professor: "Birch", starters: [252, 255, 258], zones: HOENN_ZONES, gyms: HOENN_GYMS,
+		eliteFour: HOENN_ELITE_FOUR, champion: () => HOENN_CHAMPION,
+		gymStrength: [2, 3.1, 4.2, 5, 5.2, 6.2, 8, 9], eliteFourStrength: 9, championStrength: 8.5,
+		badgeImage: 17, dex: HOENN_DEX, zoneCost: 0.25, pace: 9,
+		rules: { keyItems: keyItemsFromGyms(HOENN_GYMS), levelCaps: [16, 20, 25, 30, 32, 34, 43, 47, 58, 100], stoneBadges: JOHTO_STONES, tradeBadges: 3 },
+	},
 }
 function currentRegion() { return player.t?.region || "kanto" }
 /**
@@ -1627,7 +1645,7 @@ function regionGyms() { return region().gyms }
 function gymStrength() { return region().gymStrength[badges()] }
 function regionDex(region = currentRegion()) { return REGIONS[region].dex }
 /** Regions whose Pokédex pages show: Kanto, and Johto once it's open. */
-function dexRegions() { return Object.keys(REGIONS).filter(r => r === "kanto" || johtoOpen() || johtoBeaten()) }
+function dexRegions() { return Object.keys(REGIONS).filter(r => r === "kanto" || (r === "johto" ? johtoOpen() || johtoBeaten() : hoennOpen() || hoennBeaten())) }
 /** The Pokédex page being viewed (the current region unless another is picked). */
 function viewedDexRegion() { return dexRegions().includes(player.d?.dexRegion) ? player.d.dexRegion : currentRegion() }
 function regionTabs(layer) {
@@ -1762,10 +1780,26 @@ const JOHTO_START_LEVEL = 5
 
 function johtoOpen() { return hofEntries() >= JOHTO_ENTRIES }
 function johtoBeaten() { return !!player.h?.regionsBeaten?.johto }
-// Gen 2's evolutions and babies of Kanto Pokémon (Crobat, Pichu...) wait until Johto is beaten.
-crossGenOpen = johtoBeaten
+// Later generations' evolutions and babies of older Pokémon (Crobat, Pichu; Azurill, Wynaut) wait
+// until their region is beaten.
+crossGenOpen = gen => gen <= 2 ? johtoBeaten() : hoennBeaten()
 /** The highest species number this save can meet (Breeder's notes, Pokédex pages). */
-function maxSpecies() { return johtoOpen() || johtoBeaten() ? 251 : 151 }
+function maxSpecies() { return hoennOpen() || hoennBeaten() ? 386 : johtoOpen() || johtoBeaten() ? 251 : 151 }
+
+// ---- Hoenn: a journey of its own ----
+// After HOENN_ENTRIES Johto Hall of Fame entries, a new run can start in Hoenn with one of
+// Professor Birch's starters instead of Oak's. Hoenn's Champion enters the Hall for Fame ×HOENN_FAME.
+const HOENN_ENTRIES = 3
+const HOENN_FAME = 2.5
+function hoennOpen() { return johtoEntries() >= HOENN_ENTRIES }
+function hoennBeaten() { return !!player.h?.regionsBeaten?.hoenn }
+/** Starts this run in a region (before the starter is chosen). */
+function startInRegion(region) {
+	if (player.t.starter || !REGIONS[region] || (region === "hoenn" && !hoennOpen())) return false
+	player.t.region = region
+	syncRegionRules()
+	return true
+}
 
 function canSailToJohto() { return currentRegion() === "kanto" && isChampion() && johtoOpen() }
 function sailToJohto() {

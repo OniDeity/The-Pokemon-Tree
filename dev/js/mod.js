@@ -4,7 +4,7 @@ let modInfo = {
 	author: "Onide",
 	pointsName: "Research Points",
 	modFiles: [
-		"data/kanto.js", "engine.js", "logic.js",
+		"data/kanto.js", "data/johto.js", "engine.js", "logic.js",
 		"layers/field.js", "layers/team.js", "layers/gym.js", "layers/daycare.js", "layers/safari.js", "layers/gamecorner.js", "layers/story.js", "layers/hunt.js", "layers/hof.js", "layers/dex.js",
 		"tree.js",
 	],
@@ -17,11 +17,18 @@ let modInfo = {
 
 // Set your version in num and name
 let VERSION = {
-	num: "0.12",
-	name: "Fresh starts",
+	num: "0.13",
+	name: "Johto",
 }
 
 let changelog = `<h1>Changelog:</h1><br>
+	<h3>v0.13 Johto</h3><br>
+		- Johto! After three Hall of Fame entries, Kanto's Champion can sail on to Johto instead of entering the Hall: a fresh start under Professor Elm (Chikorita, Cyndaquil or Totodile), with every Pokémon you own back at Lv. 5. Johto's Champion then enters the Hall of Fame for the whole journey, for Fame ×2.5.<br>
+		- Johto from HeartGold/SoulSilver: 50 places, Falkner to Clair, Will, Koga, Bruno, Karen and Lance, gifts and trades, Raikou, Entei, Suicune, Lugia, Ho-Oh, Celebi and the red Gyarados, and Red waiting on Mt. Silver after the League (Fame ×1.5 more).<br>
+		- 100 new species (#152-251). Gen 2 evolutions and babies of Kanto Pokémon (Crobat, Pichu...) unlock once you've beaten Johto.<br>
+		- The Pokédex and Shiny Pokédex have Kanto and Johto pages.<br>
+		- Challenges now highlight which Pokémon fight at full strength (hatched ones in Hatchling Run, Safari catches in Poacher's Net, shinies in Plain Pokémon, your starter's type in Monotype).<br>
+		- Hatching an Egg (or a Safari catch) of a species you already own now counts for the one you own, and a hatched Pokémon can evolve into one you already have that wasn't hatched.<br>
 	<h3>v0.12 Fresh starts</h3><br>
 		- Every Hall of Fame entry is a real fresh start: the Pokédex and the Breeder's notes start over too. Kept for good: shiny and form records, the Hall of Fame, achievements, Fame, challenges, automations, the Diploma once earned, and the lifetime counts (Rockets, rival wins, jackpots, Safari catches). Your current Pokédex stays until your next entry.<br>
 		- Six new automation challenges: Wanderer (Route Planner), Locked Party (Team Coach), No Items (Item Kit), Amnesia (Professor's Notes), Empty Nest (Breeder's Journal) and Plain Pokémon (Hunter's Instinct).<br>

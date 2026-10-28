@@ -15,8 +15,8 @@ function huntTargetHtml() {
 }
 
 function shinyDexHtml() {
-	let html = `<h3>Shiny Pokédex (${shinySpecies()}/${regionDex().length})</h3><br><small>Every shiny species caught gives +1% Research Points for good.</small><br><div class="pk-dex">`
-	for (const id of regionDex()) {
+	let html = `${regionTabs()}<h3>Shiny Pokédex: ${REGIONS[viewedDexRegion()].name} (${regionDex(viewedDexRegion()).filter(id => player.d.shiny[id]).length}/${regionDex(viewedDexRegion()).length})</h3><br><small>Every shiny species caught gives +1% Research Points for good.</small><br><div class="pk-dex">`
+	for (const id of regionDex(viewedDexRegion())) {
 		const n = player.d.shiny[id]
 		if (player.y.shinyFilter === "shiny" ? !n : player.y.shinyFilter === "missing" ? !!n : false) continue
 		if (player.y.shinySearch && !(player.d.seen[id] && searchMatches(player.y.shinySearch, id))) continue

@@ -92,7 +92,7 @@ function selectedChapter() {
 function callsHtml() {
 	const calls = player.q.calls.map(chapterById).filter(ch => ch && chapterRegion(ch) === currentRegion())
 	const next = callable().length ? `Next call in ${formatTime(Math.max(0, callSeconds() - (player.q.callProgress || 0)))} of searching.` : "Clear a place for its trainers to call you for rematches."
-	let html = `<h3>📞 Rematch calls (${calls.length}/${maxCalls()})</h3><br><small>${player.q.calls.length >= maxCalls() ? "Your phone is full: battle a caller to free a line." : next}</small>`
+	let html = `<h3>${currentRegion() === "hoenn" ? "📱 Match Call" : "📞 Rematch calls"} (${calls.length}/${maxCalls()})</h3><br><small>${player.q.calls.length >= maxCalls() ? "Your phone is full: battle a caller to free a line." : next}</small>`
 	for (const ch of calls) {
 		const t = rematchTrainer(ch)
 		html += `<div class="pk-trainer"><b>${t.name}</b> at ${ch.name} <small>(rematch ${(player.q.rematches[ch.id] || 0) + 1})</small><br>${teamHtml(rematchTeam(ch), rematchStrength(ch))}<br>${predictionHtml(rematchPrediction(ch))}<br>

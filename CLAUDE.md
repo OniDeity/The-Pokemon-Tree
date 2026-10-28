@@ -379,3 +379,8 @@ The owner wants every Hall of Fame to feel like a proper reset:
   that had none; done in v0.27); (3)
   Shadow Pokémon and Colosseum (trainer-battle places, snagging, hearts, Relic Stone, sprites);
   (4) XD (Poké Spots, carried mechanics); (5) post-game visits and pacing for each.
+- Bundled with phase 3 (the owner's call): branching level evolutions. Today `levelEvolution` takes
+  the first listed branch (Wurmple → Silcoon, Tyrogue → Hitmonlee, Eevee's friendship → Espeon)
+  and a Pokémon whose first branch is owned never evolves. Planned: level branches get choice
+  buttons on the box card like stones; auto-evolve and the Item Kit take the first branch not owned
+  yet (and wait when all are owned).

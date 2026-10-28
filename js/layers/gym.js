@@ -31,8 +31,8 @@ function storyGateHtml(ch) {
 }
 
 function badgeCaseHtml() {
-	return `<div class="pk-badges">${GYMS.map((g, i) => i < badges()
-		? `<img src="resources/badges/${i + 1}.png" width="40" height="40" title="${g.badge}">`
+	return `<div class="pk-badges">${regionGyms().map((g, i) => i < badges()
+		? `<img src="resources/badges/${i + region().badgeImage}.png" width="40" height="40" title="${g.badge}">`
 		: `<span class="pk-badge-empty" title="${g.badge}"></span>`).join("")}</div>`
 }
 
@@ -153,7 +153,10 @@ addLayer("l", {
 	tabFormat: [
 		["display-text", () => isChampion()
 			? `<h2>Hall of Fame</h2><br>${player.l.hallOfFame.map((e, i) => `Entry ${i + 1} (${formatTime(e.time)}):<br>${teamHtml(e.team, 1)}`).join("<br>")}`
-			: `<h2>Indigo Plateau</h2><br>Survey Route 23 and Victory Road, then beat the Elite Four and the Champion in a row.`],
+			: `<h2>Indigo Plateau</h2><br>Survey ${currentRegion() === "johto" ? "Route 26 and Victory Road" : "Route 23 and Victory Road"}, then beat the Elite Four and the Champion in a row.`],
+		["display-text", () => canSailToJohto()
+			? `<div class="pk-trainer"><b>⛵ Johto awaits</b><br><small>Enter the Hall of Fame now, or sail on to Johto: a fresh start under Professor Elm (every Pokémon back at Lv. ${JOHTO_START_LEVEL}), and Fame ×${JOHTO_FAME} when Johto's Champion enters the Hall.</small><br><button class="pk-button pk-big" onclick="sailToJohto(); showTab('t')">Sail to Johto</button></div>`
+			: currentRegion() === "kanto" && isChampion() && !johtoOpen() ? `<small>Johto opens after ${JOHTO_ENTRIES} Hall of Fame entries (${hofEntries()}/${JOHTO_ENTRIES}).</small>` : ""],
 		"blank",
 		["display-text", () => isChampion() ? "" : surveyHtml()],
 		["display-text", () => isChampion() ? "" : storyGateHtml(leagueStoryGate())],

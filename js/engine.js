@@ -46,6 +46,11 @@ const FORMS = {
 	pink: { name: "Pink", filter: "sepia(1) saturate(3) hue-rotate(290deg) brightness(1.15)", catchRate: 25, text: "The pink Butterfree that leads the migration out to sea." },
 	balloon: { name: "Flying", accessory: "🎈", catchRate: 45, text: "A Pikachu that floats on a bunch of balloons." },
 	originalCap: { name: "Original Cap", sprite: true, catchRate: 45, text: "Wearing Ash's original cap." },
+	// Johto's anime and movies.
+	pudgy: { name: "Pudgy", sprite: true, catchRate: 120, text: "A Pidgey of Pudgy Pidgey Isle, too well fed to fly." },
+	young: { name: "Young", sprite: true, text: "Silver, Lugia's child, born on Ogi Isle." },
+	unown: { name: "Unown", sprite: true, atk: 1.1, text: "The Entei the Unown conjured from Molly's wishes: Attack ×1.1." },
+	dark: { name: "Dark", sprite: true, atk: 1.15, text: "Corrupted by the Iron-Masked Marauder's Dark Ball: Attack ×1.15." },
 }
 // Unown's 28 letters (the Ruins of Alph chambers): "Unown B", "Unown !"...
 if (typeof UNOWN_FORMS !== "undefined") UNOWN_FORMS.forEach(f => {

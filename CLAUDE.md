@@ -94,7 +94,7 @@ Sister project: OniDeity/idle-pokemon (its data is the source of ours).
   `young`, `unown` (Entei) and `dark` (Tyranitar, Celebi) in engine.js's `FORMS`. `JOHTO_DEX`
   ignores anime places. Johto's Champion revisits Kanto (`kantoRevisit`/`kantoRevisitOpen`:
   Kanto's non-anime zones open in the Johto journey, except `KANTO_CLOSED`; Cerulean Cave after
-  Red) and fights `KANTO_GYM_CHAPTERS` (layer `v`, `kantoGym`, drawn on the Gyms node; HGSS teams
+  Red) and fights `KANTO_GYM_CHAPTERS` (Story chapters with `kantoGym`, drawn on the Gyms node; HGSS teams
   from Serebii; each badge ×`BADGE_RP_BOOST` RP via `kantoBadges()`). `needs` takes a list; Red
   needs `kantoBlue`. Strengths act steeply here (the party's only growth after the League is
   gear): one step of strength moves Red by hours.

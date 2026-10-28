@@ -566,6 +566,8 @@ function judgeContest(rng = Math.random) {
 	}
 }
 function contestTick(diff) {
+	// Saves already past Wattson (or with Hoenn beaten) before contests existed.
+	if (!contestsOpen() && player.h && ((currentRegion() === "hoenn" && badges() >= 3) || player.h.regionsBeaten?.hoenn)) unlockMechanic("contests", "Pokémon Contests! Verdanturf's Contest Hall opens the Contests node: raise your Pokémon's condition with Pokéblocks and win ribbons, in every region.")
 	if (!contestsOpen() || !player.n) return
 	if (contestRunning()) {
 		player.n.contest.remaining -= diff

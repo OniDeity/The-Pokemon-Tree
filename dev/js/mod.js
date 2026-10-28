@@ -17,11 +17,14 @@ let modInfo = {
 
 // Set your version in num and name
 let VERSION = {
-	num: "0.23",
-	name: "Albino and Melanistic",
+	num: "0.24",
+	name: "Hoenn's anime",
 }
 
 let changelog = `<h1>Changelog:</h1><br>
+	<h3>v0.24 Hoenn's anime</h3><br>
+		- 34 places from Advanced Generation and its two Hoenn movies join Hoenn's map, from the Oldale Ruins and Rinshin Town to Forina, LaRousse City and South City. Early ones open with badges; later tiers need 1 and 2 Hoenn Hall of Fame entries.<br>
+		- After the League, with 2 Hoenn entries: Meta Groudon, the machine Butler built from Groudon's fossil in Forina, and a Hoenn Cap Pikachu in Littleroot.<br><br>
 	<h3>v0.23 Albino and Melanistic</h3><br>
 		- Albino Pokémon (◇): pale, with the same base odds as shinies but rolled separately. Lower them with the Pale Charm and Snow Lens on the Shiny hunting node, albino milestones, an albino parent in the Day Care, or by switching your hunting chain to Albino.<br>
 		- Melanistic Pokémon (✦): dark, shiny and albino at once (both rolls in the same encounter). They count as both.<br>

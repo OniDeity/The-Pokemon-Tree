@@ -51,6 +51,9 @@ const FORMS = {
 	young: { name: "Young", sprite: true, text: "Silver, Lugia's child, born on Ogi Isle." },
 	unown: { name: "Unown", sprite: true, atk: 1.1, text: "The Entei the Unown conjured from Molly's wishes: Attack ×1.1." },
 	dark: { name: "Dark", sprite: true, atk: 1.15, text: "Corrupted by the Iron-Masked Marauder's Dark Ball: Attack ×1.15." },
+	// Hoenn's anime and movies.
+	meta: { name: "Meta", sprite: true, atk: 1.15, def: 1.1, text: "The artificial Groudon Butler built from its fossil and Jirachi's power: Attack ×1.15, Defense ×1.1." },
+	hoennCap: { name: "Hoenn Cap", sprite: true, text: "Wearing Ash's Hoenn cap." },
 	// Cosplay Pikachu (Omega Ruby and Alpha Sapphire), one for each contest category's first Master Rank win.
 	rockStar: { name: "Pikachu Rock Star", sprite: true, ownName: true, text: "Cosplay Pikachu in its Cool costume, from the Contest Hall." },
 	belle: { name: "Pikachu Belle", sprite: true, ownName: true, text: "Cosplay Pikachu in its Beauty costume, from the Contest Hall." },

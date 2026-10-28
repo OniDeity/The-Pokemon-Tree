@@ -17,11 +17,15 @@ let modInfo = {
 
 // Set your version in num and name
 let VERSION = {
-	num: "0.13",
-	name: "Johto",
+	num: "0.14",
+	name: "Johto's story",
 }
 
 let changelog = `<h1>Changelog:</h1><br>
+	<h3>v0.14 Johto's story</h3><br>
+		- Team Rocket returns in Johto: Slowpoke Well (opens Bugsy's Gym), the Mahogany Hideout with Lance (opens Pryce's) and the Radio Tower takeover with Executives Proton, Petrel, Ariana and Archer (opens Clair's, and Lugia).<br>
+		- Silver, your new rival: his starter answers yours, from Cherrygrove to Victory Road (his last battle opens the League).<br>
+		- Sprout Tower (opens Falkner's Gym), the Olivine Lighthouse (opens Jasmine's) and the Kimono Girls at the Bell Tower (Ho-Oh).<br>
 	<h3>v0.13 Johto</h3><br>
 		- Johto! After three Hall of Fame entries, Kanto's Champion can sail on to Johto instead of entering the Hall: a fresh start under Professor Elm (Chikorita, Cyndaquil or Totodile), with every Pokémon you own back at Lv. 5. Johto's Champion then enters the Hall of Fame for the whole journey, for Fame ×2.5.<br>
 		- Johto from HeartGold/SoulSilver: 50 places, Falkner to Clair, Will, Koga, Bruno, Karen and Lance, gifts and trades, Raikou, Entei, Suicune, Lugia, Ho-Oh, Celebi and the red Gyarados, and Red waiting on Mt. Silver after the League (Fame ×1.5 more).<br>

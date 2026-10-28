@@ -27,7 +27,7 @@ function surveyHtml() {
 }
 
 function storyGateHtml(ch) {
-	return ch ? `<span style="color:#F08030">First clear ${ch.name} (the ${ch.layer === "r" ? "Team Rocket" : "Trainers"} node).</span>` : ""
+	return ch ? `<span style="color:#F08030">First clear ${ch.name} (the Story node).</span>` : ""
 }
 
 function badgeCaseHtml() {

@@ -63,6 +63,7 @@ addLayer("d", {
 		bestChain: 0,
 		rockets: 0,
 		rivalWins: 0,
+		storyWins: 0,
 		missingno: 0,
 		dexSearch: "",
 		dexFilter: "all",

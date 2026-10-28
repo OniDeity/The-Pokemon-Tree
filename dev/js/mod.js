@@ -17,11 +17,16 @@ let modInfo = {
 
 // Set your version in num and name
 let VERSION = {
-	num: "0.17",
-	name: "A longer journey",
+	num: "0.18",
+	name: "The Story node",
 }
 
 let changelog = `<h1>Changelog:</h1><br>
+	<h3>v0.18 The Story node</h3><br>
+		- Team Rocket and Trainers are now one Story node. Its Storyline tab draws the region's story as a map: every place between the Gyms and the League, what it needs and what it opens (a Gym, the League, a legendary). Rivals, Villains and Challengers have their own tabs.<br>
+		- Rematch calls: every 20 minutes of searching a trainer from a place you've cleared calls for a rematch, levelled up to your party, for Research Points and story battles won (up to three calls wait).<br>
+		- Pacing retuned with rematches: Kanto's pace is now ×3.8, the Radio Tower is a little easier (it could stall a journey for hours), and so are Kanto's post-game Brock, Blaine, Blue and Red.<br>
+		- More milestones, all kept for good: villains beaten and rival wins go on into the hundreds over many runs, and every story battle won (chapters and rematches) has its own track, up to 1,000.<br>
 	<h3>v0.17 A longer journey</h3><br>
 		- Pacing: a first Kanto run and a first Johto journey now take about half a day of play each. Automatic searching, passive Research Points and the Day Care run slower (Kanto ×3.4, Johto ×2); searching by hand keeps its speed. Later runs still speed up through Fame.<br>
 		- Johto's routes cost less to open (the last ones before the League could take hours of Research Points).<br>

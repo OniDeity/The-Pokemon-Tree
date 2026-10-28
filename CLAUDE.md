@@ -124,6 +124,13 @@ Sister project: OniDeity/idle-pokemon (its data is the source of ours).
   pace 5.5 took 8.6-19 h at 200 Fame but ~4 h at 400. Now pace 9, `zoneCost` 0.25, Gyms
   [2, 3.1, 4.2, 5, 5.2, 6.2, 8, 9], E4 9 / Wallace 8.5: 5-7.5 h at 500-700 Fame (phase 7 tunes it
   with the story and side content). Late Gyms are steep: Tate & Liza at 10 walled every run.
+  Hoenn's story (v0.20, `HOENN_CHAPTERS`): May (`mayTeam`: `MAY_LINES` answer Birch's starter,
+  `MAY_PARTNERS` cover her weak spot), Wally (Victory Road `gateLeague`), Aqua/Magma (`AQUA`/
+  `MAGMA` grunts count as villains) gating Roxanne to Juan (Petalburg Woods 0, Rusturf 1, Museum 2,
+  Mt. Chimney 3, Weather Institute 5, Aqua Hideout 6, Seafloor Cavern 7); Steven post-League.
+  `SPECIAL_STORY` gates Castform, Kyogre/Groudon/Rayquaza and Beldum. Chapters' teams are smaller
+  and lower than the Gyms', so their strengths are ~1.5× the Gym they gate (at 1× every chapter
+  fell instantly; the Magma Hideout at 11.2 walled 2-8 h, now 9.5). 600 Fame: 4.5-5.1 h.
 - Challenge highlights: `challengeStatus(key)`; hatching or a Safari catch marks an owned entry's
   `origin`, and `canEvolveInto` lets an entry with an origin evolve into one without.
 - Regions and the run's Pokédex (v0.12): `REGIONS` (`regionDex`, `currentRegion`, `dexRegions`)
@@ -245,7 +252,7 @@ The owner wants every Hall of Fame to feel like a proper reset:
 - Albino and Melanistic come with Hoenn (see below).
 - Anime: hoennAnime.ts's 34 places, Meta Groudon (post-League), Hoenn Cap Pikachu.
 - Pacing: about 10-12 h of simulated play per first Hoenn journey (`pace`).
-- Phases: (0) the Story node (done in v0.18); (1) Hoenn's core and the journey (done in v0.19); (2) Hoenn's story; (3) the side
+- Phases: (0) the Story node (done in v0.18); (1) Hoenn's core and the journey (done in v0.19); (2) Hoenn's story (done in v0.20); (3) the side
   nodes, Dive, Feebas, double battles; (4) Contests; (5) Albino/Melanistic; (6) anime places;
   (7) post-game visits and pacing.
 

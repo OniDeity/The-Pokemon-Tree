@@ -131,7 +131,7 @@ addLayer("c", {
 		currencyInternalName: "points",
 	}])),
 	tabFormat: [
-		["display-text", () => `<h2>Route 5 Day Care</h2><br><i>"I'm the Day Care Man. Want me to raise one of your Pokémon?"</i>`],
+		["display-text", () => `<h2>${{ johto: "Route 34", hoenn: "Route 117" }[currentRegion()] || "Route 5"} Day Care</h2><br><i>"I'm the Day Care Man. Want me to raise one of your Pokémon?"</i>`],
 		"blank",
 		["display-text", () => dayCareSlotsHtml()],
 		["display-text", () => dayCareStatusHtml()],

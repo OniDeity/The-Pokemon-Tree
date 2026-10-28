@@ -77,6 +77,11 @@ Sister project: OniDeity/idle-pokemon (its data is the source of ours).
   evolution and breeding links go through the engine's `evolutionOpen`/`crossGenOpen`
   (= `johtoBeaten`). `SIM_JOHTO=1` plays the whole journey: 5.0-5.6 h for all starters and two
   seeds, Red about 3.8 h after Johto's League (`SIM_RED=h` waits for him).
+- Johto's side systems (v0.15): `headbutt`/`rockSmash` pools (Johto only, keyed by
+  `POOL_KEY`), Unown letters as `UNOWN_FORMS` forms (`suffix` names: "Unown B"; sprites
+  `201-unownB.png`), the Pokégear layer `p` (`JOHTO_SWARMS` via `tuneSwarm`/`withSwarm`, Kurt's
+  `APRICORN_BALLS` via `apricornMult`), the Safari node as `BUG_CONTEST_ZONE` in Johto
+  (`inJohtoContest`), Goldenrod's prizes in `PRIZE_COINS`.
 - Challenge highlights: `challengeStatus(key)`; hatching or a Safari catch marks an owned entry's
   `origin`, and `canEvolveInto` lets an entry with an origin evolve into one without.
 - Regions and the run's Pokédex (v0.12): `REGIONS` (`regionDex`, `currentRegion`, `dexRegions`)
@@ -154,7 +159,8 @@ The owner wants every Hall of Fame to feel like a proper reset:
   region from buildData.py, `player.region`, region pages in the Pokédex, nothing hard-wired to
   151); (2) the Kanto → Johto journey and Johto's core (50 places, Gyms, Will/Koga/Bruno/Karen/
   Lance, gifts, roaming beasts, Lugia, Ho-Oh, Celebi, Red); (3) Johto's story (done in v0.14);
-  (4) Johto in the side nodes; (5) Johto's anime places and Kanto's post-game; (6) pacing (about a
+  (4) Johto in the side nodes (done in v0.15; Gen 2 breeding comes with
+  `crossGenOpen`, held-item trades are trades with an RP cost); (5) Johto's anime places and Kanto's post-game; (6) pacing (about a
   day per first journey).
 - More automation challenges, to soften the resets (rewards for good, switches on the Automation
   page): Route Planner (search moves to the best route: unseen species first, then missing ones),

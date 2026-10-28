@@ -59,6 +59,13 @@ Sister project: OniDeity/idle-pokemon (its data is the source of ours).
   `pk-notify-settings`, and `game.js`'s `shouldNotify` checks `glow`). Long lists of Pokémon get a
   `["pk-search", field]` box and `filterBar(layer, field, modes)`; their fields live in the layer
   and survive its reset.
+- Regions and the run's Pokédex (v0.12): `REGIONS` (only Kanto so far; `regionDex`, `currentRegion`)
+  and `resetRunPokedex()` (called by `enterHallOfFame` and on entering or leaving a challenge)
+  clears seen, caught, hatched and the Pokédex milestones; records of special looks
+  (`player.d.shiny`, `forms`), `everHatched`, `lastSeen`, `bestCaught`, `diploma` and the counters
+  stay. Challenges 41-53 unlock the automations `route`, `coach`, `items`, `notes`, `journal`,
+  `hunter` (`automationTick` in the Field's update; `bestParty` is shared with the simulator,
+  `challengeTick` runs Wanderer's hops). `isEndgame()` is false: no victory screen yet.
 - Hall of Fame and challenge rules (`HOF_*`, `CHALLENGES`, `fameGain`) live in `logic.js` with
   the rest, so the simulator plays them: `SIM_RUNS=n` replays n runs buying Fame upgrades,
   `SIM_CHALLENGE=id` plays the runs after the first under a challenge.
@@ -98,7 +105,46 @@ Sister project: OniDeity/idle-pokemon (its data is the source of ours).
   v0.5), Safari Zone (done, v0.6), automation challenges (v0.7), Game Corner (done, v0.8), shiny
   hunting (done, v0.9), Rocket Hideout (v0.10), Kanto's story (v0.11: Rockets, rival, S.S. Anne, Dojo, gates, Diploma,
   Missingno., box pages, hidden sprites). The simulator buys coins for prizes but doesn't play the slots.
-- Later regions follow the same pattern, gated by Hall of Fame entries.
+- Later regions follow the same pattern, gated by Hall of Fame entries (Johto: 3 Kanto entries;
+  more for Hoenn).
+
+## Johto plan (agreed with the owner, not built yet)
+
+The owner wants every Hall of Fame to feel like a proper reset:
+- (Done in v0.12.) The Pokédex (seen, caught) and the Breeder's notes (hatched) reset at every Hall of Fame entry;
+  Pokédex milestones become per-run goals and the Diploma must be earned within one run (its
+  reward stays for good). Kept for good: records of special looks (shiny, the anime's forms, later
+  Albino, Melanistic and Delta), the Hall of Fame, achievements, Fame and its shop, challenges and
+  automations, lifetime counters (jackpots, Rockets, rival wins, Safari catches). Existing saves
+  keep their Pokédex until their next entry; a "best Pokédex" record keeps it for display. Fame is
+  rebalanced so runs speed up through Fame, not a kept Pokédex (tune with SIM_RUNS).
+- A Johto journey runs through Kanto every time: after 3 Kanto entries, becoming Kanto's Champion
+  offers "enter the Hall of Fame" or "sail to Johto". Journey: Kanto (8 badges, League) → Johto (a
+  fresh start: Elm's starter, and every Pokémon you own is levelled down to the starter's level;
+  Johto keeps HGSS levels and its own level caps) → Kanto's post-game badges (HGSS Kanto, higher
+  strength) → Red. Fame is paid at the end. Evolved Kanto Pokémon at low levels will be strong:
+  tune Johto's strengths with them in the simulator.
+- Gen 2 evolutions and babies (Crobat, Pichu...) stay locked until Johto has been beaten once.
+- Day/night tables are averaged (as Idle Pokémon does).
+- Johto grows the existing nodes (no parallel Johto nodes): Day Care with Gen 2 breeding and
+  babies, the Safari Zone node as the Bug-Catching Contest, Goldenrod's Game Corner, shiny breeding
+  and the red Gyarados, plus Pokégear (radio swarms, phone rematches), Headbutt and Rock Smash,
+  Unown's letters as forms, Kurt's Apricorn Balls, held items, trade and friendship evolutions.
+- Phases: (1) regions + the Pokédex reset + lifetime records (save-risky, ships alone: data per
+  region from buildData.py, `player.region`, region pages in the Pokédex, nothing hard-wired to
+  151); (2) the Kanto → Johto journey and Johto's core (50 places, Gyms, Will/Koga/Bruno/Karen/
+  Lance, gifts, roaming beasts, Lugia, Ho-Oh, Celebi, Red); (3) Johto's story (Rocket: Slowpoke
+  Well, Lake of Rage, Mahogany, Radio Tower; Silver; Kimono Girls, Sudowoodo, the Lighthouse);
+  (4) Johto in the side nodes; (5) Johto's anime places and Kanto's post-game; (6) pacing (about a
+  day per first journey).
+- More automation challenges, to soften the resets (rewards for good, switches on the Automation
+  page): Route Planner (search moves to the best route: unseen species first, then missing ones),
+  Team Coach (the party rebuilds itself for the next Gym or story battle), Item Kit (evolution
+  stones, trades and prizes bought and used automatically), Professor's Notes (start each run
+  having seen everything your last run saw, so surveys go faster), Breeder's Journal (Eggs of
+  species hatched in any earlier run hatch at once; the egg-reset challenge), Hunter's Instinct
+  (shiny hunting targets the route's species with no shiny yet). Each comes from a hard challenge
+  themed on it (e.g. a party locked after the first badge for Team Coach).
 - Albino and Melanistic Pokémon (the owner's idea, unlocked around Gen 3): Albino has the same
   base odds as Shiny but its own items and hunting methods to lower them; Melanistic is Shiny
   and Albino at once. They become `VARIANTS` ("15-albino", "15-melanistic"), their own Pokédex

@@ -17,7 +17,7 @@ function togglePartyMember(key) {
 	const party = player.t.party
 	const i = party.indexOf(key)
 	if (i >= 0) {
-		if (party.length > 1) party.splice(i, 1)
+		if (party.length > 1 && canLeaveParty(key)) party.splice(i, 1)
 	} else if (party.length < partySize() && player.t.box[key] && canJoinParty(key) && !inDayCare(key)) party.push(key)
 }
 function moveToLead(key) {
@@ -62,7 +62,7 @@ function monCard(key, inParty) {
 		${formOf(key) ? `<small>${FORMS[formOf(key)].text}</small><br>` : lvEvo ? `<small>${canEvolveInto(key, lvEvo.into) ? `Evolves at Lv. ${lvEvo.level}` : `Won't evolve: you have ${keyName(boxKey(lvEvo.into, variantOf(key)))}`}</small><br>` : ""}
 		${inParty
 			? `${player.t.party[0] === key ? "<small><b>Lead</b></small>" : `<button class="pk-button" onclick="moveToLead('${key}')">Lead</button>`}
-			   <button class="pk-button" ${player.t.party.length > 1 ? `onclick="togglePartyMember('${key}')"` : "disabled"}>To box</button>`
+			   <button class="pk-button" ${player.t.party.length > 1 && canLeaveParty(key) ? `onclick="togglePartyMember('${key}')"` : "disabled"}>To box</button>`
 			: canJoinParty(key)
 				? `<button class="pk-button" ${player.t.party.length < partySize() ? `onclick="togglePartyMember('${key}')"` : "disabled"}>To party</button>${dayCareOpen() && player.c.slots.length < DAY_CARE_SLOTS ? ` <button class="pk-button" onclick="depositKey('${key}')">Day Care</button>` : ""}`
 				: `<button class="pk-button" disabled title="Monotype: shares no type with your starter">To party</button>`}

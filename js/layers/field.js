@@ -72,7 +72,7 @@ function pkLog(text, kind, enc, shiny, quiet = false) {
 	player.f.log.unshift({ text, kind, id: enc ? enc.id : null, form: enc?.form || null, shiny: !!shiny })
 	if (player.f.log.length > LOG_SIZE) player.f.log.length = LOG_SIZE
 	const popups = { new: ["pokedex", "Pokédex", "#F8D030"], evolve: ["evolve", "Evolution!", "#78C850"], league: ["league", "Pokémon League", "#A040A0"],
-		jackpot: ["jackpot", "Game Corner", "#E0B040"], rocket: ["rocket", "Team Rocket", "#C03028"], story: ["story", "Kanto", "#6890F0"],
+		jackpot: ["jackpot", "Game Corner", "#E0B040"], rocket: ["rocket", currentRegion() === "hoenn" ? "Team Aqua & Magma" : "Team Rocket", "#C03028"], story: ["story", region().name, "#6890F0"],
 		glitch: ["pokedex", "?̷?̵?̸", "#888888"] }
 	const popup = shiny ? ["shiny", "Shiny!", "#F8D030"] : popups[kind]
 	if (popup && !quiet) pkPopup(popup[0], text, popup[1], 3, popup[2])

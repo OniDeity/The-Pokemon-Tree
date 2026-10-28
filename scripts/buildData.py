@@ -274,9 +274,13 @@ with open("js/data/johto.js", "w") as f:
 # ---- Hoenn (Emerald) ----
 hoenn = json.load(open(hoenn_file))
 HOENN_POOLS = POOLS + ["rockSmash", "dive"]
+# Feebas lives under a few tiles of Route 119's river: about 1 cast in 20 there (Idle Pokémon's EXTRA_ENCOUNTERS).
+HOENN_EXTRA = {"route119": {rod: [{"id": 349, "weight": 15, "minLevel": 20, "maxLevel": 25}] for rod in ("oldRod", "goodRod", "superRod")}}
 HOENN_ZONES = []
 for z in hoenn["zones"]:
-    source = z.get("encounters") or encounters.get(z["id"], {})
+    source = dict(z.get("encounters") or encounters.get(z["id"], {}))
+    for p, extra in HOENN_EXTRA.get(z["id"], {}).items():
+        source[p] = list(source.get(p, [])) + extra
     pools = {
         p: [[e["id"], round(e["weight"], 2), e["minLevel"], e["maxLevel"]] for e in v if e["id"] <= MAX_SPECIES]
         for p, v in source.items()

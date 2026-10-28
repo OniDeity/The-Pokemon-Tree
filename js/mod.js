@@ -17,11 +17,17 @@ let modInfo = {
 
 // Set your version in num and name
 let VERSION = {
-	num: "0.20",
-	name: "Hoenn's story",
+	num: "0.21",
+	name: "Hoenn's side systems",
 }
 
 let changelog = `<h1>Changelog:</h1><br>
+	<h3>v0.21 Hoenn's side systems</h3><br>
+		- Double battles! Beat Roxanne and, for good and in every region, your lead's partner (the next Pokémon in your party) fights beside it for half its damage, without being attacked.<br>
+		- The PokéNav (Hoenn's Pokégear): the TV's mass-outbreak reports (Seedot, Nuzleaf, Skitty, Surskit) and Devon's Net, Dive, Nest and Repeat Balls.<br>
+		- Hoenn's Safari Zone has Pokéblock feeders that draw Pokémon of their colour's types, and Areas 5 and 6 open after the League.<br>
+		- Feebas under Route 119's river (about 1 cast in 20), and Mirage Island, sighted now and then after the League.<br>
+		- Route 117's Day Care, Match Call, and story popups named for the region.<br>
 	<h3>v0.20 Hoenn's story</h3><br>
 		- May, Professor Birch's daughter: her starter answers yours, from Route 103 to Lilycove City.<br>
 		- Wally, from his first Ralts in Mauville to Victory Road (his last battle opens the League).<br>

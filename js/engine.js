@@ -168,23 +168,31 @@ function damage(a, d) {
  * Deterministic: faster Pokémon hit first (the player's on a tie). Returns whether the player won,
  * how many foes fell, and who on the player's side fought.
  */
+/**
+ * Double battles (logic.js points this at the mechanic): the party member after the lead fights
+ * beside it, adding this share of its own damage each turn; the foe only attacks the lead.
+ */
+var partnerDamage = () => 0
 function battle(team, foes) {
 	let i = 0, j = 0
 	let hpA = team[0]?.hp ?? 0, hpB = foes[0]?.hp ?? 0
 	const fought = new Set()
+	const share = partnerDamage()
+	// The lead's damage plus its partner's (the next Pokémon in the party, if any).
+	const hit = (a, b) => damage(a, b) + (share && team[i + 1] ? share * damage(team[i + 1], b) : 0)
 	for (let turn = 0; turn < 10000 && i < team.length && j < foes.length; turn++) {
 		const a = team[i], b = foes[j]
 		fought.add(i)
 		const first = a.spe >= b.spe
 		if (first) {
-			hpB -= damage(a, b)
+			hpB -= hit(a, b)
 			if (hpB <= 0) { j++; hpB = foes[j]?.hp ?? 0; continue }
 			hpA -= damage(b, a)
 			if (hpA <= 0) { i++; hpA = team[i]?.hp ?? 0 }
 		} else {
 			hpA -= damage(b, a)
 			if (hpA <= 0) { i++; hpA = team[i]?.hp ?? 0; continue }
-			hpB -= damage(a, b)
+			hpB -= hit(a, b)
 			if (hpB <= 0) { j++; hpB = foes[j]?.hp ?? 0 }
 		}
 	}

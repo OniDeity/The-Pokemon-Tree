@@ -71,6 +71,7 @@ addLayer("h", {
 		hall: [],
 		enshrined: {},
 		auto: {},
+		mechanics: {},
 	}},
 	branches: ["l"],
 	layerShown() { return isChampion() || hofEntries() > 0 },

@@ -131,6 +131,16 @@ Sister project: OniDeity/idle-pokemon (its data is the source of ours).
   `SPECIAL_STORY` gates Castform, Kyogre/Groudon/Rayquaza and Beldum. Chapters' teams are smaller
   and lower than the Gyms', so their strengths are ~1.5× the Gym they gate (at 1× every chapter
   fell instantly; the Magma Hideout at 11.2 walled 2-8 h, now 9.5). 600 Fame: 4.5-5.1 h.
+  Hoenn's side systems (v0.21): mechanics kept for good live in `player.h.mechanics`
+  (`mechanicOn`/`unlockMechanic`); double battles unlock after Roxanne (`winGymBattle`) and set
+  the engine's `partnerDamage` to `PARTNER_DAMAGE` 0.5 (the next party member adds half its
+  damage each turn and isn't attacked), cutting Hoenn to 3.6-4.4 h at 600 Fame. The "p" layer is
+  the PokéNav in Hoenn (`pokenav()`): `HOENN_OUTBREAKS` (Emerald's TV outbreaks; keys are zone +
+  species, as a route can have two) through `regionSwarms`/`withSwarm`, `DEVON_BALLS` beside
+  Kurt's in `ballMult`, Mirage Island (`zone.mirage`, `mirageStep`: every `MIRAGE_BATTLES` post-
+  League wild battles a 1/3 chance it shows for `MIRAGE_SHOWN`). Safari: `withPokeblock`
+  (`POKEBLOCKS`, one feeder colour per run ×`POKEBLOCK_DRAW`) and `safariZone()` merging
+  `safariZoneExpansion` after the League. Feebas: `HOENN_EXTRA` in buildData.py (Route 119 rods).
 - Challenge highlights: `challengeStatus(key)`; hatching or a Safari catch marks an owned entry's
   `origin`, and `canEvolveInto` lets an entry with an origin evolve into one without.
 - Regions and the run's Pokédex (v0.12): `REGIONS` (`regionDex`, `currentRegion`, `dexRegions`)
@@ -253,7 +263,7 @@ The owner wants every Hall of Fame to feel like a proper reset:
 - Anime: hoennAnime.ts's 34 places, Meta Groudon (post-League), Hoenn Cap Pikachu.
 - Pacing: about 10-12 h of simulated play per first Hoenn journey (`pace`).
 - Phases: (0) the Story node (done in v0.18); (1) Hoenn's core and the journey (done in v0.19); (2) Hoenn's story (done in v0.20); (3) the side
-  nodes, Dive, Feebas, double battles; (4) Contests; (5) Albino/Melanistic; (6) anime places;
+  nodes, Dive, Feebas, double battles (done in v0.21); (4) Contests; (5) Albino/Melanistic; (6) anime places;
   (7) post-game visits and pacing.
 
 - Albino and Melanistic Pokémon (the owner's idea, part of the Hoenn update): Albino has the same

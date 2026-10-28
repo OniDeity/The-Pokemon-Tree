@@ -55,8 +55,7 @@ Sister project: OniDeity/idle-pokemon (its data is the source of ours).
   are fought in order (`player[layer].progress[chapter]`, kept through badges). A cleared chapter
   can gate a Gym (`gate`, the badge index) or the League (`gateLeague`), and `SPECIAL_STORY` gates
   gifts. The rival's teams follow the starter (`rivalTeam`). `player.d.rockets`/`rivalWins` count
-  for good. Strengths were tuned with the simulator (which plays `storyTick`): a first run takes
-  ~3.7-5.9 h there. Side layers `d` Pokédex (with the Diploma, `hasDiploma`) and `a` Achievements.
+  for good. Strengths were tuned with the simulator (which plays `storyTick`). Side layers `d` Pokédex (with the Diploma, `hasDiploma`) and `a` Achievements.
 - Popups go through `pkPopup(kind, ...)` / `pkLog`, and `notifyOn(kind)` reads the player's
   switches (`NOTIFY_KINDS`, kept in TMT's `options.pkNotify`; the settings page draws
   `pk-notify-settings`, and `game.js`'s `shouldNotify` checks `glow`). Long lists of Pokémon get a
@@ -73,11 +72,9 @@ Sister project: OniDeity/idle-pokemon (its data is the source of ours).
   (v0.14): Sprout Tower, Slowpoke Well, the Lighthouse, Mahogany Hideout, the Radio Tower and
   Victory Road gate Falkner, Bugsy, Jasmine, Pryce, Clair and the League; Silver (`silverTeam`,
   answering Elm's starter); the Bell Tower's Kimono Girls gate Ho-Oh and the Radio Tower Lugia.
-  The journey still takes 5.1-6.6 h in the simulator (the Radio Tower is the main Johto gate). Gen 1↔2
+  Gen 1↔2
   evolution and breeding links go through the engine's `evolutionOpen`/`crossGenOpen`
-  (= `johtoBeaten`). `SIM_JOHTO=1` plays the whole journey: since v0.16's Kanto Gyms, 5.6-10 h for
-  all starters and two seeds (`SIM_RED=h` waits for Red). The Radio Tower (17) sometimes walls a
-  weak team for ~5 h (seen before v0.16 too: starter 1 seed 3, starter 7 seed 2).
+  (= `johtoBeaten`). `SIM_JOHTO=1` plays the whole journey (`SIM_RED=h` waits for Red).
 - Johto's side systems (v0.15): `headbutt`/`rockSmash` pools (Johto only, keyed by
   `POOL_KEY`), Unown letters as `UNOWN_FORMS` forms (`suffix` names: "Unown B"; sprites
   `201-unownB.png`), the Pokégear layer `p` (`JOHTO_SWARMS` via `tuneSwarm`/`withSwarm`, Kurt's
@@ -92,7 +89,14 @@ Sister project: OniDeity/idle-pokemon (its data is the source of ours).
   Red) and fights `KANTO_GYM_CHAPTERS` (layer `v`, `kantoGym`, drawn on the Gyms node; HGSS teams
   from Serebii; each badge ×`BADGE_RP_BOOST` RP via `kantoBadges()`). `needs` takes a list; Red
   needs `kantoBlue`. Strengths act steeply here (the party's only growth after the League is
-  gear): Brock 22 / Blue 24 / Red 17 put Red 1-4 h after Johto's League; Red at 18 took 8 h+.
+  gear): one step of strength moves Red by hours.
+- Pacing (v0.17): `pace()` (`REGIONS[r].pace`: Kanto 3.4, Johto 2) slows every timer: automatic
+  search (hand searching before the Auto-Search Drone keeps the base speed), so the Safari Zone,
+  passive RP and the Day Care's xp and Eggs. Simulator, all starters, seeds 1-3: a first Kanto run
+  9.4-15.2 h (median ~10.7); later runs (`SIM_RUNS=5`) ~3 / 2 / 3 / 1.5 h; `SIM_JOHTO=1` journeys
+  (no Fame, so the Kanto leg is ~5.5 h; ~3 h with a real player's Fame) 9.2-14.6 h. Johto's
+  `zoneCost` went 5 → 2: at pace 2 the last routes before Johto's League cost ~9e8 RP, a 4 h
+  wall. Kanto's post-game Leaders are 19-22 and Red 14 (Red 1-5 h after Johto's League).
 - Challenge highlights: `challengeStatus(key)`; hatching or a Safari catch marks an owned entry's
   `origin`, and `canEvolveInto` lets an entry with an origin evolve into one without.
 - Regions and the run's Pokédex (v0.12): `REGIONS` (`regionDex`, `currentRegion`, `dexRegions`)
@@ -172,8 +176,8 @@ The owner wants every Hall of Fame to feel like a proper reset:
   Lance, gifts, roaming beasts, Lugia, Ho-Oh, Celebi, Red); (3) Johto's story (done in v0.14);
   (4) Johto in the side nodes (done in v0.15; Gen 2 breeding comes with
   `crossGenOpen`, held-item trades are trades with an RP cost); (5) Johto's anime places and Kanto's post-game (done in
-  v0.16); (6) pacing (about a
-  day per first journey).
+  v0.16); (6) pacing (done in v0.17: about 10-12 h of simulated play per first run or journey,
+  the owner's choice).
 - More automation challenges, to soften the resets (rewards for good, switches on the Automation
   page): Route Planner (search moves to the best route: unseen species first, then missing ones),
   Team Coach (the party rebuilds itself for the next Gym or story battle), Item Kit (evolution

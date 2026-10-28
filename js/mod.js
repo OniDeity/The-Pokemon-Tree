@@ -17,11 +17,16 @@ let modInfo = {
 
 // Set your version in num and name
 let VERSION = {
-	num: "0.19",
-	name: "Hoenn",
+	num: "0.20",
+	name: "Hoenn's story",
 }
 
 let changelog = `<h1>Changelog:</h1><br>
+	<h3>v0.20 Hoenn's story</h3><br>
+		- May, Professor Birch's daughter: her starter answers yours, from Route 103 to Lilycove City.<br>
+		- Wally, from his first Ralts in Mauville to Victory Road (his last battle opens the League).<br>
+		- Team Aqua and Team Magma: Petalburg Woods (opens Roxanne's Gym), Rusturf Tunnel (Brawly's), the Oceanic Museum (Wattson's), Mt. Chimney with Maxie (Flannery's), the Weather Institute (Winona's, and Castform), Mt. Pyre, the Magma and Aqua Hideouts (Tate & Liza's), the Space Center and the Seafloor Cavern with Archie (Juan's, and Kyogre, Groudon and Rayquaza).<br>
+		- Steven waits at Meteor Falls after the League, with his Beldum as the prize.<br>
 	<h3>v0.19 Hoenn</h3><br>
 		- Hoenn! After three Johto Hall of Fame entries, a new run can begin in Hoenn with Professor Birch's Treecko, Torchic or Mudkip, instead of in Kanto. Hoenn's Champion enters the Hall of Fame for Fame ×2.5.<br>
 		- Hoenn from Emerald: 55 places (Dive with Tate & Liza's badge), Roxanne to Juan, Sidney, Phoebe, Glacia, Drake and Wallace, gifts and trades (the fossils, Castform, Beldum, Wynaut's Egg), and Kyogre, Groudon, Rayquaza, the Regis, Latias, Latios, Jirachi and Deoxys.<br>

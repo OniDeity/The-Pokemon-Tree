@@ -21,7 +21,7 @@ function currentContestHtml() {
 	if (!contestRunning()) return `<i>No contest on right now: choose a Pokémon and a category below.</i>`
 	const { key, cat, rank, remaining } = player.n.contest
 	const chance = player.t.box[key] ? contestWinChance(key, cat, rank) : 0
-	return `<div class="pk-trainer">${pkSprite(speciesOf(key), isShiny(key), 64, "", formOf(key))}<br><b>${keyName(key)}</b> is on stage in the <b>${CONTEST_CATEGORIES[cat].name} Contest</b> (${CONTEST_RANKS[rank].name})<br>
+	return `<div class="pk-trainer">${pkSprite(speciesOf(key), colorOf(key), 64, "", formOf(key))}<br><b>${keyName(key)}</b> is on stage in the <b>${CONTEST_CATEGORIES[cat].name} Contest</b> (${CONTEST_RANKS[rank].name})<br>
 		Judging in ${formatTime(Math.max(0, remaining))} · ${Math.round(chance * 100)}% to win</div>`
 }
 
@@ -29,7 +29,7 @@ function contestantHtml() {
 	const key = contestant()
 	if (!key) return ""
 	const id = speciesOf(key), cost = contestBlockCost()
-	let html = `<div class="pk-trainer">${pkSprite(id, isShiny(key), 64, "", formOf(key))}<br><b>${keyName(key)}</b> Lv. ${player.t.box[key].level} · ${SPECIES[id].types.join("/")}<br>${rankLetters(id)}<br><br>
+	let html = `<div class="pk-trainer">${pkSprite(id, colorOf(key), 64, "", formOf(key))}<br><b>${keyName(key)}</b> Lv. ${player.t.box[key].level} · ${SPECIES[id].types.join("/")}<br>${rankLetters(id)}<br><br>
 		<table class="pk-contest-table"><tr><th>Category</th><th>Condition</th><th>Score</th><th>Next</th><th>Win</th><th></th></tr>`
 	for (const [cat, c] of Object.entries(CONTEST_CATEGORIES)) {
 		const rank = nextContestRank(id, cat), cond = conditionOf(key, cat)
@@ -46,7 +46,7 @@ function contestPickerHtml() {
 	const keys = Object.keys(player.t.box).filter(k => searchMatches(player.n.search, speciesOf(k)))
 		.sort((a, b) => (player.t.party.includes(b) - player.t.party.includes(a)) || player.t.box[b].level - player.t.box[a].level)
 	const shown = keys.slice(0, 60)
-	let html = `<div class="pk-dex">${shown.map(k => `<button class="pk-dex-entry pk-button ${k === contestant() ? "pk-on" : ""}" onclick="selectContestant('${k}')" title="${keyName(k)}">${pkSprite(speciesOf(k), isShiny(k), 48, "", formOf(k))}<br><small>${keyName(k)}</small></button>`).join("")}</div>`
+	let html = `<div class="pk-dex">${shown.map(k => `<button class="pk-dex-entry pk-button ${k === contestant() ? "pk-on" : ""}" onclick="selectContestant('${k}')" title="${keyName(k)}">${pkSprite(speciesOf(k), colorOf(k), 48, "", formOf(k))}<br><small>${keyName(k)}</small></button>`).join("")}</div>`
 	if (keys.length > shown.length) html += `<small>${keys.length - shown.length} more: search by name to find them.</small>`
 	return html
 }

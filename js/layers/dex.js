@@ -18,9 +18,11 @@ function dexHtml() {
 	for (const id of regionDex(viewedDexRegion())) {
 		if (!dexMatches(id)) continue
 		const seen = player.d.seen[id], caught = player.d.caught[id], shiny = player.d.shiny[id]
+		const albino = player.d.albino?.[id], melanistic = player.d.melanistic?.[id]
 		const cls = caught ? "" : seen ? "pk-seen" : "pk-unseen"
-		const title = seen ? `#${id} ${speciesName(id)}${caught ? ` (caught ${caught})` : " (seen)"}${shiny ? ` ★${shiny}` : ""}` : `#${id} ???`
-		html += `<span class="pk-dex-entry ${cls}" title="${title}">${pkSprite(id, !!shiny, 56)}<br><small>${id}${shiny ? " ★" : ""}${player.d.hatched[id] ? " 🥚" : ""}</small></span>`
+		const marks = `${shiny ? " ★" : ""}${albino ? " ◇" : ""}${melanistic ? " ✦" : ""}`
+		const title = seen ? `#${id} ${speciesName(id)}${caught ? ` (caught ${caught})` : " (seen)"}${shiny ? ` ★${shiny}` : ""}${albino ? ` ◇${albino}` : ""}${melanistic ? ` ✦${melanistic}` : ""}` : `#${id} ???`
+		html += `<span class="pk-dex-entry ${cls}" title="${title}">${pkSprite(id, melanistic ? "melanistic" : shiny ? "shiny" : albino ? "albino" : false, 56)}<br><small>${id}${marks}${player.d.hatched[id] ? " 🥚" : ""}</small></span>`
 	}
 	return html + "</div>"
 }
@@ -52,6 +54,8 @@ addLayer("d", {
 		seen: {},
 		caught: {},
 		shiny: {},
+		albino: {},
+		melanistic: {},
 		forms: {},
 		hatched: {},
 		everHatched: {},
@@ -143,6 +147,8 @@ addLayer("a", {
 		62: { name: "Bye bye, Team Rocket", tooltip: "Clear Silph Co.", done() { return chapterCleared("silphCo") } },
 		63: { name: "Game Freak's Diploma", tooltip: "Catch all 150 Kanto species (Mew not needed).", done() { return hasDiploma() } },
 		64: { name: "Glitch City", tooltip: "Meet Missingno. off Cinnabar's coast.", done() { return (player.d.missingno || 0) > 0 } },
+		65: { name: "White as snow", tooltip: "Catch an Albino Pokémon.", done() { return albinoSpecies() > 0 } },
+		71: { name: "Into the dark", tooltip: "Catch a Melanistic Pokémon: shiny and albino at once.", done() { return melanisticSpecies() > 0 } },
 		45: { name: "Familiar faces", tooltip: "Enshrine 30 species in the Hall of Fame.", done() { return Object.keys(player.h.enshrined).length >= 30 } },
 	},
 	tabFormat: ["achievements"],

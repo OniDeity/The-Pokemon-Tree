@@ -89,7 +89,7 @@ function boxHtml() {
 	const byNumber = (a, b) => speciesOf(a) - speciesOf(b) || a.localeCompare(b)
 	const mode = player.t.boxFilter
 	const keys = Object.keys(box).filter(key => !player.t.party.includes(key) && !inDayCare(key) && searchMatches(player.t.boxSearch, speciesOf(key))
-		&& (mode === "shiny" ? isShiny(key) : mode === "noShiny" ? !player.d.shiny[speciesOf(key)] : mode === "forms" ? !!formOf(key) : mode === "egg" || mode === "safari" ? box[key].origin === mode : true))
+		&& (mode === "shiny" ? isShiny(key) : mode === "albino" ? isAlbino(key) : mode === "noShiny" ? !player.d.shiny[speciesOf(key)] : mode === "forms" ? !!formOf(key) : mode === "egg" || mode === "safari" ? box[key].origin === mode : true))
 	if (sort === "level") keys.sort((a, b) => box[b].level - box[a].level || byNumber(a, b))
 	else if (sort === "strength") keys.sort((a, b) => battlerScore(speciesOf(b), box[b].level) - battlerScore(speciesOf(a), box[a].level))
 	else keys.sort(byNumber)
@@ -102,7 +102,7 @@ function boxHtml() {
 function setBoxSort(sort) { player.t.sort = sort }
 function setBoxPage(page) { player.t.boxPage = page }
 const BOX_PAGE = 30
-const BOX_FILTERS = { all: "All", shiny: "Shiny", noShiny: "No shiny yet", forms: "Forms", egg: "Hatched", safari: "Safari" }
+const BOX_FILTERS = { all: "All", shiny: "Shiny", albino: "Albino", noShiny: "No shiny yet", forms: "Forms", egg: "Hatched", safari: "Safari" }
 
 addLayer("t", {
 	name: "Team",

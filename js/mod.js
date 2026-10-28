@@ -4,7 +4,7 @@ let modInfo = {
 	author: "Onide",
 	pointsName: "Research Points",
 	modFiles: [
-		"data/kanto.js", "data/johto.js", "engine.js", "logic.js",
+		"data/kanto.js", "data/johto.js", "data/hoenn.js", "engine.js", "logic.js",
 		"layers/field.js", "layers/team.js", "layers/gym.js", "layers/daycare.js", "layers/safari.js", "layers/gamecorner.js", "layers/story.js", "layers/pokegear.js", "layers/hunt.js", "layers/hof.js", "layers/dex.js",
 		"tree.js",
 	],
@@ -17,11 +17,17 @@ let modInfo = {
 
 // Set your version in num and name
 let VERSION = {
-	num: "0.18",
-	name: "The Story node",
+	num: "0.19",
+	name: "Hoenn",
 }
 
 let changelog = `<h1>Changelog:</h1><br>
+	<h3>v0.19 Hoenn</h3><br>
+		- Hoenn! After three Johto Hall of Fame entries, a new run can begin in Hoenn with Professor Birch's Treecko, Torchic or Mudkip, instead of in Kanto. Hoenn's Champion enters the Hall of Fame for Fame ×2.5.<br>
+		- Hoenn from Emerald: 55 places (Dive with Tate & Liza's badge), Roxanne to Juan, Sidney, Phoebe, Glacia, Drake and Wallace, gifts and trades (the fossils, Castform, Beldum, Wynaut's Egg), and Kyogre, Groudon, Rayquaza, the Regis, Latias, Latios, Jirachi and Deoxys.<br>
+		- 135 new species (#252-386), with a Hoenn page in the Pokédex. Gen 3 babies of older Pokémon (Azurill, Wynaut) evolve and hatch once you've beaten Hoenn.<br>
+		- Badge milestones are named for each region's badges.<br>
+		- Areas with more than eight routes no longer get steeply more expensive after the eighth.<br>
 	<h3>v0.18 The Story node</h3><br>
 		- Team Rocket and Trainers are now one Story node. Its Storyline tab draws the region's story as a map: every place between the Gyms and the League, what it needs and what it opens (a Gym, the League, a legendary). Rivals, Villains and Challengers have their own tabs.<br>
 		- Rematch calls: every 20 minutes of searching a trainer from a place you've cleared calls for a rematch, levelled up to your party, for Research Points and story battles won (up to three calls wait).<br>

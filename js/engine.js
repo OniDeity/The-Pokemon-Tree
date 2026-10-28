@@ -26,9 +26,9 @@ const KEY_ITEMS = {
 	surf: { badges: 5, name: "Surf" },
 	superRod: { badges: 5, name: "Super Rod" },
 }
-const POOL_KEY = { surf: "surf", oldRod: "oldRod", goodRod: "goodRod", superRod: "superRod", headbutt: "headbutt", rockSmash: "rockSmash" }
-const POOL_WEIGHT = { walk: 2, surf: 2, oldRod: 1, goodRod: 1, superRod: 1, headbutt: 1, rockSmash: 1 }
-const POOL_NAMES = { walk: "Grass & caves", surf: "Surfing", oldRod: "Old Rod", goodRod: "Good Rod", superRod: "Super Rod", headbutt: "Headbutt trees", rockSmash: "Rock Smash" }
+const POOL_KEY = { surf: "surf", oldRod: "oldRod", goodRod: "goodRod", superRod: "superRod", headbutt: "headbutt", rockSmash: "rockSmash", dive: "dive" }
+const POOL_WEIGHT = { walk: 2, surf: 2, oldRod: 1, goodRod: 1, superRod: 1, headbutt: 1, rockSmash: 1, dive: 2 }
+const POOL_NAMES = { walk: "Grass & caves", surf: "Surfing", oldRod: "Old Rod", goodRod: "Good Rod", superRod: "Super Rod", headbutt: "Headbutt trees", rockSmash: "Rock Smash", dive: "Diving" }
 const ROD_POOLS = ["oldRod", "goodRod", "superRod"]
 
 // Evolution items, and the badges needed before you can get them.
@@ -100,8 +100,14 @@ function gainXp(entry, id, xp, cap) {
  * Whether an evolution (or breeding link) between Gen 1 and Gen 2 is open: logic.js replaces this
  * so Crobat, Pichu and the like wait until Johto has been beaten once.
  */
-var crossGenOpen = () => true
-function evolutionOpen(from, into) { return (from <= 151) === (into <= 151) || crossGenOpen() }
+/** The generation a species comes from (1: #1-151, 2: #152-251, 3: #252-386). */
+function generation(id) { return id <= 151 ? 1 : id <= 251 ? 2 : 3 }
+/** Whether links into generation `gen` from older species are open (logic.js: that region beaten). */
+var crossGenOpen = gen => true
+function evolutionOpen(from, into) {
+	const a = generation(from), b = generation(into)
+	return a === b || crossGenOpen(Math.max(a, b))
+}
 
 /** The species this Pokémon evolves into by levelling at its current level, if any. */
 function levelEvolution(id, level) {

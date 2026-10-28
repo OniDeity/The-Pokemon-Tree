@@ -166,10 +166,20 @@ Sister project: OniDeity/idle-pokemon (its data is the source of ours).
   `revisitRegions()` (Johto's Champion: Kanto; Hoenn's: Kanto and Johto), `revisitOpen`/
   `revisitZones` (replaced the Kanto-only `kantoRevisitOpen`), `visitsCleared()` → Fame
   ×`VISIT_FAME` each, `journeyFinaleLeft()` (Red, or the visits; the simulator waits SIM_RED hours
-  for it). New regions add themselves to `REVISITS` and `revisitRegions`. Strengths are a cliff
+  for it). New regions add themselves to `REVISITS` and `VISITS` (v0.25.1). Strengths are a cliff
   here (the post-League team only grows by gear): visits 22/26 take 0.1-2.5 h; at 25 they walled
   for 6 h. Hoenn pace 9 → 18 for the 10-12 h target: `SIM_HOENN=1 SIM_FAME=600` 8.5-13.9 h
   (median ~11), 800 Fame 9.4-10.7 h, 400 Fame 13.9-19 h.
+- Journeys (v0.25.1, side games phase 0): `REGIONS[r]` carries `opens: { after, entries }` (Hall of
+  Fame entries as that region's Champion; Johto keeps counting every entry), `fame`, `maxSpecies`
+  and, for starter-screen journeys, `journey: { button, intro }` (clickable ids from `button`).
+  `regionEntries(r)`, `regionOpen(r)`, `regionBeaten(r)`, `regionFame(r)`, `journeyRegions()`,
+  `startInRegion` and the Team layer's `chooseJourneyStarter`/`journeyIntroHtml` read them;
+  `johtoEntries`/`hoennOpen` and friends are wrappers. `VISITS[host]` = { visited region: League
+  strength, or null for routes only } (`visitChapterId`: Hoenn's keep "visitKanto", later hosts
+  prefix theirs; `visitChapters`). A new journey region is REGIONS data + VISITS + its data file.
+  Simulator: `SIM_START=<region>` (SIM_HOENN=1 is SIM_START=hoenn) gives 3 entries of each region
+  along the `opens` chain and the professor's starter at the same index as Oak's.
 - Challenge highlights: `challengeStatus(key)`; hatching or a Safari catch marks an owned entry's
   `origin`, and `canEvolveInto` lets an entry with an origin evolve into one without.
 - Regions and the run's Pokédex (v0.12): `REGIONS` (`regionDex`, `currentRegion`, `dexRegions`)
@@ -334,6 +344,6 @@ The owner wants every Hall of Fame to feel like a proper reset:
 - Pacing: shorter than main regions, about 5-8 h of simulated play per first side journey. Fame
   factors below Johto's and Hoenn's 2.5 for the islands, at or above them for Orre.
 - Phases: (0) the side-journey framework (branches on the starter screen, region entries, a
-  region-agnostic journey start); (1) Orange Islands (with Pinkan/Valencian); (2) Sevii; (3)
+  region-agnostic journey start; done in v0.25.1); (1) Orange Islands (with Pinkan/Valencian); (2) Sevii; (3)
   Shadow Pokémon and Colosseum (trainer-battle places, snagging, hearts, Relic Stone, sprites);
   (4) XD (Poké Spots, carried mechanics); (5) post-game visits and pacing for each.

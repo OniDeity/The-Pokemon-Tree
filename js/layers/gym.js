@@ -161,7 +161,7 @@ addLayer("l", {
 		["display-text", () => canSailToJohto()
 			? `<div class="pk-trainer"><b>⛵ Johto awaits</b><br><small>Enter the Hall of Fame now, or sail on to Johto: a fresh start under Professor Elm (every Pokémon back at Lv. ${JOHTO_START_LEVEL}), and Fame ×${JOHTO_FAME} when Johto's Champion enters the Hall.</small><br><button class="pk-button pk-big" onclick="sailToJohto(); showTab('t')">Sail to Johto</button></div>`
 			: currentRegion() === "kanto" && isChampion() && !johtoOpen() ? `<small>Johto opens after ${JOHTO_ENTRIES} Hall of Fame entries (${hofEntries()}/${JOHTO_ENTRIES}).</small>`
-			: currentRegion() === "hoenn" && isChampion() ? `<div class="pk-trainer"><b>✈ Kanto and Johto await</b><br><small>Their routes are open on the Field's Map, and their Leagues wait on the Story node: each one beaten gives Fame ×${VISIT_FAME} for this Hall of Fame entry (${visitsCleared()}/${Object.keys(REVISITS).length} beaten).</small></div>` : ""],
+			: visitChapters().length && isChampion() ? `<div class="pk-trainer"><b>✈ ${revisitRegions().map(r => REVISITS[r].name).join(" and ")} await</b><br><small>Their routes are open on the Field's Map, and their Leagues wait on the Story node: each one beaten gives Fame ×${VISIT_FAME} for this Hall of Fame entry (${visitsCleared()}/${visitChapters().length} beaten).</small></div>` : ""],
 		"blank",
 		["display-text", () => isChampion() ? "" : surveyHtml()],
 		["display-text", () => isChampion() ? "" : storyGateHtml(leagueStoryGate())],

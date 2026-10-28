@@ -167,6 +167,7 @@ function zoneUnlockCost(index) {
 function zoneOpen(zone) {
 	if (zone.region !== currentRegion()) return kantoRevisitOpen(zone)
 	if (zone.anime) return animeOpen(zone)
+	if (zone.mirage) return isChampion() && mirageVisible()
 	if (zone.postGame) return isChampion()
 	if (zone.badges < badges()) return true
 	if (zone.badges > badges()) return false
@@ -360,6 +361,7 @@ function doEncounter(rng) {
 	player.f.encounters++
 	eggStep()
 	storyCallStep()
+	mirageStep(rng)
 	const team = partyBattlers()
 	const result = battle(team, [battler(enc.id, enc.level)])
 	const name = `${shiny ? "★ " : ""}${formName(enc.id, enc.form)} (Lv. ${enc.level})`
@@ -389,7 +391,7 @@ function doEncounter(rng) {
 		pkLog(`Beat a wild ${name}.`, "win", enc, shiny)
 		return { ...enc, shiny, win: true, caught: false, rp }
 	}
-	let caught = rand(rng) < catchChance(enc.id, catchMult() * speciesCatchMult(enc.id) * apricornMult(enc), enc.form)
+	let caught = rand(rng) < catchChance(enc.id, catchMult() * speciesCatchMult(enc.id) * ballMult(enc), enc.form)
 	// Silph Co.'s Master Ball: the next new Pokémon beaten is caught for sure.
 	if (!caught && player.q?.masterBall && !player.d.caught[enc.id]) {
 		caught = true
@@ -450,7 +452,21 @@ function canChallengeGym() {
 /** Earning a badge: in a Nuzlocke, the Pokémon that fell in the Gym battle are released. */
 function winGymBattle() {
 	releaseFainted(gymPrediction())
+	// Emerald's first double battle waits on Route 104, just after Roxanne.
+	if (currentRegion() === "hoenn" && badges() === 0) unlockMechanic("doubleBattles", "Double battles! From now on your lead's partner (the next Pokémon in the party) fights beside it, in every region.")
 }
+
+// ---- Mechanics unlocked for good (player.h.mechanics) ----
+// Double battles (Hoenn): the party member after the lead fights beside it for PARTNER_DAMAGE of
+// its damage, and isn't attacked (the engine's partnerDamage). As in Idle Pokémon.
+const PARTNER_DAMAGE = 0.5
+function mechanicOn(id) { return !!player.h?.mechanics?.[id] }
+function unlockMechanic(id, text) {
+	if (!player.h || mechanicOn(id)) return
+	player.h.mechanics = { ...player.h.mechanics, [id]: true }
+	pkLog(text, "story")
+}
+partnerDamage = () => mechanicOn("doubleBattles") ? PARTNER_DAMAGE : 0
 
 function leagueTrainers() {
 	const r = region()
@@ -831,7 +847,42 @@ const WARDEN_MILESTONES = [
 /** Johto's National Park holds the Bug-Catching Contest instead (Park Balls, its own bugs). */
 const BUG_CONTEST_ZONE = { id: "bugContest", name: "Bug-Catching Contest", region: "johto", badges: 2, blurb: "National Park's contest: Park Balls only, and the biggest bug wins.", pools: { walk: BUG_CONTEST } }
 function inJohtoContest() { return currentRegion() === "johto" }
-function safariZone() { return inJohtoContest() ? BUG_CONTEST_ZONE : zoneById(currentRegion() === "hoenn" ? "hoennSafariZone" : "safariZone") }
+function safariZone() {
+	if (inJohtoContest()) return BUG_CONTEST_ZONE
+	if (currentRegion() !== "hoenn") return zoneById("safariZone")
+	// Emerald's expansion (Areas 5 and 6) opens after the League.
+	const zone = zoneById("hoennSafariZone"), extra = zoneById("safariZoneExpansion")
+	if (!isChampion() || !extra) return zone
+	const pools = { ...zone.pools }
+	for (const p in extra.pools) pools[p] = [...(pools[p] || []), ...extra.pools[p]]
+	return { ...zone, name: "Safari Zone (with Areas 5 and 6)", pools }
+}
+// Hoenn's Safari Zone has Pokéblock feeders: a block of one colour draws Pokémon whose types suit
+// it (Idle Pokémon's contest categories), ×POKEBLOCK_DRAW as often. One feeder flavour per run.
+const POKEBLOCK_DRAW = 3
+const POKEBLOCKS = {
+	red: { name: "Red Pokéblock", flavor: "Spicy", types: ["fire", "electric", "dragon", "flying", "fighting"] },
+	blue: { name: "Blue Pokéblock", flavor: "Dry", types: ["water", "ice", "psychic"] },
+	pink: { name: "Pink Pokéblock", flavor: "Sweet", types: ["normal", "grass", "bug"] },
+	green: { name: "Green Pokéblock", flavor: "Bitter", types: ["psychic", "ghost", "dark", "poison", "grass"] },
+	yellow: { name: "Yellow Pokéblock", flavor: "Sour", types: ["rock", "ground", "steel", "fighting", "poison"] },
+}
+function pokeblockOpen() { return currentRegion() === "hoenn" && safariOpen() }
+function pokeblockCost() { return safariTripCost().times(3) }
+function setPokeblock(color) {
+	if (!pokeblockOpen() || !POKEBLOCKS[color] || player.s.pokeblock === color || player.points.lt(pokeblockCost())) return false
+	player.points = player.points.sub(pokeblockCost())
+	player.s.pokeblock = color
+	return true
+}
+/** The Safari zone with the feeder's Pokéblock drawing its types (Hoenn only). */
+function withPokeblock(zone) {
+	const block = currentRegion() === "hoenn" && POKEBLOCKS[player.s?.pokeblock]
+	if (!block) return zone
+	const drawn = e => SPECIES[e[0]].types.some(t => block.types.includes(t))
+	const pools = Object.fromEntries(Object.entries(zone.pools).map(([p, entries]) => [p, entries.map(e => drawn(e) ? [e[0], e[1] * POKEBLOCK_DRAW, ...e.slice(2)] : e)]))
+	return { ...zone, pools }
+}
 function safariOpen() { return hofEntries() >= 2 || badges() >= safariZone().badges }
 function hasSafariUpgrade(id) { return !!player.s && player.s.upgrades.map(Number).includes(Number(id)) }
 function safariCaught() { return player.d.safari || 0 }
@@ -861,7 +912,7 @@ function safariCatchChance(id, strategy = SAFARI_STRATEGIES.balls) {
 
 /** One Safari encounter: a strategy's opening move, then balls until it's caught or runs. */
 function safariEncounter(rng) {
-	const enc = rollEncounter(safariZone(), badges(), rng)
+	const enc = rollEncounter(withPokeblock(safariZone()), badges(), rng)
 	const shiny = rand(rng) < 1 / shinyOdds()
 	const strategy = SAFARI_STRATEGIES[automationOn("safari") ? bestSafariStrategy(enc.id) : player.s.strategy] || SAFARI_STRATEGIES.balls
 	const name = `${shiny ? "★ " : ""}${speciesName(enc.id)} (Lv. ${enc.level})`
@@ -930,7 +981,7 @@ function buyableCost(def, amount) { return new Decimal(def.base).times(Decimal.p
 // Rewards of the automation challenges (31-33), each with an on/off switch in player.h.auto.
 
 const AUTOMATIONS = {
-	buy: { challenge: 31, name: "Auto-buy", text: "Buys Field equipment, opens routes, and buys the Day Care's, Safari Zone's, Game Corner's and shiny hunting's buyables when you can afford them (cheapest first)." },
+	buy: { challenge: 31, name: "Auto-buy", text: "Buys Field equipment and upgrades, opens routes, and buys the Day Care's, Safari Zone's, Game Corner's and shiny hunting's upgrades and buyables when you can afford them (cheapest first)." },
 	eggs: { challenge: 32, name: "Day Care Lady", text: "Keeps the Day Care's pair laying Eggs, choosing pairs whose Eggs hatch into species you haven't hatched yet." },
 	safari: { challenge: 33, name: "Warden's Pass", text: "Safari trips are free and start on their own, and each Pokémon gets the strategy most likely to catch it." },
 	route: { challenge: 41, name: "Route Planner", text: "The Field moves itself to an open route with species you haven't seen, else one with Pokémon your box is missing." },
@@ -964,13 +1015,29 @@ function toggleAutomation(id) {
 	player.h.auto[id] = !automationOn(id)
 }
 
-/** Auto-buy: everything affordable, cheapest first, a few purchases per tick. */
+/** Auto-buy: everything affordable (equipment, buyables and one-time upgrades), cheapest first, a few per tick. */
 function autoBuyTick() {
 	if (!automationOn("buy")) return
+	// One-time upgrades bought with Research Points: [layer, definitions, open?].
+	const upgradeSets = [["f", FIELD_UPGRADES, true], ["c", DAY_CARE_UPGRADES, dayCareOpen()], ["s", SAFARI_UPGRADES, safariOpen()], ["y", HUNT_UPGRADES, huntOpen()]]
 	for (let guard = 0; guard < 10; guard++) {
 		const options = []
 		const next = nextFrontierZone()
 		if (next) options.push([next.cost, () => unlockNextZone()])
+		for (const [layer, defs, open] of upgradeSets) {
+			if (!open || !player[layer]) continue
+			for (const id in defs) {
+				const owned = player[layer].upgrades.map(Number).includes(Number(id))
+				if (owned || (defs[id].badges !== undefined && badges() < defs[id].badges)) continue
+				const cost = new Decimal(defs[id].cost)
+				options.push([cost, () => {
+					player.points = player.points.sub(cost)
+					player[layer].upgrades.push(Number(id))
+					// The Auto-Search Drone gets to work at once.
+					if (layer === "f" && Number(id) === 11) player.f.searching = true
+				}])
+			}
+		}
 		for (const id in FIELD_BUYABLES) {
 			if (badges() < FIELD_BUYABLES[id].badges || !fieldBuyableAllowed(id)) continue
 			const cost = fieldBuyableCost(id)
@@ -990,13 +1057,16 @@ function autoBuyTick() {
 		}
 		options.sort((a, b) => a[0].cmp(b[0]))
 		if (options.length && player.points.gte(options[0][0])) { options[0][1](); continue }
-		// The prize counter's buyables cost coins.
+		// The prize counter's buyables and the Game Corner's upgrades cost coins.
 		if (!gameCornerOpen()) return
-		const coinOptions = Object.keys(GAME_CORNER_BUYABLES).map(id => [buyableCost(GAME_CORNER_BUYABLES[id], gameCornerBuyable(id)).toNumber(), id]).sort((a, b) => a[0] - b[0])
+		const coinOptions = [
+			...Object.keys(GAME_CORNER_BUYABLES).map(id => [buyableCost(GAME_CORNER_BUYABLES[id], gameCornerBuyable(id)).toNumber(), () => { player.k.buyables[id] = new Decimal(gameCornerBuyable(id) + 1) }]),
+			...Object.keys(GAME_CORNER_UPGRADES).filter(id => !hasGameCornerUpgrade(id)).map(id => [GAME_CORNER_UPGRADES[id].cost, () => player.k.upgrades.push(Number(id))]),
+		].sort((a, b) => a[0] - b[0])
 		if (!coinOptions.length || coins() < coinOptions[0][0]) return
-		const [cost, id] = coinOptions[0]
+		const [cost, buy] = coinOptions[0]
 		addCoins(-cost)
-		player.k.buyables[id] = new Decimal(gameCornerBuyable(id) + 1)
+		buy()
 	}
 }
 
@@ -1638,6 +1708,7 @@ for (const s of SPECIALS) s.region = s.region || "kanto"
 for (const s of JOHTO_SPECIALS) s.region = "johto"
 for (const z of HOENN_ZONES) z.region = "hoenn"
 for (const s of HOENN_SPECIALS) s.region = "hoenn"
+for (const z of HOENN_ZONES) if (z.id === "mirageIsland") z.mirage = true
 const ALL_ZONES = [...ZONES, ...JOHTO_ZONES, ...HOENN_ZONES]
 const ALL_SPECIALS = [...SPECIALS, ...JOHTO_SPECIALS, ...HOENN_SPECIALS]
 
@@ -1910,13 +1981,31 @@ const APRICORN_BALLS = {
 	loveBall: { name: "Love Ball", cost: 400000, text: "Catch ×2 on Pokémon whose family is already in your box." },
 }
 
-function pokegearOpen() { return currentRegion() === "johto" && !!player.p }
-function radioOpen() { return pokegearOpen() && hasKeyItem("radioCard", badges()) }
-function currentSwarm() { return pokegearOpen() && player.p.swarm ? JOHTO_SWARMS.find(w => w.zone === player.p.swarm) || null : null }
+// Hoenn's PokéNav ("p" too): the TV's mass-outbreak reports (Emerald's), Devon's Balls (from
+// Rustboro, after Roxanne) and Mirage Island sightings after the League.
+const HOENN_OUTBREAK_LIST = [["route102", 273], ["route114", 274], ["route116", 300], ["route117", 273], ["route120", 273], ["route102", 283], ["route111", 283], ["route114", 283], ["route117", 283], ["route120", 283]]
+/** An outbreak adds the species at half the place's walking weight (about a third of encounters). */
+const HOENN_OUTBREAKS = HOENN_OUTBREAK_LIST.map(([zoneId, species]) => {
+	const walk = HOENN_ZONES.find(z => z.id === zoneId)?.pools.walk || []
+	const weight = walk.reduce((s, e) => s + e[1], 0) / 2
+	const lo = Math.min(...walk.map(e => e[2])), hi = Math.max(...walk.map(e => e[3]))
+	return { zone: zoneId, species, pools: { walk: [[species, weight, lo, hi]] } }
+}).filter(w => w.pools.walk[0][1] > 0)
+const DEVON_BALLS = {
+	netBall: { name: "Net Ball", cost: 20000, text: "Catch ×3 on Bug and Water Pokémon." },
+	diveBall: { name: "Dive Ball", cost: 50000, text: "Catch ×3.5 on Pokémon found surfing, diving or fishing." },
+	nestBall: { name: "Nest Ball", cost: 100000, text: "Catch up to ×4 on low-level Pokémon (×(40 − level) ÷ 10)." },
+	repeatBall: { name: "Repeat Ball", cost: 200000, text: "Catch ×3 on species already caught this run." },
+}
+function pokenav() { return currentRegion() === "hoenn" }
+function pokegearOpen() { return (currentRegion() === "johto" || pokenav()) && !!player.p }
+function regionSwarms() { return pokenav() ? HOENN_OUTBREAKS : JOHTO_SWARMS }
+function radioOpen() { return pokegearOpen() && (pokenav() ? badges() >= 1 : hasKeyItem("radioCard", badges())) }
+function currentSwarm() { return pokegearOpen() && player.p.swarm ? regionSwarms().find(w => w.zone + w.species === player.p.swarm || w.zone === player.p.swarm) || null : null }
 function swarmCost() { return new Decimal(SWARM_COST).times(Decimal.pow(2, badges())) }
 function tuneSwarm(zoneId) {
 	if (!radioOpen() || player.p.swarm === zoneId || player.points.lt(swarmCost())) return false
-	if (!JOHTO_SWARMS.some(w => w.zone === zoneId)) return false
+	if (!regionSwarms().some(w => w.zone === zoneId || w.zone + w.species === zoneId)) return false
 	player.points = player.points.sub(swarmCost())
 	player.p.swarm = zoneId
 	return true
@@ -1932,15 +2021,17 @@ function withSwarm(zone) {
 
 function kurtOpen() { return pokegearOpen() && badges() >= 1 }
 function hasBall(id) { return !!player.p?.balls?.[id] }
+/** The region's ball maker: Kurt's Apricorn Balls in Johto, Devon's in Hoenn. */
+function regionBalls() { return pokenav() ? DEVON_BALLS : APRICORN_BALLS }
 function buyBall(id) {
-	const ball = APRICORN_BALLS[id]
+	const ball = regionBalls()[id]
 	if (!ball || !kurtOpen() || hasBall(id) || player.points.lt(ball.cost)) return false
 	player.points = player.points.sub(ball.cost)
 	player.p.balls = { ...player.p.balls, [id]: true }
 	return true
 }
-/** Every Apricorn Ball you hold that helps with this encounter (the best of them counts). */
-function apricornMult(enc) {
+/** Every ball you hold (Apricorn or Devon) that helps with this encounter: the best of them counts. */
+function ballMult(enc) {
 	if (!player.p?.balls) return 1
 	let best = 1
 	const top = Math.max(0, ...player.t.party.map(k => player.t.box[k]?.level || 0))
@@ -1949,5 +2040,29 @@ function apricornMult(enc) {
 	if (hasBall("moonBall") && SPECIES[enc.id].evolutions.some(e => e.stone === "moonStone")) best = Math.max(best, 4)
 	if (hasBall("fastBall") && SPECIES[enc.id].stats[5] >= 100) best = Math.max(best, 4)
 	if (hasBall("loveBall") && Object.keys(player.t.box).some(k => breedingFamily(speciesOf(k)) === breedingFamily(enc.id))) best = Math.max(best, 2)
+	if (hasBall("netBall") && SPECIES[enc.id].types.some(t => t === "bug" || t === "water")) best = Math.max(best, 3)
+	if (hasBall("diveBall") && (enc.pool === "surf" || enc.pool === "dive" || ROD_POOLS.includes(enc.pool))) best = Math.max(best, 3.5)
+	if (hasBall("nestBall")) best = Math.max(best, Math.min(4, (40 - enc.level) / 10))
+	if (hasBall("repeatBall") && player.d.caught[enc.id]) best = Math.max(best, 3)
 	return best
+}
+
+// Mirage Island: after Hoenn's League, every MIRAGE_BATTLES wild battles it may be sighted (the
+// PokéNav's TV reports it) and stays in view for MIRAGE_SHOWN battles.
+const MIRAGE_BATTLES = 300, MIRAGE_CHANCE = 1 / 3, MIRAGE_SHOWN = 150
+function mirageVisible() { return currentRegion() === "hoenn" && (player.p?.mirage || 0) > 0 }
+function mirageStep(rng) {
+	if (!player.p || currentRegion() !== "hoenn" || !isChampion()) return
+	if (player.p.mirage > 0) {
+		player.p.mirage--
+		if (player.p.mirage === 0 && player.f.zone === "mirageIsland") player.f.zone = regionZones()[0].id
+		return
+	}
+	player.p.mirageBattles = (player.p.mirageBattles || 0) + 1
+	if (player.p.mirageBattles < MIRAGE_BATTLES) return
+	player.p.mirageBattles = 0
+	if (rand(rng) < MIRAGE_CHANCE) {
+		player.p.mirage = MIRAGE_SHOWN
+		pkLog("📺 Mirage Island has been sighted off Route 130! It won't stay in view for long.", "story")
+	}
 }

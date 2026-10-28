@@ -2,8 +2,9 @@
 // Usage: node scripts/simulate.js [starter=1|4|7] [seed]
 //   SIM_JOHTO=1 starts with Johto open (three Hall of Fame entries) and plays the whole journey.
 //   SIM_RED=h waits up to h hours for the journey's finale (Red, or Hoenn's visits) before the Hall.
-//   SIM_HOENN=1 starts in Hoenn (three Kanto and three Johto entries) with Birch's starter of the
-//   same type. SIM_FAME=n spends n Fame in the Hall of Fame's shop before the run.
+//   SIM_START=<region> starts a journey there, after the Hall of Fame entries that open it, with its
+//   professor's starter of the same type (SIM_HOENN=1 is SIM_START=hoenn: three Kanto and three Johto
+//   entries, Birch's starter). SIM_FAME=n spends n Fame in the Hall of Fame's shop before the run.
 //   SIM_HOURS=n stops after n hours. SIM_RUNS=n enters the Hall of Fame and replays n runs in all,
 //   buying Fame upgrades; SIM_CHALLENGE=id plays the runs after the first under that challenge.
 // Runs js/data/kanto.js, js/engine.js and js/logic.js unchanged against a fake `player`.
@@ -88,10 +89,20 @@ const run = code => vm.runInContext(code, ctx)
 const RUNS = Number(process.env.SIM_RUNS || 1)
 const CHALLENGE = process.env.SIM_CHALLENGE || ""
 if (process.env.SIM_JOHTO) run(`player.h.hall = [1, 2, 3].map(() => ({ team: [], time: 0 }))`)
-if (process.env.SIM_HOENN) run(`player.h.hall = ["kanto", "kanto", "kanto", "johto", "johto", "johto"].map(region => ({ team: [], time: 0, region }));
-	player.h.regionsBeaten = { johto: true }; startInRegion("hoenn")`)
+// SIM_START=<region> starts a journey there, with the Hall of Fame entries that open it (3 of each
+// region along the way, each one beaten) and its professor's starter of the same type.
+const START = process.env.SIM_START || (process.env.SIM_HOENN ? "hoenn" : "")
+if (START) run(`(() => {
+	const hall = [], beaten = {}
+	for (let r = "${START}"; REGIONS[r].opens; r = REGIONS[r].opens.after) {
+		const { after, entries } = REGIONS[r].opens
+		for (let i = 0; i < entries; i++) hall.unshift({ team: [], time: 0, region: after })
+		if (after !== "kanto") beaten[after] = true
+	}
+	player.h.hall = hall; player.h.regionsBeaten = beaten; startInRegion("${START}")
+})()`)
 if (process.env.SIM_FAME) run(`player.h.points = new Decimal(${Number(process.env.SIM_FAME)}); fameShop()`)
-run(`startRun(${process.env.SIM_HOENN ? ({ 1: 252, 4: 255, 7: 258 })[starter] || 252 : starter})`)
+run(`startRun(${START ? `REGIONS["${START}"].starters[Math.max(0, STARTERS.indexOf(${starter}))]` : starter})`)
 
 // Average Research Points per second in a zone with the current team (sampled battles).
 function zoneValue(zone) {

@@ -305,3 +305,35 @@ The owner wants every Hall of Fame to feel like a proper reset:
   marks, and need recolored sprites (Idle Pokémon draws its own with `scripts/generate*.py`).
 - Sprites: keep them, but as the Pokédex grows split it into per-region pages, page the box,
   and consider a setting to hide sprites.
+
+## Side games plan (agreed with the owner, not built yet)
+
+- Scope: all four of Idle Pokémon's Gen 1-3 side regions, as full journeys like Hoenn (fresh start
+  with everything owned levelled down, their own starters, trials, a finale, Hall of Fame entries
+  that record the region, Fame ×region factor, post-game visits through `REVISITS`). Data from
+  Idle Pokémon's orange.ts, sevii.ts, colosseum.ts and xd.ts, dumped with tsx like hoenn.ts.
+- Gating: side journeys branch off the main path and never gate it. Orange Islands after 3 Kanto
+  entries (beside Johto); Sevii after 3 Orange entries; Orre (Colosseum) after 3 Hoenn entries; Orre
+  (XD) after 3 Colosseum entries. Offered on the starter screen like Birch's starters.
+- Orange Islands: Ivy's starters (Pikachu, Togepi, Lapras), the Orange League's four Gyms (Cissy,
+  Danny, Rudy, Luana) and Drake at the Winner's Cup; ORANGE_ZONES + MORE_ORANGE_ZONES. Pinkan
+  (Idle's 1000+) and Valencian (2000+) as forms that belong to these islands (our own sprites; Idle
+  has no files for them).
+- Sevii Islands: FireRed/LeafGreen's islands 1-7 (Rock Smash), "quests" as trials, the Trainer
+  Tower as the finale, Elm's starters as in Idle Pokémon.
+- Orre (Colosseum): Espeon and Umbreon; places are trainer battles (their Pokémon can't be caught),
+  Cipher admins as trials, Realgam Tower as the finale. Orre (XD): Eevee; Poké Spots (wild
+  Pokémon for Poké Snacks), Citadark Isle.
+- Shadow Pokémon, as in Idle Pokémon: a `shadow` look (box key like "150-shadow", colours still
+  apply) snagged from trainers with the Snag Machine (once each per journey); it can't gain
+  experience or evolve until its heart opens (battles in the party), then `purify()` at the Relic
+  Stone turns it into its species. The Snag Machine and Relic Stone become mechanics kept for good
+  (`player.h.mechanics`): Cipher Peons make a share of encounters in every region Shadow. XD's Poké
+  Spots carry back too. Purified species are a lifetime record with milestones and a small bonus,
+  like shinies. Shadow sprites drawn by `scripts/generateVariants.py` (a dark purple aura).
+- Pacing: shorter than main regions, about 5-8 h of simulated play per first side journey. Fame
+  factors below Johto's and Hoenn's 2.5 for the islands, at or above them for Orre.
+- Phases: (0) the side-journey framework (branches on the starter screen, region entries, a
+  region-agnostic journey start); (1) Orange Islands (with Pinkan/Valencian); (2) Sevii; (3)
+  Shadow Pokémon and Colosseum (trainer-battle places, snagging, hearts, Relic Stone, sprites);
+  (4) XD (Poké Spots, carried mechanics); (5) post-game visits and pacing for each.

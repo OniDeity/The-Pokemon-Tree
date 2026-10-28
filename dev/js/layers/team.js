@@ -8,8 +8,13 @@ function chooseStarter(id) {
 	if (hofUpgrade(11)) player.points = player.points.add(200)
 	for (const up of fieldKeptUpgrades()) if (!hasFieldUpgrade(up)) player.f.upgrades.push(up)
 	player.f.zone = regionZones()[0].id
-	pkLog(`Professor Oak gives you ${speciesName(id)}. Your research begins on Route 1!`, "new", { id })
+	pkLog(`Professor ${region().professor} gives you ${speciesName(id)}. Your research begins on ${regionZones()[0].name}!`, "new", { id })
 	showTab("f")
+}
+/** Professor Birch's starters begin the run in Hoenn. */
+function chooseHoennStarter(id) {
+	if (!startInRegion("hoenn")) return
+	chooseStarter(id)
 }
 
 // Box and party entries are keyed by species and look ("15", "15-shiny"); see boxKey in logic.js.
@@ -138,6 +143,14 @@ addLayer("t", {
 			unlocked: () => !player.t.starter && starterChoices().includes(id),
 			style: { width: "160px", height: "180px" },
 		}])),
+		...Object.fromEntries(REGIONS.hoenn.starters.map((id, i) => [41 + i, {
+			title: () => speciesName(id),
+			display: () => `${pkSprite(id, false, 96)}<br>${SPECIES[id].types.join(" / ")}`,
+			canClick: () => !player.t.starter && hoennOpen(),
+			onClick: () => chooseHoennStarter(id),
+			unlocked: () => !player.t.starter && hoennOpen(),
+			style: { width: "160px", height: "180px" },
+		}])),
 		...Object.fromEntries(REGIONS.johto.starters.map((id, i) => [31 + i, {
 			title: () => speciesName(id),
 			display: () => `${pkSprite(id, false, 96)}<br>${SPECIES[id].types.join(" / ")}`,
@@ -160,6 +173,8 @@ addLayer("t", {
 		["display-text", () => !player.t.starter && anyChallenge() ? `<br><b>Challenge: ${CHALLENGES[player.h.activeChallenge].name}.</b> ${CHALLENGES[player.h.activeChallenge].rules}` : ""],
 		"blank",
 		["row", [["clickable", 11], ["clickable", 12], ["clickable", 13], ["clickable", 14], ["clickable", 15]]],
+		["display-text", () => !player.t.starter && hoennOpen() ? `<br><h3>...or begin in Hoenn</h3><br>Professor Birch, in Littleroot Town, has three Pokémon of his own for a researcher willing to survey Hoenn (Fame ×${HOENN_FAME} when Hoenn's Champion enters the Hall).` : !player.t.starter && johtoEntries() > 0 ? `<br><small>Hoenn opens after ${HOENN_ENTRIES} Johto Hall of Fame entries (${johtoEntries()}/${HOENN_ENTRIES}).</small>` : ""],
+		["row", [["clickable", 41], ["clickable", 42], ["clickable", 43]]],
 		["display-text", () => needsJohtoStarter() ? `<h2>Welcome to Johto!</h2><br><br>Professor Elm has three Pokémon for a researcher starting over. Your other Pokémon are back at Lv. ${JOHTO_START_LEVEL}.<br>Pick one:` : ""],
 		["row", [["clickable", 31], ["clickable", 32], ["clickable", 33]]],
 		["display-text", () => player.t.starter ? `<h3>Party (${player.t.party.length}/${partySize()})</h3><br><small>The lead fights first; the next one steps in if it faints. Level cap: ${currentCap()} (earn badges to raise it).</small>` : ""],

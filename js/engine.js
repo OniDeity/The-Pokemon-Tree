@@ -70,9 +70,11 @@ function formName(id, form) {
 	if (FORMS[form].ownName) return FORMS[form].name
 	return FORMS[form].suffix ? `${speciesName(id)} ${FORMS[form].name}` : `${FORMS[form].name} ${speciesName(id)}`
 }
-function spriteOf(id, shiny, form) {
+/** `color`: true or "shiny", "albino", "melanistic" (their own folders), or nothing. */
+function spriteOf(id, color, form) {
 	const file = form && FORMS[form].sprite ? `${id}-${form}` : id
-	return `resources/pokemon/${shiny ? "shiny/" : ""}${file}.png`
+	const folder = color === true ? "shiny" : color
+	return `resources/pokemon/${folder ? `${folder}/` : ""}${file}.png`
 }
 function hasKeyItem(item, badges) { return badges >= (REGION_RULES.keyItems[item]?.badges ?? 99) }
 function levelCap(badges) { const caps = REGION_RULES.levelCaps; return caps[Math.min(badges, caps.length - 1)] }

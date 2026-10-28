@@ -67,7 +67,7 @@ function rpMult() {
 	if (wardenMilestone(25)) m *= 1.2
 	m *= 1 + 0.1 * gameCornerBuyable(12)
 	if (jackpotMilestone(5)) m *= 1.1
-	m *= 1 + 0.01 * shinySpecies()
+	m *= 1 + 0.01 * shinySpecies() + 0.02 * melanisticSpecies()
 	if (rocketMilestone(10)) m *= 1.1
 	if (rivalMilestone(15)) m *= 1.1
 	if (rocketMilestone(75)) m *= 1.15
@@ -92,6 +92,8 @@ function xpMult() {
 	if (rivalMilestone(3)) m *= 1.2
 	if (rivalMilestone(30)) m *= 1.25
 	if (storyMilestone(50)) m *= 1.15
+	m *= 1 + 0.01 * albinoSpecies() + 0.02 * melanisticSpecies()
+	if (albinoMilestone(25)) m *= 1.25
 	return m
 }
 function searchTime() {
@@ -204,10 +206,14 @@ function surveyStatus() {
 // ---- Pokédex and box ----
 
 function dexSee(id) { player.d.seen[id] = (player.d.seen[id] || 0) + 1 }
-function dexCatch(id, shiny, form) {
+/** `color` is a look's colour (or true for shiny): Melanistic counts as both shiny and albino. */
+function dexCatch(id, color, form) {
 	if (!player.d.seen[id]) player.d.seen[id] = 1
 	player.d.caught[id] = (player.d.caught[id] || 0) + 1
-	if (shiny) player.d.shiny[id] = (player.d.shiny[id] || 0) + 1
+	if (color === true) color = "shiny"
+	if (color === "shiny" || color === "melanistic") player.d.shiny[id] = (player.d.shiny[id] || 0) + 1
+	if (color === "albino" || color === "melanistic") player.d.albino = { ...player.d.albino, [id]: (player.d.albino?.[id] || 0) + 1 }
+	if (color === "melanistic") player.d.melanistic = { ...player.d.melanistic, [id]: (player.d.melanistic?.[id] || 0) + 1 }
 	if (form) player.d.forms[`${id}-${form}`] = (player.d.forms[`${id}-${form}`] || 0) + 1
 }
 
@@ -217,15 +223,28 @@ function dexCatch(id, shiny, form) {
 // "25-clone-shiny" both. Albino and Melanistic (shiny and albino at once) are planned as further
 // looks.
 /** The look part of a key: "" for a plain Pokémon, else its form and/or "shiny". */
-function makeLook(form, shiny) { return [form, shiny ? "shiny" : null].filter(Boolean).join("-") }
+// Colours: Shiny, Albino (its own odds, same base) and Melanistic (both rolls at once).
+const COLORS = ["shiny", "albino", "melanistic"]
+const COLOR_MARKS = { shiny: "★", albino: "◇", melanistic: "✦" }
+const COLOR_NAMES = { shiny: "Shiny", albino: "Albino", melanistic: "Melanistic" }
+/** A look from a form and a colour (true means shiny). */
+function makeLook(form, color) { return [form, color === true ? "shiny" : color || null].filter(Boolean).join("-") }
+function colorMark(color) { return color ? `${COLOR_MARKS[color === true ? "shiny" : color]} ` : "" }
+/** Rolls a new Pokémon's colour: shiny and albino separately; both make it Melanistic. */
+function rollColor(rng, shinyChance, albinoChance) {
+	const shiny = rand(rng) < shinyChance, albino = rand(rng) < albinoChance
+	return shiny && albino ? "melanistic" : shiny ? "shiny" : albino ? "albino" : null
+}
 function boxKey(id, look = "") {
 	return typeof look === "string" && look && look !== "normal" ? `${Number(id)}-${look}` : String(Number(id))
 }
 function speciesOf(key) { return parseInt(key) }
 function lookOf(key) { return String(key).split("-").slice(1).join("-") }
 function variantOf(key) { return lookOf(key) || "normal" }
-function isShiny(key) { return String(key).split("-").includes("shiny") }
-function formOf(key) { return String(key).split("-").slice(1).find(p => p !== "shiny") || null }
+function colorOf(key) { return String(key).split("-").slice(1).find(p => COLORS.includes(p)) || null }
+function isShiny(key) { const c = colorOf(key); return c === "shiny" || c === "melanistic" }
+function isAlbino(key) { const c = colorOf(key); return c === "albino" || c === "melanistic" }
+function formOf(key) { return String(key).split("-").slice(1).find(p => !COLORS.includes(p)) || null }
 /** The (species, form) entries of a zone's open pools that aren't in the box in any look. */
 function zoneMissing(zone) {
 	const box = Object.keys(player.t.box)
@@ -236,7 +255,7 @@ function zoneMissing(zone) {
 	return missing.size
 }
 function ownsSpecies(id) { return Object.keys(player.t.box).some(key => speciesOf(key) === Number(id)) }
-function keyName(key) { return `${isShiny(key) ? "★ " : ""}${formName(speciesOf(key), formOf(key))}` }
+function keyName(key) { return `${colorMark(colorOf(key))}${formName(speciesOf(key), formOf(key))}` }
 
 /**
  * Saves before v0.3 kept one box entry per species, keyed by the species with a `shiny` flag,
@@ -273,7 +292,7 @@ function migrateBox() {
 function addToBox(id, level, variant = "normal", origin = null) {
 	const key = boxKey(id, variant)
 	const old = player.t.box[key]
-	dexCatch(id, isShiny(key), formOf(key))
+	dexCatch(id, colorOf(key), formOf(key))
 	// Hatching (or a Safari catch of) a species you already own marks the one you own.
 	if (old && origin && !old.origin) old.origin = origin
 	if (old && old.level >= level) return false
@@ -307,14 +326,14 @@ function evolve(key, into) {
 		existing.origin = existing.origin || entry.origin
 		if (existing.level < entry.level) Object.assign(existing, { level: entry.level, xp: entry.xp })
 	} else player.t.box[newKey] = entry
-	dexCatch(into, isShiny(key))
+	dexCatch(into, colorOf(key))
 	const slot = player.t.party.indexOf(key)
 	if (slot >= 0) {
 		if (player.t.party.includes(newKey)) player.t.party.splice(slot, 1)
 		else player.t.party[slot] = newKey
 	}
 	player.t.evolved = (player.t.evolved || 0) + 1
-	pkLog(`${keyName(key)} evolved into ${speciesName(into)}!`, "evolve", { id: into }, isShiny(key))
+	pkLog(`${keyName(key)} evolved into ${speciesName(into)}!`, "evolve", { id: into }, colorOf(key))
 	// It might already be high enough for its next stage.
 	const next = levelEvolution(into, player.t.box[newKey].level)
 	if (next && canEvolveInto(newKey, next)) evolve(newKey, next)
@@ -335,7 +354,7 @@ function partyBattlers(party = player.t.party) {
 		const lead = i === 0 ? (inChallenge(13) ? LONE_PARTNER_BOOST : 1) * (beatChallenge(13) ? 1.2 : 1) : 1
 		const typed = (inChallenge(12) ? MONOTYPE_BOOST : 1) * (beatChallenge(12) && sharesStarterType(key) ? 1.15 : 1)
 		const form = FORMS[formOf(key)] || {}
-		const handicap = challengeHandicap(player.t.box[key], key) * (shinyMilestone(25) && isShiny(key) ? 1.25 : 1)
+		const handicap = challengeHandicap(player.t.box[key], key) * (shinyMilestone(25) && isShiny(key) ? 1.25 : 1) * (albinoMilestone(10) && isAlbino(key) ? 1.25 : 1)
 		return battler(speciesOf(key), player.t.box[key].level, atk * lead * typed * (form.atk || 1) * handicap, def * lead * (form.def || 1) * handicap)
 	})
 }
@@ -345,7 +364,7 @@ function releaseFainted(result) {
 	if (!inChallenge(11) || !result.fainted) return
 	for (const key of player.t.party.slice(0, result.fainted)) {
 		delete player.t.box[key]
-		pkLog(`${keyName(key)} fainted and was released.`, "lose", { id: speciesOf(key) }, isShiny(key))
+		pkLog(`${keyName(key)} fainted and was released.`, "lose", { id: speciesOf(key) }, colorOf(key))
 	}
 	player.t.party.splice(0, result.fainted)
 }
@@ -357,7 +376,7 @@ function currentZone() { return zoneById(player.f.zone) || regionZones()[0] }
 function doEncounter(rng) {
 	const zone = currentZone()
 	const enc = rollEncounter(withSwarm(zone), badges(), rng, huntLure())
-	const shiny = rand(rng) < 1 / encounterShinyOdds(enc)
+	const shiny = rollColor(rng, 1 / encounterShinyOdds(enc), 1 / encounterAlbinoOdds(enc))
 	const look = makeLook(enc.form, shiny)
 	dexSee(enc.id)
 	player.f.encounters++
@@ -366,7 +385,7 @@ function doEncounter(rng) {
 	mirageStep(rng)
 	const team = partyBattlers()
 	const result = battle(team, [battler(enc.id, enc.level)])
-	const name = `${shiny ? "★ " : ""}${formName(enc.id, enc.form)} (Lv. ${enc.level})`
+	const name = `${colorMark(shiny)}${formName(enc.id, enc.form)} (Lv. ${enc.level})`
 	huntStep(enc, result.win)
 	// Nuzlocke: only the first new species met on each route may be caught (shinies always can).
 	const nuzlocke = inChallenge(11)
@@ -550,13 +569,13 @@ function judgeContest(rng = Math.random) {
 	if (!player.t.box[key]) return
 	const id = speciesOf(key), label = `${CONTEST_CATEGORIES[cat].name} Contest (${CONTEST_RANKS[rank].name})`
 	player.n.entered++
-	if (rng() >= contestWinChance(key, cat, rank)) { pkLog(`${keyName(key)} didn't win the ${label}.`, "info", { id, form: formOf(key) }, isShiny(key), true); return }
+	if (rng() >= contestWinChance(key, cat, rank)) { pkLog(`${keyName(key)} didn't win the ${label}.`, "info", { id, form: formOf(key) }, colorOf(key), true); return }
 	player.n.won++
 	const firstMaster = rank === 3 && !Object.values(player.d.ribbons || {}).some(r => r[cat] === 3)
 	player.d.ribbons = { ...player.d.ribbons, [id]: { ...player.d.ribbons?.[id], [cat]: rank } }
 	const prize = contestPrize(rank)
 	player.points = player.points.add(prize)
-	pkLog(`${keyName(key)} won the ${label}! A ribbon and ${format(prize)} RP.`, "contest", { id, form: formOf(key) }, isShiny(key))
+	pkLog(`${keyName(key)} won the ${label}! A ribbon and ${format(prize)} RP.`, "contest", { id, form: formOf(key) }, colorOf(key))
 	pkPopup("contest", `${keyName(key)} won the ${label}!`, "🎀 Ribbon!", 3, "#F85888")
 	if (firstMaster) {
 		const form = CONTEST_CATEGORIES[cat].pikachu
@@ -614,7 +633,7 @@ function challengeLeague(k) {
 	const t = leagueTrainers()[k]
 	if (k === leagueTrainers().length - 1) {
 		player.l.champion = true
-		player.l.team = player.t.party.map(key => [speciesOf(key), player.t.box[key].level, isShiny(key), formOf(key)])
+		player.l.team = player.t.party.map(key => [speciesOf(key), player.t.box[key].level, colorOf(key), formOf(key)])
 		player.l.hallOfFame.push({ team: player.l.team, time: player.timePlayed })
 		pkLog(`You beat ${t.name} and became the Pokémon League Champion!`, "league")
 	} else pkLog(`${t.name} of the Elite Four is beaten!`, "league")
@@ -658,7 +677,7 @@ function takeSpecial(s) {
 	player.points = player.points.sub(specialCost(s))
 	if (isPrize(s)) addCoins(-prizeCoins(s))
 	player.t.specials[s.id] = true
-	const shiny = !!s.shiny || rand() < 1 / shinyOdds()
+	const shiny = s.shiny ? "shiny" : rollColor(Math.random, 1 / shinyOdds(), 1 / albinoOdds())
 	addToBox(s.species, s.level, makeLook(s.form, shiny))
 	const name = formName(s.species, s.form)
 	pkLog(s.kind === "legendary" ? `You caught ${name}!` : `${name} joined you!`, "new", { id: s.species, form: s.form }, shiny)
@@ -920,10 +939,10 @@ function dayCareTick(diff) {
 	while (player.c.eggProgress >= 1 && player.c.eggs.length < maxEggs()) {
 		player.c.eggProgress -= 1
 		const options = dayCareEggs()
-		const shinyParent = player.c.slots.some(isShiny)
+		const shinyParent = player.c.slots.some(isShiny), albinoParent = player.c.slots.some(isAlbino)
 		const species = options[Math.floor(rand() * options.length)]
 		const battles = eggBattlesFor(species)
-		player.c.eggs.push({ species, battles, total: battles, shinyBoost: shinyParent ? (hasHuntUpgrade(12) ? 4 : 2) : 1 })
+		player.c.eggs.push({ species, battles, total: battles, shinyBoost: shinyParent ? (hasHuntUpgrade(12) ? 4 : 2) : 1, albinoBoost: albinoParent ? (hasHuntUpgrade(12) ? 4 : 2) : 1 })
 		pkLog("The Day Care couple left an Egg!", "egg")
 	}
 	if (player.c.eggs.length >= maxEggs()) player.c.eggProgress = 0
@@ -934,12 +953,12 @@ function eggStep() {
 	if (!player.c || !player.c.eggs.length) return
 	for (const egg of player.c.eggs) egg.battles--
 	for (const egg of player.c.eggs.filter(e => e.battles <= 0)) {
-		const shiny = rand() < egg.shinyBoost / shinyOdds()
+		const shiny = rollColor(Math.random, egg.shinyBoost / shinyOdds(), (egg.albinoBoost || 1) / albinoOdds())
 		const isNew = !player.d.hatched[egg.species]
 		player.d.hatched[egg.species] = (player.d.hatched[egg.species] || 0) + 1
 		player.d.everHatched = { ...player.d.everHatched, [egg.species]: true }
-		addToBox(egg.species, 5, shiny ? "shiny" : "normal", "egg")
-		pkLog(`Oh? The Egg hatched into ${shiny ? "★ " : ""}${speciesName(egg.species)}!`, isNew || shiny ? "new" : "catch", { id: egg.species }, shiny)
+		addToBox(egg.species, 5, shiny || "normal", "egg")
+		pkLog(`Oh? The Egg hatched into ${colorMark(shiny)}${speciesName(egg.species)}!`, isNew || shiny ? "new" : "catch", { id: egg.species }, shiny)
 	}
 	player.c.eggs = player.c.eggs.filter(e => e.battles > 0)
 }
@@ -1042,9 +1061,9 @@ function safariCatchChance(id, strategy = SAFARI_STRATEGIES.balls) {
 /** One Safari encounter: a strategy's opening move, then balls until it's caught or runs. */
 function safariEncounter(rng) {
 	const enc = rollEncounter(withPokeblock(safariZone()), badges(), rng)
-	const shiny = rand(rng) < 1 / shinyOdds()
+	const shiny = rollColor(rng, 1 / shinyOdds(), 1 / albinoOdds())
 	const strategy = SAFARI_STRATEGIES[automationOn("safari") ? bestSafariStrategy(enc.id) : player.s.strategy] || SAFARI_STRATEGIES.balls
-	const name = `${shiny ? "★ " : ""}${speciesName(enc.id)} (Lv. ${enc.level})`
+	const name = `${colorMark(shiny)}${speciesName(enc.id)} (Lv. ${enc.level})`
 	dexSee(enc.id)
 	const catchP = safariCatchChance(enc.id, strategy)
 	const fleeP = Math.min(0.95, safariFleeChance(enc.id) * strategy.flee)
@@ -1057,7 +1076,7 @@ function safariEncounter(rng) {
 		player.s.balls--
 		if (rand(rng) < catchP) {
 			const isNew = !player.d.caught[enc.id]
-			addToBox(enc.id, enc.level, shiny ? "shiny" : "normal", "safari")
+			addToBox(enc.id, enc.level, shiny || "normal", "safari")
 			player.d.safari = safariCaught() + 1
 			safariLog(`Caught ${name}!${isNew ? " New in the Pokédex!" : ""}`, isNew || shiny ? "new" : "catch", enc, shiny)
 			return
@@ -1071,7 +1090,7 @@ function safariEncounter(rng) {
 }
 
 function safariLog(text, kind, enc, shiny) {
-	player.s.log.unshift({ text, kind, id: enc.id, shiny: !!shiny })
+	player.s.log.unshift({ text, kind, id: enc.id, shiny: shiny || false })
 	if (player.s.log.length > LOG_SIZE) player.s.log.length = LOG_SIZE
 	// Only shiny catches pop up; new Pokédex entries go to the Field's log quietly.
 	if (kind === "new") pkLog(`${inJohtoContest() ? "Bug Contest" : "Safari Zone"}: ${text}`, kind, enc, shiny, !shiny)
@@ -1349,11 +1368,13 @@ const HUNT_UPGRADES = {
 	11: { title: "Poké Radar", cost: 50000, text: "Chains can reach ×8 shiny odds (up from ×4)." },
 	12: { title: "Masuda's Notes", cost: 30000, text: "A shiny parent in the Day Care makes shiny Eggs four times as likely (up from twice)." },
 	13: { title: "Steady Nerves", cost: 80000, text: "Losing to your target no longer breaks the chain." },
+	14: { title: "Pale Charm", cost: 60000, text: "Albino Pokémon twice as common everywhere." },
 }
 const HUNT_BUYABLES = {
 	11: { title: "Lure", base: 2000, growth: 1.8, text: "Your target turns up 50% more often per level (where it lives)." },
 	12: { title: "Radar Battery", base: 3000, growth: 1.9, text: "Each target beaten adds 25% more to the chain per level." },
 	13: { title: "Shiny Lens", base: 10000, growth: 2.2, text: "Shiny Pokémon 10% more common everywhere per level." },
+	14: { title: "Snow Lens", base: 10000, growth: 2.2, text: "Albino Pokémon 10% more common everywhere per level." },
 }
 const SHINY_MILESTONES = [
 	[1, "Shiny hunting opens from the start of every run."],
@@ -1362,6 +1383,27 @@ const SHINY_MILESTONES = [
 	[25, "Shiny Pokémon in your party fight 25% stronger."],
 ]
 
+// Albino Pokémon (the owner's idea): the same base odds as shinies, lowered by their own charm,
+// lens, milestones and chains (the Hunt tab's colour switch). Melanistic: shiny and albino at once.
+const ALBINO_MILESTONES = [
+	[3, "Albino Pokémon twice as common everywhere."],
+	[10, "Albino Pokémon in your party fight 25% stronger."],
+	[25, "+25% experience."],
+]
+function albinoSpecies() { return Object.keys(player.d?.albino || {}).length }
+function melanisticSpecies() { return Object.keys(player.d?.melanistic || {}).length }
+function albinoMilestone(n) { return albinoSpecies() >= n }
+function albinoOdds() {
+	let odds = BASE_SHINY_ODDS
+	if (hasHuntUpgrade(14)) odds /= 2
+	if (albinoMilestone(3)) odds /= 2
+	odds /= 1 + 0.1 * huntBuyable(14)
+	return odds
+}
+/** What the hunting chain raises: the target's shiny odds or its albino odds. */
+function huntMode() { return player.y?.mode === "albino" ? "albino" : "shiny" }
+function setHuntMode(mode) { if (player.y) player.y.mode = mode }
+function huntRecords() { return huntMode() === "albino" ? player.d.albino || {} : player.d.shiny }
 function shinySpecies() { return player.d ? Object.keys(player.d.shiny).length : 0 }
 function shinyMilestone(n) { return shinySpecies() >= n }
 function huntOpen() { return shinyMilestone(1) || badges() >= 4 || hofEntries() >= 4 }
@@ -1381,8 +1423,12 @@ function huntLure() {
 	const id = huntTarget()
 	return id && huntBuyable(11) ? { id, mult: 1 + 0.5 * huntBuyable(11) } : null
 }
+function chainedTarget(enc) { return enc.id === huntTarget() && !enc.form }
 function encounterShinyOdds(enc) {
-	return shinyOdds() / (enc.id === huntTarget() && !enc.form ? chainBonus() : 1)
+	return shinyOdds() / (chainedTarget(enc) && huntMode() === "shiny" ? chainBonus() : 1)
+}
+function encounterAlbinoOdds(enc) {
+	return albinoOdds() / (chainedTarget(enc) && huntMode() === "albino" ? chainBonus() : 1)
 }
 /** After a wild battle: beating the target grows the chain, losing to it breaks it. */
 function huntStep(enc, win) {
@@ -2043,8 +2089,8 @@ function autoHuntTick() {
 	if (!automationOn("hunter") || !huntOpen() || !player.y) return
 	const target = huntTarget()
 	const here = zoneSpecies(currentZone(), badges())
-	if (target && here.includes(target) && !player.d.shiny[target]) return
-	const choices = here.filter(id => player.d.seen[id] && !player.d.shiny[id])
+	if (target && here.includes(target) && !huntRecords()[target]) return
+	const choices = here.filter(id => player.d.seen[id] && !huntRecords()[id])
 	if (choices.length) setHuntTarget(choices[0])
 }
 

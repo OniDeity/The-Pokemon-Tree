@@ -90,7 +90,7 @@ addLayer("g", {
 	prestigeButtonText() {
 		const gym = nextGym()
 		if (!gym) return "You have all eight badges. The Pokémon League awaits!"
-		if (gymStoryGate(badges())) return `Clear ${gymStoryGate(badges()).name} to reach ${gym.name}'s Gym.`
+		if (gymStoryGate(badges())) return `Clear ${gymStoryGate(badges()).name} to reach ${trialName(gym)}.`
 		if (!surveyStatus().done) return `Finish surveying the area to challenge ${gym.name}.`
 		if (!gymPrediction().win) return `${gym.name} is too strong for your party right now.`
 		return `Challenge ${gym.name} for the ${gym.badge}!<br><small>Resets Research Points, equipment and routes.</small>`

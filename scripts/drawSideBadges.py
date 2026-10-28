@@ -1,8 +1,11 @@
-"""Draws the Orange League's four badges (resources/badges/25-28.png), our own artwork after the anime's:
-the Coral-Eye Badge (pink coral round an eye), the Sea Ruby Badge (a red gem), the Spike Shell Badge
-(a spiral shell) and the Jade Star Badge (a green star).
+"""Draws the side journeys' badges, our own artwork:
+- the Orange League's (resources/badges/25-28.png), after the anime's: the Coral-Eye Badge (pink coral
+  round an eye), the Sea Ruby Badge (a red gem), the Spike Shell Badge (a spiral shell) and the Jade
+  Star Badge (a green star);
+- the Sevii Islands' quest rewards (29-33): the Ruby, Lostelle's Thanks (a heart), Lorelei's Trust (a
+  snowflake), the Warehouse Key and the Sapphire.
 
-Usage: python3 scripts/drawOrangeBadges.py  (needs Pillow)
+Usage: python3 scripts/drawSideBadges.py  (needs Pillow)
 """
 import math
 import os
@@ -83,8 +86,61 @@ def jade_star():
     save(im, 28)
 
 
+def round_gem(n, fill, light, dark):
+    im, d = canvas()
+    c = SIZE * S / 2
+    pts = [(c + 105 * math.cos(a), c + 105 * math.sin(a)) for a in [i * math.pi / 4 + math.pi / 8 for i in range(8)]]
+    d.polygon(pts, fill=fill, outline=dark, width=10)
+    inner = [(c + 55 * math.cos(a), c + 55 * math.sin(a)) for a in [i * math.pi / 4 + math.pi / 8 for i in range(8)]]
+    d.polygon(inner, fill=light)
+    for (x1, y1), (x2, y2) in zip(pts, inner):
+        d.line([(x1, y1), (x2, y2)], fill=dark, width=5)
+    save(im, n)
+
+
+def heart():
+    im, d = canvas()
+    c = SIZE * S / 2
+    d.ellipse([c - 100, c - 85, c + 5, c + 20], fill=(240, 110, 150, 255))
+    d.ellipse([c - 5, c - 85, c + 100, c + 20], fill=(240, 110, 150, 255))
+    d.polygon([(c - 96, c - 15), (c + 96, c - 15), (c, c + 105)], fill=(240, 110, 150, 255))
+    d.ellipse([c - 70, c - 65, c - 30, c - 25], fill=(255, 200, 215, 255))
+    save(im, 30)
+
+
+def snowflake():
+    im, d = canvas()
+    c = SIZE * S / 2
+    for i in range(6):
+        a = i * math.pi / 3
+        x, y = c + 110 * math.cos(a), c + 110 * math.sin(a)
+        d.line([(c, c), (x, y)], fill=(120, 200, 240, 255), width=18)
+        for side in (-1, 1):
+            mx, my = c + 65 * math.cos(a), c + 65 * math.sin(a)
+            b = a + side * math.pi / 4
+            d.line([(mx, my), (mx + 35 * math.cos(b), my + 35 * math.sin(b))], fill=(120, 200, 240, 255), width=12)
+    d.ellipse([c - 22, c - 22, c + 22, c + 22], fill=(230, 245, 255, 255))
+    save(im, 31)
+
+
+def key():
+    im, d = canvas()
+    c = SIZE * S / 2
+    d.ellipse([c - 105, c - 55, c - 5, c + 45], fill=(220, 180, 70, 255), outline=(110, 80, 20, 255), width=10)
+    d.ellipse([c - 75, c - 25, c - 35, c + 15], fill=(0, 0, 0, 0))
+    d.rectangle([c - 10, c - 14, c + 110, c + 6], fill=(220, 180, 70, 255), outline=(110, 80, 20, 255), width=6)
+    for x in (c + 55, c + 90):
+        d.rectangle([x, c + 6, x + 16, c + 40], fill=(220, 180, 70, 255), outline=(110, 80, 20, 255), width=5)
+    save(im, 32)
+
+
 if __name__ == "__main__":
     coral_eye()
     sea_ruby()
     spike_shell()
     jade_star()
+    round_gem(29, (210, 30, 50, 255), (250, 110, 120, 255), (100, 0, 20, 255))
+    heart()
+    snowflake()
+    key()
+    round_gem(33, (40, 90, 220, 255), (120, 170, 250, 255), (10, 30, 110, 255))

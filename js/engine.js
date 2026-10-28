@@ -51,6 +51,15 @@ const FORMS = {
 	young: { name: "Young", sprite: true, text: "Silver, Lugia's child, born on Ogi Isle." },
 	unown: { name: "Unown", sprite: true, atk: 1.1, text: "The Entei the Unown conjured from Molly's wishes: Attack ×1.1." },
 	dark: { name: "Dark", sprite: true, atk: 1.15, text: "Corrupted by the Iron-Masked Marauder's Dark Ball: Attack ×1.15." },
+	// The Orange Islands (Idle Pokémon's CSS recolours): Pinkan Berries tint everything pink, Valencian
+	// Pokémon grow in unusual colours (one filter per species), and the glass Crystal Onix.
+	pinkan: { name: "Pinkan", filter: "sepia(1) saturate(3.5) hue-rotate(285deg) brightness(1.08)", text: "Pinkan Berries tint every Pokémon on Pinkan Island pink." },
+	valencian: { name: "Valencian", text: "Valencia Island's Pokémon grow in unusual colours.", filters: {
+		12: "sepia(1) saturate(2.6) hue-rotate(5deg) brightness(1.1)", 20: "sepia(1) saturate(5) hue-rotate(-35deg) brightness(0.95)",
+		29: "hue-rotate(150deg) saturate(1.3)", 32: "hue-rotate(-110deg) saturate(1.3)", 44: "hue-rotate(38deg) saturate(1.6) brightness(1.08)",
+		45: "hue-rotate(38deg) saturate(1.7) brightness(1.1)", 46: "hue-rotate(-20deg) saturate(1.6)", 70: "sepia(1) saturate(3.5) hue-rotate(-18deg) brightness(1.05)",
+		182: "hue-rotate(22deg) saturate(1.4) brightness(1.05)" } },
+	crystal: { name: "Crystal", filter: "grayscale(0.6) brightness(1.5) hue-rotate(170deg) opacity(0.85)", catchRate: 10, def: 1.2, text: "An Onix made of living glass: Defense ×1.2." },
 	// Hoenn's anime and movies.
 	meta: { name: "Meta", sprite: true, atk: 1.15, def: 1.1, text: "The artificial Groudon Butler built from its fossil and Jirachi's power: Attack ×1.15, Defense ×1.1." },
 	hoennCap: { name: "Hoenn Cap", sprite: true, text: "Wearing Ash's Hoenn cap." },

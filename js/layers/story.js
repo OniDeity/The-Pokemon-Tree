@@ -68,15 +68,16 @@ function storyNodeHtml(ch) {
 function storyMapHtml() {
 	const r = region(), chapters = regionChapters(), b = badges()
 	let html = `<div class="pk-story-map">`
-	for (let tier = 0; tier <= 9; tier++) {
-		const here = chapters.filter(ch => tier === 9 ? ch.champion : !ch.champion && ch.badges === tier).sort((a, b) => !!a.red - !!b.red)
+	const league = allBadges() + 1
+	for (let tier = 0; tier <= league; tier++) {
+		const here = chapters.filter(ch => tier === league ? ch.champion : !ch.champion && ch.badges === tier).sort((a, b) => !!a.red - !!b.red)
 		let marker
 		if (tier === 0) marker = `<span class="pk-story-mark pk-story-mark-on">★</span><b>${r.professor}'s lab</b>`
-		else if (tier <= 8) {
+		else if (tier <= allBadges()) {
 			const gym = r.gyms[tier - 1], won = b >= tier
 			marker = `${won ? `<img src="resources/badges/${tier - 1 + r.badgeImage}.png" width="24" height="24">` : `<span class="pk-story-mark"></span>`}<b>${gym.badge}</b> <small>${gym.name}</small>`
-		} else marker = `<span class="pk-story-mark ${isChampion() ? "pk-story-mark-on" : ""}">♛</span><b>The League</b> <small>${isChampion() ? "Champion!" : "after 8 badges"}</small>`
-		html += `<div class="pk-story-tier ${tier <= b || (tier === 9 && isChampion()) ? "pk-story-reached" : ""}"><div class="pk-story-marker">${marker}</div>`
+		} else marker = `<span class="pk-story-mark ${isChampion() ? "pk-story-mark-on" : ""}">♛</span><b>The League</b> <small>${isChampion() ? "Champion!" : `after ${allBadges()} badges`}</small>`
+		html += `<div class="pk-story-tier ${tier <= b || (tier === league && isChampion()) ? "pk-story-reached" : ""}"><div class="pk-story-marker">${marker}</div>`
 		if (here.length) html += `<div class="pk-story-nodes">${here.map(storyNodeHtml).join("")}</div>`
 		html += `</div>`
 	}
@@ -108,6 +109,7 @@ function milestonesHtml(title, count, list) {
 	return `${title}: <b>${count}</b><br>${list.map(([n, text]) => `<span class="${count >= n ? "" : "pk-done"}">${n}: ${text}${count >= n ? " ✓" : ""}</span>`).join("<br>")}`
 }
 function storyIntro() {
+	if (region().storyIntro) return region().storyIntro
 	if (currentRegion() === "hoenn") return "May, Professor Birch's daughter, wants to see how you measure up, Wally sets out on a journey of his own, and Team Aqua and Team Magma race to wake the ancient Pokémon of the sea and the land."
 	return currentRegion() === "johto"
 		? "Silver, the boy who stole a Pokémon from Professor Elm, keeps turning up, Team Rocket is back three years after Giovanni disbanded it, and Johto's trainers wait in its towers."

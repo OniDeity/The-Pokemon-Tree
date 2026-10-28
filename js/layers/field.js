@@ -141,13 +141,13 @@ function kantoRevisitHtml() {
 	return html + "</div>"
 }
 
-/** The anime's places: tiers open with Hall of Fame entries (Johto's with Johto's), then with badges. */
+/** The anime's places: tiers open with Hall of Fame entries (Johto's and Hoenn's with their own), then with badges. */
 function animeListHtml() {
-	const johto = currentRegion() === "johto", entries = animeEntries()
+	const r = currentRegion(), entries = animeEntries()
 	const places = regionZones().filter(z => z.anime)
 	if (!places.length) return ""
 	const nextTier = places.filter(z => z.hof > entries).reduce((m, z) => Math.min(m, z.hof), Infinity)
-	const entryText = n => `${n} ${johto ? "Johto " : ""}Hall of Fame entr${n > 1 ? "ies" : "y"}`
+	const entryText = n => `${n} ${r === "kanto" ? "" : `${REGIONS[r].name} `}Hall of Fame entr${n > 1 ? "ies" : "y"}`
 	if (!places.some(z => z.hof <= entries)) return `<div class="pk-area"><b>Anime places</b><br><small>Enter the Hall of Fame to start finding places from the anime.</small></div>`
 	const b = badges()
 	let html = `<div class="pk-area"><b>Anime places</b> <small>(${formsCaught()}/${ALL_FORMS.length} forms caught)</small><br>`

@@ -661,7 +661,7 @@ function legendaryPrediction(s) {
 /** Whether a special can be taken now, and why not. */
 function specialStatus(s) {
 	if (player.t.specials[s.id]) return { ok: false, why: "Done" }
-	if (s.anime && animeEntries(s.region) < s.hof) return { ok: false, why: `${s.hof} ${s.region === "johto" ? "Johto " : ""}Hall of Fame entr${s.hof > 1 ? "ies" : "y"}` }
+	if (s.anime && animeEntries(s.region) < s.hof) return { ok: false, why: `${s.hof} ${s.region === "kanto" ? "" : `${REGIONS[s.region].name} `}Hall of Fame entr${s.hof > 1 ? "ies" : "y"}` }
 	if (!specialOpen(s)) return { ok: false, why: s.postGame ? "After the League" : `${s.badgesRequired} badges` }
 	if (s.keyItem && !hasKeyItem(s.keyItem, badges())) return { ok: false, why: `Needs the ${REGION_RULES.keyItems[s.keyItem]?.name || KEY_ITEM_NAMES[s.keyItem] || s.keyItem}` }
 	if (specialStoryGate(s)) return { ok: false, why: `Clear ${specialStoryGate(s).name}` }
@@ -853,8 +853,9 @@ function starterChoices() { return hofEntries() >= 3 ? [...STARTERS, 25, 133] : 
 // Their forms count in the Pokédex's Forms page, with milestones of their own.
 
 function johtoEntries() { return player.h ? player.h.hall.filter(e => e.region === "johto").length : 0 }
-/** The Hall of Fame entries that open a region's anime tiers. */
-function animeEntries(region = currentRegion()) { return region === "johto" ? johtoEntries() : hofEntries() }
+function hoennEntries() { return player.h ? player.h.hall.filter(e => e.region === "hoenn").length : 0 }
+/** The Hall of Fame entries that open a region's anime tiers (Johto's and Hoenn's count their own). */
+function animeEntries(region = currentRegion()) { return region === "johto" ? johtoEntries() : region === "hoenn" ? hoennEntries() : hofEntries() }
 function animeOpen(zone) {
 	if (animeEntries(zone.region) < zone.hof) return false
 	return zone.postGame ? isChampion() : badges() >= zone.badges
@@ -862,8 +863,8 @@ function animeOpen(zone) {
 
 /** Every form Kanto has: "id-form" keys from the anime places and events. */
 const ALL_FORMS = [...new Set([
-	...[...ZONES, ...JOHTO_ZONES].flatMap(z => Object.values(z.pools).flat().filter(e => e[4]).map(e => `${e[0]}-${e[4]}`)),
-	...[...SPECIALS, ...JOHTO_SPECIALS].filter(s => s.form).map(s => `${s.species}-${s.form}`),
+	...[...ZONES, ...JOHTO_ZONES, ...HOENN_ZONES].flatMap(z => Object.values(z.pools).flat().filter(e => e[4]).map(e => `${e[0]}-${e[4]}`)),
+	...[...SPECIALS, ...JOHTO_SPECIALS, ...HOENN_SPECIALS].filter(s => s.form).map(s => `${s.species}-${s.form}`),
 	...Object.values(CONTEST_CATEGORIES).map(c => `25-${c.pikachu}`),
 ])].sort((a, b) => parseInt(a) - parseInt(b))
 function formsCaught() { return ALL_FORMS.filter(k => player.d.forms[k]).length }
@@ -1906,8 +1907,8 @@ const JOHTO_DEX = [...new Set([
 ])].sort((a, b) => a - b)
 
 const HOENN_DEX = [...new Set([
-	...HOENN_ZONES.flatMap(z => Object.values(z.pools).flat().map(e => e[0])),
-	...HOENN_SPECIALS.map(s => s.species),
+	...HOENN_ZONES.filter(z => !z.anime).flatMap(z => Object.values(z.pools).flat().map(e => e[0])),
+	...HOENN_SPECIALS.filter(s => !s.anime).map(s => s.species),
 	...Array.from({ length: 135 }, (_, i) => i + 252),
 ])].sort((a, b) => a - b)
 

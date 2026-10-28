@@ -831,8 +831,7 @@ function fameGain() {
 	if (formMilestone(20)) fame *= 1.2
 	if (storyMilestone(1000)) fame *= 1.1
 	// A journey through Johto pays more, and beating Red on Mt. Silver more again.
-	if (currentRegion() === "johto") fame *= JOHTO_FAME
-	if (currentRegion() === "hoenn") fame *= HOENN_FAME
+	fame *= regionFame(currentRegion())
 	if (chapterCleared("mtSilver")) fame *= 1.5
 	fame *= Math.pow(VISIT_FAME, visitsCleared())
 	return Math.floor(fame)
@@ -853,10 +852,12 @@ function starterChoices() { return hofEntries() >= 3 ? [...STARTERS, 25, 133] : 
 // like the games' routes; Johto's count Johto's entries only. They aren't part of the Gym surveys.
 // Their forms count in the Pokédex's Forms page, with milestones of their own.
 
-function johtoEntries() { return player.h ? player.h.hall.filter(e => e.region === "johto").length : 0 }
-function hoennEntries() { return player.h ? player.h.hall.filter(e => e.region === "hoenn").length : 0 }
-/** The Hall of Fame entries that open a region's anime tiers (Johto's and Hoenn's count their own). */
-function animeEntries(region = currentRegion()) { return region === "johto" ? johtoEntries() : region === "hoenn" ? hoennEntries() : hofEntries() }
+/** Hall of Fame entries made as a region's Champion (entries from before regions count as Kanto's). */
+function regionEntries(r) { return player.h ? player.h.hall.filter(e => (e.region || "kanto") === r).length : 0 }
+function johtoEntries() { return regionEntries("johto") }
+function hoennEntries() { return regionEntries("hoenn") }
+/** The Hall of Fame entries that open a region's anime tiers (Kanto's count every entry; the rest their own). */
+function animeEntries(region = currentRegion()) { return region === "kanto" ? hofEntries() : regionEntries(region) }
 function animeOpen(zone) {
 	if (animeEntries(zone.region) < zone.hof) return false
 	return zone.postGame ? isChampion() : badges() >= zone.badges
@@ -1509,30 +1510,35 @@ const MAY = stage => ({ name: "Rival May", rival: true, team: () => mayTeam(stag
 const AQUA = (team, extra = {}) => ({ name: "Team Aqua Grunt", rocket: true, team, ...extra })
 const MAGMA = (team, extra = {}) => ({ name: "Team Magma Grunt", rocket: true, team, ...extra })
 // ---- Post-game visits (Hoenn's Champion; the pattern for later regions) ----
-// After Hoenn's League, Kanto's and Johto's routes open on the Field's map (their games' tables,
+// After a journey's League, earlier regions' routes open on the Field's map (their games' tables,
 // not the anime places or their own post-games), and each region's Elite Four and Champion wait as
-// a Story chapter. Every visit cleared multiplies this journey's Fame by VISIT_FAME.
+// a Story chapter. Every visit cleared multiplies this journey's Fame by VISIT_FAME. VISITS says
+// where each journey's Champion can go, and how strong that region's League is then (null: its
+// routes only, like Kanto in Johto's post-game, whose Leaders are KANTO_GYM_CHAPTERS).
 const VISIT_FAME = 1.3
 /** Kanto's Champion answers the Hoenn starter's type like the rival answers Oak's (Treecko → Charizard). */
 const VISIT_KANTO_CHAMPION = { 252: 1, 255: 4, 258: 7 }
 const REVISITS = {
-	kanto: { name: "Kanto", place: "Indigo Plateau", chapter: "visitKanto", strength: 22, closed: ["safariZone"], via: "by ferry to Vermilion",
+	kanto: { name: "Kanto", place: "Indigo Plateau", chapter: "visitKanto", closed: ["safariZone"], via: "by ferry to Vermilion",
 		trainers: [...ELITE_FOUR.map(t => ({ name: t.name, team: t.team })), { name: "Blue", team: () => (CHAMPIONS[VISIT_KANTO_CHAMPION[player.t.starter]] || CHAMPIONS[1]).team, quote: "Smell ya later... Hoenn's Champion, huh?" }] },
-	johto: { name: "Johto", place: "Johto's Pokémon League", chapter: "visitJohto", strength: 26, closed: [], via: "by the S.S. Aqua to Olivine",
+	johto: { name: "Johto", place: "Johto's Pokémon League", chapter: "visitJohto", closed: [], via: "by the S.S. Aqua to Olivine",
 		trainers: [...JOHTO_ELITE_FOUR, JOHTO_CHAMPION].map(t => ({ name: t.name, team: t.team })) },
 }
-/** The earlier regions open to this journey's Champion: Kanto in Johto's post-game, Kanto and Johto in Hoenn's. */
-function revisitRegions() {
-	if (!isChampion()) return []
-	return currentRegion() === "johto" ? ["kanto"] : currentRegion() === "hoenn" ? ["kanto", "johto"] : []
+const VISITS = {
+	johto: { kanto: null },
+	hoenn: { kanto: 22, johto: 26 },
 }
-function visitsCleared() { return currentRegion() === "hoenn" ? Object.values(REVISITS).filter(v => chapterCleared(v.chapter)).length : 0 }
-/** The journey's last battles before its Hall of Fame entry: Red in Johto, the visits in Hoenn. */
+/** A visit's Story chapter: Hoenn's keep their first ids ("visitKanto"); later hosts prefix theirs. */
+function visitChapterId(host, r) { return host === "hoenn" ? REVISITS[r].chapter : `${host}${REVISITS[r].chapter[0].toUpperCase()}${REVISITS[r].chapter.slice(1)}` }
+function visitChapters(host = currentRegion()) { return Object.entries(VISITS[host] || {}).filter(([, strength]) => strength).map(([r]) => visitChapterId(host, r)) }
+/** The earlier regions open to this journey's Champion: Kanto in Johto's post-game, Kanto and Johto in Hoenn's. */
+function revisitRegions() { return isChampion() ? Object.keys(VISITS[currentRegion()] || {}) : [] }
+function visitsCleared() { return visitChapters().filter(chapterCleared).length }
+/** The journey's last battles before its Hall of Fame entry: Red in Johto, the visits elsewhere. */
 function journeyFinaleLeft() {
 	if (!isChampion()) return []
 	if (currentRegion() === "johto") return chapterCleared("mtSilver") ? [] : ["mtSilver"]
-	if (currentRegion() === "hoenn") return Object.values(REVISITS).map(v => v.chapter).filter(id => !chapterCleared(id))
-	return []
+	return visitChapters().filter(id => !chapterCleared(id))
 }
 
 const HOENN_CHAPTERS = [
@@ -1575,8 +1581,9 @@ const HOENN_CHAPTERS = [
 	{ id: "stevenMeteorFalls", region: "hoenn", name: "Meteor Falls", badges: 8, champion: true, strength: 12, reward: "Steven, Hoenn's former Champion, leaves you his Beldum.",
 		trainers: [{ name: "Steven", team: [[227, 77], [344, 75], [306, 76], [346, 76], [348, 76], [376, 78]], quote: "I'd like to see how far you've come. Let's battle!" }] },
 	// Post-game visits: Hoenn's Champion travels to the earlier regions and takes on their Leagues.
-	...Object.entries(REVISITS).map(([r, v]) => ({ id: v.chapter, region: "hoenn", visit: r, name: v.place, badges: 8, champion: true, strength: v.strength,
-		reward: `${v.name}'s League bows to Hoenn's Champion: Fame ×${VISIT_FAME} for this Hall of Fame entry.`, trainers: v.trainers })),
+	...Object.entries(VISITS).flatMap(([host, regions]) => Object.entries(regions).filter(([, strength]) => strength).map(([r, strength]) => ({
+		id: visitChapterId(host, r), region: host, visit: r, name: REVISITS[r].place, badges: 8, champion: true, strength,
+		reward: `${REVISITS[r].name}'s League bows to ${host[0].toUpperCase()}${host.slice(1)}'s Champion: Fame ×${VISIT_FAME} for this Hall of Fame entry.`, trainers: REVISITS[r].trainers }))),
 ]
 
 // Kanto's Gyms in Johto's post-game (HeartGold/SoulSilver's first battles, from Serebii). Lt. Surge
@@ -1714,7 +1721,7 @@ function revisitOpen(zone) {
 	if (currentRegion() === "johto") return !zone.postGame || chapterCleared("mtSilver")
 	return !zone.postGame
 }
-function revisitZones(r) { return (r === "kanto" ? ZONES : JOHTO_ZONES).filter(z => !z.anime && !REVISITS[r].closed.includes(z.id)) }
+function revisitZones(r) { return REGIONS[r].zones.filter(z => !z.anime && !REVISITS[r].closed.includes(z.id)) }
 function kantoBadges() { return KANTO_GYM_CHAPTERS.filter(ch => chapterCleared(ch.id)).length }
 
 // Gift rules from the story: the Dojo's choice and Silph Co.'s Lapras, Snorlax's Poké Flute.
@@ -1952,21 +1959,26 @@ const REGIONS = {
 		name: "Kanto", professor: "Oak", starters: STARTERS, zones: ZONES, gyms: GYMS, eliteFour: ELITE_FOUR,
 		champion: () => CHAMPIONS[player.t.starter] || CHAMPIONS[1], gymStrength: GYM_STRENGTH,
 		eliteFourStrength: ELITE_FOUR_STRENGTH, championStrength: CHAMPION_STRENGTH, badgeImage: 1, zoneCost: 1, pace: 3.8,
-		dex: Array.from({ length: 151 }, (_, i) => i + 1), rules: REGION_RULES,
+		dex: Array.from({ length: 151 }, (_, i) => i + 1), rules: REGION_RULES, maxSpecies: 151,
 	},
 	johto: {
 		name: "Johto", professor: "Elm", starters: [152, 155, 158], zones: JOHTO_ZONES, gyms: JOHTO_GYMS,
 		eliteFour: JOHTO_ELITE_FOUR, champion: () => JOHTO_CHAMPION,
 		gymStrength: [3.5, 6, 8, 6.5, 11, 12.5, 13, 11], eliteFourStrength: 10, championStrength: 9.5,
-		badgeImage: 9, dex: JOHTO_DEX, zoneCost: 2, pace: 2,
+		badgeImage: 9, dex: JOHTO_DEX, zoneCost: 2, pace: 2, maxSpecies: 251, fame: 2.5,
+		// Reached by sailing on from Kanto's League (sailToJohto), not from the starter screen.
+		opens: { after: "kanto", entries: 3 },
 		rules: { keyItems: keyItemsFromGyms(JOHTO_GYMS), levelCaps: [16, 20, 24, 28, 33, 37, 40, 45, 55, 100], stoneBadges: JOHTO_STONES, tradeBadges: 3 },
 	},
-	// Hoenn (Emerald): a journey of its own, opened by Johto's Hall of Fame entries (HOENN_ENTRIES).
+	// Hoenn (Emerald): a journey of its own, opened by Johto's Hall of Fame entries. `journey` puts
+	// a region on the starter screen: its professor's starters (clickables from `button`) and intro.
 	hoenn: {
 		name: "Hoenn", professor: "Birch", starters: [252, 255, 258], zones: HOENN_ZONES, gyms: HOENN_GYMS,
 		eliteFour: HOENN_ELITE_FOUR, champion: () => HOENN_CHAMPION,
 		gymStrength: [2, 3.1, 4.2, 5, 5.2, 6.2, 8, 9], eliteFourStrength: 9, championStrength: 8.5,
-		badgeImage: 17, dex: HOENN_DEX, zoneCost: 0.25, pace: 18,
+		badgeImage: 17, dex: HOENN_DEX, zoneCost: 0.25, pace: 18, maxSpecies: 386, fame: 2.5,
+		opens: { after: "johto", entries: 3 },
+		journey: { button: 41, intro: "Professor Birch, in Littleroot Town, has three Pokémon of his own for a researcher willing to survey Hoenn." },
 		rules: { keyItems: keyItemsFromGyms(HOENN_GYMS), levelCaps: [16, 20, 25, 30, 32, 34, 43, 47, 58, 100], stoneBadges: JOHTO_STONES, tradeBadges: 3 },
 	},
 }
@@ -1985,7 +1997,7 @@ function regionGyms() { return region().gyms }
 function gymStrength() { return region().gymStrength[badges()] }
 function regionDex(region = currentRegion()) { return REGIONS[region].dex }
 /** Regions whose Pokédex pages show: Kanto, and Johto once it's open. */
-function dexRegions() { return Object.keys(REGIONS).filter(r => r === "kanto" || (r === "johto" ? johtoOpen() || johtoBeaten() : hoennOpen() || hoennBeaten())) }
+function dexRegions() { return Object.keys(REGIONS).filter(r => r === "kanto" || regionOpen(r) || regionBeaten(r)) }
 /** The Pokédex page being viewed (the current region unless another is picked). */
 function viewedDexRegion() { return dexRegions().includes(player.d?.dexRegion) ? player.d.dexRegion : currentRegion() }
 function regionTabs(layer) {
@@ -2141,27 +2153,40 @@ function automationTick() {
 const JOHTO_ENTRIES = 3
 /** Starts the Field over as a badge does (the game's Field layer and the simulator each set this). */
 var resetField = () => {}
-const JOHTO_FAME = 2.5
+const JOHTO_FAME = 2.5 // REGIONS.johto.fame
 const JOHTO_START_LEVEL = 5
 
 function johtoOpen() { return hofEntries() >= JOHTO_ENTRIES }
-function johtoBeaten() { return !!player.h?.regionsBeaten?.johto }
+function johtoBeaten() { return regionBeaten("johto") }
 // Later generations' evolutions and babies of older Pokémon (Crobat, Pichu; Azurill, Wynaut) wait
 // until their region is beaten.
 crossGenOpen = gen => gen <= 2 ? johtoBeaten() : hoennBeaten()
 /** The highest species number this save can meet (Breeder's notes, Pokédex pages). */
-function maxSpecies() { return hoennOpen() || hoennBeaten() ? 386 : johtoOpen() || johtoBeaten() ? 251 : 151 }
+function maxSpecies() { return Math.max(...dexRegions().map(r => REGIONS[r].maxSpecies)) }
 
 // ---- Hoenn: a journey of its own ----
 // After HOENN_ENTRIES Johto Hall of Fame entries, a new run can start in Hoenn with one of
 // Professor Birch's starters instead of Oak's. Hoenn's Champion enters the Hall for Fame ×HOENN_FAME.
-const HOENN_ENTRIES = 3
-const HOENN_FAME = 2.5
-function hoennOpen() { return johtoEntries() >= HOENN_ENTRIES }
-function hoennBeaten() { return !!player.h?.regionsBeaten?.hoenn }
+const HOENN_ENTRIES = 3 // REGIONS.hoenn.opens.entries
+const HOENN_FAME = 2.5 // REGIONS.hoenn.fame
+function hoennOpen() { return regionOpen("hoenn") }
+function hoennBeaten() { return regionBeaten("hoenn") }
+
+// ---- Journeys: regions opened by Hall of Fame entries ----
+// A region with `opens` opens after that many entries as another region's Champion (Johto counts
+// every entry, as it always has). Regions with `journey` start from the starter screen.
+function regionOpen(r) {
+	const opens = REGIONS[r]?.opens
+	if (!opens) return r === "kanto"
+	return r === "johto" ? johtoOpen() : regionEntries(opens.after) >= opens.entries
+}
+function regionBeaten(r) { return !!player.h?.regionsBeaten?.[r] }
+function regionFame(r) { return REGIONS[r]?.fame || 1 }
+/** Regions offered on the starter screen, in REGIONS's order. */
+function journeyRegions() { return Object.keys(REGIONS).filter(r => REGIONS[r].journey) }
 /** Starts this run in a region (before the starter is chosen). */
 function startInRegion(region) {
-	if (player.t.starter || !REGIONS[region] || (region === "hoenn" && !hoennOpen())) return false
+	if (player.t.starter || !REGIONS[region]?.journey || !regionOpen(region)) return false
 	player.t.region = region
 	syncRegionRules()
 	return true

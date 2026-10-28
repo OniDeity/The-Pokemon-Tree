@@ -14,7 +14,7 @@ const vm = require("vm")
 
 const root = path.join(__dirname, "..")
 const ctx = vm.createContext({ console, Math, JSON, Object, Array, Set, Number, String })
-for (const file of ["js/technical/break_eternity.js", "js/data/kanto.js", "js/data/johto.js", "js/data/hoenn.js", "js/engine.js", "js/logic.js"])
+for (const file of ["js/technical/break_eternity.js", "js/data/kanto.js", "js/data/johto.js", "js/data/hoenn.js", "js/data/orange.js", "js/engine.js", "js/logic.js"])
 	vm.runInContext(fs.readFileSync(path.join(root, file), "utf8"), ctx, { filename: file })
 
 const starter = Number(process.argv[2] || 1)
@@ -241,7 +241,7 @@ while (t < LIMIT) {
 			chooseParty(); chooseZone()
 		}
 	}
-	if (t % 3600 === 0) console.log(`  ${t / 3600} h: badges ${run("badges()")} RP ${run("format(player.points)")} zone ${run("player.f.zone")} survey missing ${run("surveyStatus().missing.map(speciesName).join(',')")} party ${run("player.t.party.map(k => keyName(k) + ' ' + player.t.box[k].level).join(', ')")} league ${run("badges() >= 8 && !isChampion() ? JSON.stringify((({win,defeated})=>({win,defeated}))(leaguePrediction(player.l.beaten))) : '-'")} gym ${run("JSON.stringify((({win,defeated})=>({win,defeated}))(gymPrediction()||{}))")}`)
+	if (t % 3600 === 0) console.log(`  ${t / 3600} h: badges ${run("badges()")} RP ${run("format(player.points)")} zone ${run("player.f.zone")} survey missing ${run("surveyStatus().missing.map(speciesName).join(',')")} party ${run("player.t.party.map(k => keyName(k) + ' ' + player.t.box[k].level).join(', ')")} league ${run("badges() >= allBadges() && !isChampion() ? JSON.stringify((({win,defeated})=>({win,defeated}))(leaguePrediction(player.l.beaten))) : '-'")} gym ${run("JSON.stringify((({win,defeated})=>({win,defeated}))(gymPrediction()||{}))")}`)
 }
 
 console.log(`Starter ${starter}: ${run("isChampion()") ? "Champion" : "not Champion"} after ${(t / 3600).toFixed(2)} h in all (run ${runNumber}), caught ${run("caughtCount()")}`)

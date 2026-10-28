@@ -26,9 +26,10 @@ const KEY_ITEMS = {
 	surf: { badges: 5, name: "Surf" },
 	superRod: { badges: 5, name: "Super Rod" },
 }
-const POOL_KEY = { surf: "surf", oldRod: "oldRod", goodRod: "goodRod", superRod: "superRod" }
-const POOL_WEIGHT = { walk: 2, surf: 2, oldRod: 1, goodRod: 1, superRod: 1 }
-const POOL_NAMES = { walk: "Grass & caves", surf: "Surfing", oldRod: "Old Rod", goodRod: "Good Rod", superRod: "Super Rod" }
+const POOL_KEY = { surf: "surf", oldRod: "oldRod", goodRod: "goodRod", superRod: "superRod", headbutt: "headbutt", rockSmash: "rockSmash" }
+const POOL_WEIGHT = { walk: 2, surf: 2, oldRod: 1, goodRod: 1, superRod: 1, headbutt: 1, rockSmash: 1 }
+const POOL_NAMES = { walk: "Grass & caves", surf: "Surfing", oldRod: "Old Rod", goodRod: "Good Rod", superRod: "Super Rod", headbutt: "Headbutt trees", rockSmash: "Rock Smash" }
+const ROD_POOLS = ["oldRod", "goodRod", "superRod"]
 
 // Evolution items, and the badges needed before you can get them.
 const STONE_BADGES = { moonStone: 1, fireStone: 3, waterStone: 3, thunderStone: 3, leafStone: 3 }
@@ -46,9 +47,17 @@ const FORMS = {
 	balloon: { name: "Flying", accessory: "🎈", catchRate: 45, text: "A Pikachu that floats on a bunch of balloons." },
 	originalCap: { name: "Original Cap", sprite: true, catchRate: 45, text: "Wearing Ash's original cap." },
 }
+// Unown's 28 letters (the Ruins of Alph chambers): "Unown B", "Unown !"...
+if (typeof UNOWN_FORMS !== "undefined") UNOWN_FORMS.forEach(f => {
+	const letter = f.slice(5)
+	FORMS[f] = { name: letter === "Exclamation" ? "!" : letter === "Question" ? "?" : letter, suffix: true, sprite: true, text: "One of the Unown letters from the Ruins of Alph." }
+})
 
 function speciesName(id) { return SPECIES[id] ? SPECIES[id].name : "???" }
-function formName(id, form) { return form ? `${FORMS[form].name} ${speciesName(id)}` : speciesName(id) }
+function formName(id, form) {
+	if (!form) return speciesName(id)
+	return FORMS[form].suffix ? `${speciesName(id)} ${FORMS[form].name}` : `${FORMS[form].name} ${speciesName(id)}`
+}
 function spriteOf(id, shiny, form) {
 	const file = form && FORMS[form].sprite ? `${id}-${form}` : id
 	return `resources/pokemon/${shiny ? "shiny/" : ""}${file}.png`

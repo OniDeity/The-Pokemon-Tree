@@ -4,7 +4,7 @@
 function toggleSlots() { player.k.spinning = !player.k.spinning }
 
 function prizeCounterHtml() {
-	const prizes = SPECIALS.filter(isPrize)
+	const prizes = ALL_SPECIALS.filter(s => isPrize(s) && s.region === currentRegion())
 	return `<h3>Prize Pokémon</h3><br><div class="pk-specials">${prizes.map(s => {
 		const status = specialStatus(s)
 		const done = player.t.specials[s.id]
@@ -78,7 +78,7 @@ addLayer("k", {
 		currencyDisplayName: "coins",
 	}])),
 	tabFormat: [
-		["display-text", () => `<h2>Celadon Game Corner</h2><br><i>"Welcome! Need some coins for the slots?"</i><br><br>You have <h2 style="color:#E0B040">${formatCoins(coins())}</h2> coins`],
+		["display-text", () => `<h2>${currentRegion() === "johto" ? "Goldenrod" : "Celadon"} Game Corner</h2><br><i>"Welcome! Need some coins for the slots?"</i><br><br>You have <h2 style="color:#E0B040">${formatCoins(coins())}</h2> coins`],
 		"blank",
 		["row", [["clickable", 11], ["clickable", 12], ["clickable", 13]]],
 		"blank",

@@ -124,14 +124,14 @@ function zoneListHtml() {
 		}
 		html += "</div>"
 	}
-	return `<h3>${region().name}</h3>` + html + kantoRevisitHtml() + animeListHtml()
+	return `<h3>${region().name}</h3>` + html + revisitRegions().map(revisitHtml).join("") + animeListHtml()
 }
 
-/** Johto's post-game: Kanto's routes again, all open (Cerulean Cave after Red). */
-function kantoRevisitHtml() {
-	if (!kantoRevisit()) return ""
-	let html = `<div class="pk-area"><b>Kanto</b> <small>(by the S.S. Aqua)</small><br>`
-	for (const z of kantoRevisitZones()) {
+/** A post-game visit: an earlier region's routes again (in Johto, Kanto's Cerulean Cave after Red). */
+function revisitHtml(r) {
+	const via = currentRegion() === "johto" ? "by the S.S. Aqua" : REVISITS[r].via
+	let html = `<div class="pk-area"><b>${REVISITS[r].name}</b> <small>(${via})</small><br>`
+	for (const z of revisitZones(r)) {
 		const open = zoneOpen(z)
 		const species = zoneSpecies(z, badges())
 		const caught = species.filter(id => player.d.caught[id]).length

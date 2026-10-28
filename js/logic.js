@@ -169,7 +169,7 @@ function zoneUnlockCost(index) {
 	return new Decimal(25).times(Decimal.pow(1.8, Math.min(index, 7))).times(Decimal.pow(1.2, Math.max(0, index - 7))).times(Decimal.pow(5, badges())).times(hofUpgrade(12) ? 0.5 : 1).times(region().zoneCost)
 }
 function zoneOpen(zone) {
-	if (zone.region !== currentRegion()) return kantoRevisitOpen(zone)
+	if (zone.region !== currentRegion()) return revisitOpen(zone)
 	if (zone.anime) return animeOpen(zone)
 	if (zone.mirage) return isChampion() && mirageVisible()
 	if (zone.postGame) return isChampion()
@@ -834,6 +834,7 @@ function fameGain() {
 	if (currentRegion() === "johto") fame *= JOHTO_FAME
 	if (currentRegion() === "hoenn") fame *= HOENN_FAME
 	if (chapterCleared("mtSilver")) fame *= 1.5
+	fame *= Math.pow(VISIT_FAME, visitsCleared())
 	return Math.floor(fame)
 }
 /** Records the run in the Hall of Fame and starts the Pokédex over (the rest of the reset is TMT's). */
@@ -1507,6 +1508,33 @@ function mayTeam(stage) {
 const MAY = stage => ({ name: "Rival May", rival: true, team: () => mayTeam(stage), quote: "I'm going to be a Trainer like my dad, Professor Birch!" })
 const AQUA = (team, extra = {}) => ({ name: "Team Aqua Grunt", rocket: true, team, ...extra })
 const MAGMA = (team, extra = {}) => ({ name: "Team Magma Grunt", rocket: true, team, ...extra })
+// ---- Post-game visits (Hoenn's Champion; the pattern for later regions) ----
+// After Hoenn's League, Kanto's and Johto's routes open on the Field's map (their games' tables,
+// not the anime places or their own post-games), and each region's Elite Four and Champion wait as
+// a Story chapter. Every visit cleared multiplies this journey's Fame by VISIT_FAME.
+const VISIT_FAME = 1.3
+/** Kanto's Champion answers the Hoenn starter's type like the rival answers Oak's (Treecko → Charizard). */
+const VISIT_KANTO_CHAMPION = { 252: 1, 255: 4, 258: 7 }
+const REVISITS = {
+	kanto: { name: "Kanto", place: "Indigo Plateau", chapter: "visitKanto", strength: 22, closed: ["safariZone"], via: "by ferry to Vermilion",
+		trainers: [...ELITE_FOUR.map(t => ({ name: t.name, team: t.team })), { name: "Blue", team: () => (CHAMPIONS[VISIT_KANTO_CHAMPION[player.t.starter]] || CHAMPIONS[1]).team, quote: "Smell ya later... Hoenn's Champion, huh?" }] },
+	johto: { name: "Johto", place: "Johto's Pokémon League", chapter: "visitJohto", strength: 26, closed: [], via: "by the S.S. Aqua to Olivine",
+		trainers: [...JOHTO_ELITE_FOUR, JOHTO_CHAMPION].map(t => ({ name: t.name, team: t.team })) },
+}
+/** The earlier regions open to this journey's Champion: Kanto in Johto's post-game, Kanto and Johto in Hoenn's. */
+function revisitRegions() {
+	if (!isChampion()) return []
+	return currentRegion() === "johto" ? ["kanto"] : currentRegion() === "hoenn" ? ["kanto", "johto"] : []
+}
+function visitsCleared() { return currentRegion() === "hoenn" ? Object.values(REVISITS).filter(v => chapterCleared(v.chapter)).length : 0 }
+/** The journey's last battles before its Hall of Fame entry: Red in Johto, the visits in Hoenn. */
+function journeyFinaleLeft() {
+	if (!isChampion()) return []
+	if (currentRegion() === "johto") return chapterCleared("mtSilver") ? [] : ["mtSilver"]
+	if (currentRegion() === "hoenn") return Object.values(REVISITS).map(v => v.chapter).filter(id => !chapterCleared(id))
+	return []
+}
+
 const HOENN_CHAPTERS = [
 	// Rivals: May and Wally.
 	{ id: "route103May", region: "hoenn", name: "Route 103", badges: 0, strength: 1.9, trainers: [MAY(0)], reward: "May's first battle: Research Points." },
@@ -1546,6 +1574,9 @@ const HOENN_CHAPTERS = [
 	// After the League: Steven at Meteor Falls.
 	{ id: "stevenMeteorFalls", region: "hoenn", name: "Meteor Falls", badges: 8, champion: true, strength: 12, reward: "Steven, Hoenn's former Champion, leaves you his Beldum.",
 		trainers: [{ name: "Steven", team: [[227, 77], [344, 75], [306, 76], [346, 76], [348, 76], [376, 78]], quote: "I'd like to see how far you've come. Let's battle!" }] },
+	// Post-game visits: Hoenn's Champion travels to the earlier regions and takes on their Leagues.
+	...Object.entries(REVISITS).map(([r, v]) => ({ id: v.chapter, region: "hoenn", visit: r, name: v.place, badges: 8, champion: true, strength: v.strength,
+		reward: `${v.name}'s League bows to Hoenn's Champion: Fame ×${VISIT_FAME} for this Hall of Fame entry.`, trainers: v.trainers })),
 ]
 
 // Kanto's Gyms in Johto's post-game (HeartGold/SoulSilver's first battles, from Serebii). Lt. Surge
@@ -1677,13 +1708,13 @@ const STORY_MILESTONES = [
 // tables; Fuchsia's Safari Zone is closed, Cerulean Cave waits for Red) and its Leaders, with
 // their HGSS teams, are the Trainers node's Kanto Gyms. Red only sees a trainer with all 16 badges.
 // Each Kanto badge counts like a badge for Research Points.
-const KANTO_CLOSED = ["safariZone"]
 function kantoRevisit() { return currentRegion() === "johto" && isChampion() }
-function kantoRevisitOpen(zone) {
-	if (zone.region !== "kanto" || zone.anime || KANTO_CLOSED.includes(zone.id) || !kantoRevisit()) return false
-	return !zone.postGame || chapterCleared("mtSilver")
+function revisitOpen(zone) {
+	if (!revisitRegions().includes(zone.region) || zone.anime || REVISITS[zone.region].closed.includes(zone.id)) return false
+	if (currentRegion() === "johto") return !zone.postGame || chapterCleared("mtSilver")
+	return !zone.postGame
 }
-function kantoRevisitZones() { return ZONES.filter(z => !z.anime && !KANTO_CLOSED.includes(z.id)) }
+function revisitZones(r) { return (r === "kanto" ? ZONES : JOHTO_ZONES).filter(z => !z.anime && !REVISITS[r].closed.includes(z.id)) }
 function kantoBadges() { return KANTO_GYM_CHAPTERS.filter(ch => chapterCleared(ch.id)).length }
 
 // Gift rules from the story: the Dojo's choice and Silph Co.'s Lapras, Snorlax's Poké Flute.
@@ -1935,7 +1966,7 @@ const REGIONS = {
 		name: "Hoenn", professor: "Birch", starters: [252, 255, 258], zones: HOENN_ZONES, gyms: HOENN_GYMS,
 		eliteFour: HOENN_ELITE_FOUR, champion: () => HOENN_CHAMPION,
 		gymStrength: [2, 3.1, 4.2, 5, 5.2, 6.2, 8, 9], eliteFourStrength: 9, championStrength: 8.5,
-		badgeImage: 17, dex: HOENN_DEX, zoneCost: 0.25, pace: 9,
+		badgeImage: 17, dex: HOENN_DEX, zoneCost: 0.25, pace: 18,
 		rules: { keyItems: keyItemsFromGyms(HOENN_GYMS), levelCaps: [16, 20, 25, 30, 32, 34, 43, 47, 58, 100], stoneBadges: JOHTO_STONES, tradeBadges: 3 },
 	},
 }

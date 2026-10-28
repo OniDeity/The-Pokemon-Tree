@@ -121,7 +121,7 @@ Sister project: OniDeity/idle-pokemon (its data is the source of ours).
   milestones take the region's badge names (`badgeMilestoneText`). Simulator: `SIM_HOENN=1`
   (three Kanto and three Johto entries, Birch's starter of the same type) and `SIM_FAME=n` (Fame
   spent first: a real player reaches Hoenn with roughly 500-700). Hoenn is very Fame-sensitive:
-  pace 5.5 took 8.6-19 h at 200 Fame but ~4 h at 400. Now pace 9, `zoneCost` 0.25, Gyms
+  pace 5.5 took 8.6-19 h at 200 Fame but ~4 h at 400. Then pace 9 (18 since v0.25), `zoneCost` 0.25, Gyms
   [2, 3.1, 4.2, 5, 5.2, 6.2, 8, 9], E4 9 / Wallace 8.5: 5-7.5 h at 500-700 Fame (phase 7 tunes it
   with the story and side content). Late Gyms are steep: Tate & Liza at 10 walled every run.
   Hoenn's story (v0.20, `HOENN_CHAPTERS`): May (`mayTeam`: `MAY_LINES` answer Birch's starter,
@@ -161,6 +161,15 @@ Sister project: OniDeity/idle-pokemon (its data is the source of ours).
   `HOENN_ZONES`/`HOENN_SPECIALS` (`anime`, `hof` by `johto_hof_for`, counted by `hoennEntries()`
   through `animeEntries`); forms `meta` (Meta Groudon, post-League in Forina) and `hoennCap`.
   `HOENN_DEX` ignores anime places and specials.
+- Post-game visits (v0.25): `REVISITS` (kanto, johto: `closed` zones, the region's Elite Four and
+  Champion as a Story chapter `visitKanto`/`visitJohto` with `visit`, region "hoenn", `champion`),
+  `revisitRegions()` (Johto's Champion: Kanto; Hoenn's: Kanto and Johto), `revisitOpen`/
+  `revisitZones` (replaced the Kanto-only `kantoRevisitOpen`), `visitsCleared()` → Fame
+  ×`VISIT_FAME` each, `journeyFinaleLeft()` (Red, or the visits; the simulator waits SIM_RED hours
+  for it). New regions add themselves to `REVISITS` and `revisitRegions`. Strengths are a cliff
+  here (the post-League team only grows by gear): visits 22/26 take 0.1-2.5 h; at 25 they walled
+  for 6 h. Hoenn pace 9 → 18 for the 10-12 h target: `SIM_HOENN=1 SIM_FAME=600` 8.5-13.9 h
+  (median ~11), 800 Fame 9.4-10.7 h, 400 Fame 13.9-19 h.
 - Challenge highlights: `challengeStatus(key)`; hatching or a Safari catch marks an owned entry's
   `origin`, and `canEvolveInto` lets an entry with an origin evolve into one without.
 - Regions and the run's Pokédex (v0.12): `REGIONS` (`regionDex`, `currentRegion`, `dexRegions`)
@@ -288,7 +297,7 @@ The owner wants every Hall of Fame to feel like a proper reset:
 - Pacing: about 10-12 h of simulated play per first Hoenn journey (`pace`).
 - Phases: (0) the Story node (done in v0.18); (1) Hoenn's core and the journey (done in v0.19); (2) Hoenn's story (done in v0.20); (3) the side
   nodes, Dive, Feebas, double battles (done in v0.21); (4) Contests (done in v0.22); (5) Albino/Melanistic (done in v0.23); (6) anime places (done in v0.24);
-  (7) post-game visits and pacing.
+  (7) post-game visits and pacing (done in v0.25).
 
 - Albino and Melanistic Pokémon (the owner's idea, part of the Hoenn update): Albino has the same
   base odds as Shiny but its own items and hunting methods to lower them; Melanistic is Shiny

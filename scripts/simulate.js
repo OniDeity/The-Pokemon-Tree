@@ -1,6 +1,7 @@
 // Plays the game headlessly with a simple greedy strategy and reports when each badge falls.
 // Usage: node scripts/simulate.js [starter=1|4|7] [seed]
 //   SIM_JOHTO=1 starts with Johto open (three Hall of Fame entries) and plays the whole journey.
+//   SIM_RED=h waits up to h hours for the journey's finale (Red, or Hoenn's visits) before the Hall.
 //   SIM_HOENN=1 starts in Hoenn (three Kanto and three Johto entries) with Birch's starter of the
 //   same type. SIM_FAME=n spends n Fame in the Hall of Fame's shop before the run.
 //   SIM_HOURS=n stops after n hours. SIM_RUNS=n enters the Hall of Fame and replays n runs in all,
@@ -206,10 +207,18 @@ while (t < LIMIT) {
 			last = t
 			chooseParty(); chooseZone()
 		}
-		if (run(`isChampion() && currentRegion() === "johto" && !chapterCleared("mtSilver")`)) {
-			if (run(`canStoryBattle(chapterById("mtSilver"))`)) { run(`storyBattle("mtSilver")`); console.log(`  Red beaten at ${((t - runStart) / 3600).toFixed(2)} h`) }
-			// Waits up to SIM_RED hours (default 2) for a team that beats Red, then enters the Hall anyway.
-			else if (t - last < 3600 * Number(process.env.SIM_RED || 2)) continue
+		// The journey's finale (Red in Johto, the visits to Kanto and Johto in Hoenn): waits up to SIM_RED
+		// hours (default 2) after the last progress for a team that beats them, then enters the Hall anyway.
+		const finale = run(`journeyFinaleLeft()`)
+		if (finale.length) {
+			const id = finale.find(c => run(`canStoryBattle(chapterById("${c}"))`))
+			if (id) {
+				while (run(`canStoryBattle(chapterById("${id}"))`)) run(`storyBattle("${id}")`)
+				if (run(`chapterCleared("${id}")`)) console.log(`  ${id} cleared at ${((t - runStart) / 3600).toFixed(2)} h`)
+				last = t
+				continue
+			}
+			if (t - last < 3600 * Number(process.env.SIM_RED || 2)) continue
 		}
 		if (run(`isChampion()`)) {
 			console.log(`Run ${runNumber}${run("anyChallenge() ? ' (' + CHALLENGES[player.h.activeChallenge].name + ')' : ''")}: Champion after ${((t - runStart) / 3600).toFixed(2)} h`)

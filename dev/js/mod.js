@@ -17,11 +17,15 @@ let modInfo = {
 
 // Set your version in num and name
 let VERSION = {
-	num: "0.16",
-	name: "Johto's anime and Kanto's post-game",
+	num: "0.17",
+	name: "A longer journey",
 }
 
 let changelog = `<h1>Changelog:</h1><br>
+	<h3>v0.17 A longer journey</h3><br>
+		- Pacing: a first Kanto run and a first Johto journey now take about half a day of play each. Automatic searching, passive Research Points and the Day Care run slower (Kanto ×3.4, Johto ×2); searching by hand keeps its speed. Later runs still speed up through Fame.<br>
+		- Johto's routes cost less to open (the last ones before the League could take hours of Research Points).<br>
+		- Kanto's post-game Leaders and Red are a little weaker, to match.<br>
 	<h3>v0.16 Johto's anime and Kanto's post-game</h3><br>
 		- 58 places from the Johto anime and movies, from Palm Hills to Mount Quena: the early ones open from your first Johto journey, the rest after one and two Johto Hall of Fame entries.<br>
 		- New one-of-a-kind forms: Pudgy Pidgey, Silver (the young Lugia of Ogi Isle), the Unown's Entei, and the Dark Ball's Tyranitar and Celebi.<br>

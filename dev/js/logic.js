@@ -75,7 +75,7 @@ function rpMult() {
 function wildRpMult() { return rpMult() * (hasFieldUpgrade(21) ? 1.5 : 1) * (inChallenge(52) ? 0.5 : 1) }
 function passiveRp() {
 	if (!player.t.starter || inChallenge(51)) return 0
-	return caughtCount() * 0.05 * rpMult() * (hasFieldUpgrade(23) ? 5 : 1) * (hofUpgrade(22) ? 3 : 1)
+	return caughtCount() * 0.05 * rpMult() * (hasFieldUpgrade(23) ? 5 : 1) * (hofUpgrade(22) ? 3 : 1) / pace()
 }
 function xpMult() {
 	let m = (1 + fieldBuyableStep(14, 0.25) * fieldBuyable(14)) * (1 + 0.25 * hofBuyable(12))
@@ -86,7 +86,8 @@ function xpMult() {
 	return m
 }
 function searchTime() {
-	let t = BASE_SEARCH_TIME / (1 + fieldBuyableStep(11, 0.25) * fieldBuyable(11)) / (1 + 0.1 * hofBuyable(14))
+	// Searching by hand (before the Auto-Search Drone) keeps the base speed.
+	let t = BASE_SEARCH_TIME * (hasFieldUpgrade(11) ? pace() : 1) / (1 + fieldBuyableStep(11, 0.25) * fieldBuyable(11)) / (1 + 0.1 * hofBuyable(14))
 	if (hasFieldUpgrade(12)) t /= 2
 	if (hasKeyItem("bicycle", badges())) t /= 1.5
 	if (dexMilestone(40)) t /= 1.5
@@ -716,9 +717,9 @@ function inDayCare(key) { return !!player.c && player.c.slots.includes(key) }
 
 /** Experience per second for each Pokémon in the Day Care: grows with the level cap. */
 function dayCareXpRate() {
-	return 0.02 * Math.pow(currentCap(), 2.5) * xpMult() * (hasDayCareUpgrade(11) ? 3 : 1) * (1 + 0.5 * dayCareBuyable(11))
+	return 0.02 * Math.pow(currentCap(), 2.5) * xpMult() * (hasDayCareUpgrade(11) ? 3 : 1) * (1 + 0.5 * dayCareBuyable(11)) / pace()
 }
-function eggSeconds() { return EGG_SECONDS / (hasDayCareUpgrade(12) ? 2 : 1) / (1 + 0.15 * dayCareBuyable(12)) * (inChallenge(52) ? 3 : 1) }
+function eggSeconds() { return EGG_SECONDS * pace() / (hasDayCareUpgrade(12) ? 2 : 1) / (1 + 0.15 * dayCareBuyable(12)) * (inChallenge(52) ? 3 : 1) }
 function eggBattles() { return Math.max(1, Math.ceil(EGG_BATTLES / (hasDayCareUpgrade(13) ? 2 : 1) / (1 + 0.1 * dayCareBuyable(13)) * (inChallenge(52) ? 3 : 1))) }
 /** The Breeder's Journal: Eggs of species hatched in any earlier run hatch after one battle. */
 function eggBattlesFor(species) { return automationOn("journal") && player.d.everHatched?.[species] ? 1 : eggBattles() }
@@ -1230,14 +1231,14 @@ const KANTO_GYM = (id, name, badge, leader, strength, team, quote, needs = "kant
 	trainers: [{ name: leader, team, quote }],
 })
 const KANTO_GYM_CHAPTERS = [
-	KANTO_GYM("kantoSurge", "Vermilion Gym", "Thunder Badge", "Lt. Surge", 20, [[26, 51], [101, 47], [101, 47], [82, 47], [125, 53]], "Hey, kid! Johto's Champion, huh? Let's see you take a real shock!", null),
-	KANTO_GYM("kantoSabrina", "Saffron Gym", "Marsh Badge", "Sabrina", 21, [[196, 53], [122, 53], [65, 55]], "I foresaw your arrival. I also foresee this battle."),
-	KANTO_GYM("kantoMisty", "Cerulean Gym", "Cascade Badge", "Misty", 21, [[55, 49], [195, 49], [131, 52], [121, 54]], "You ruined my date at the Cape! You'd better be worth it."),
-	KANTO_GYM("kantoErika", "Celadon Gym", "Rainbow Badge", "Erika", 21.5, [[189, 51], [114, 52], [71, 56], [182, 56]], "Oh... I must have dozed off. A challenger from Johto? How lovely."),
-	KANTO_GYM("kantoJanine", "Fuchsia Gym", "Soul Badge", "Janine", 21.5, [[169, 47], [110, 44], [168, 47], [168, 47], [49, 50]], "Father handed the Gym to me. I won't let him down!"),
-	KANTO_GYM("kantoBrock", "Pewter Gym", "Boulder Badge", "Brock", 22, [[75, 51], [111, 51], [139, 53], [95, 54], [141, 52]], "My rock-hard willpower is even harder now. Show me yours!"),
-	KANTO_GYM("kantoBlaine", "Seafoam Gym", "Volcano Badge", "Blaine", 22.5, [[126, 54], [219, 54], [78, 59]], "The volcano took my Gym, not my fire! Have you got Burn Heal?"),
-	KANTO_GYM("kantoBlue", "Viridian Gym", "Earth Badge", "Blue", 24, [[103, 55], [68, 56], [59, 58], [112, 58], [130, 52], [18, 60]], "So you're the Johto Champion. I was the Champion too, for about a minute.",
+	KANTO_GYM("kantoSurge", "Vermilion Gym", "Thunder Badge", "Lt. Surge", 19, [[26, 51], [101, 47], [101, 47], [82, 47], [125, 53]], "Hey, kid! Johto's Champion, huh? Let's see you take a real shock!", null),
+	KANTO_GYM("kantoSabrina", "Saffron Gym", "Marsh Badge", "Sabrina", 19.5, [[196, 53], [122, 53], [65, 55]], "I foresaw your arrival. I also foresee this battle."),
+	KANTO_GYM("kantoMisty", "Cerulean Gym", "Cascade Badge", "Misty", 19.5, [[55, 49], [195, 49], [131, 52], [121, 54]], "You ruined my date at the Cape! You'd better be worth it."),
+	KANTO_GYM("kantoErika", "Celadon Gym", "Rainbow Badge", "Erika", 20, [[189, 51], [114, 52], [71, 56], [182, 56]], "Oh... I must have dozed off. A challenger from Johto? How lovely."),
+	KANTO_GYM("kantoJanine", "Fuchsia Gym", "Soul Badge", "Janine", 20, [[169, 47], [110, 44], [168, 47], [168, 47], [49, 50]], "Father handed the Gym to me. I won't let him down!"),
+	KANTO_GYM("kantoBrock", "Pewter Gym", "Boulder Badge", "Brock", 20.5, [[75, 51], [111, 51], [139, 53], [95, 54], [141, 52]], "My rock-hard willpower is even harder now. Show me yours!"),
+	KANTO_GYM("kantoBlaine", "Seafoam Gym", "Volcano Badge", "Blaine", 21, [[126, 54], [219, 54], [78, 59]], "The volcano took my Gym, not my fire! Have you got Burn Heal?"),
+	KANTO_GYM("kantoBlue", "Viridian Gym", "Earth Badge", "Blue", 22, [[103, 55], [68, 56], [59, 58], [112, 58], [130, 52], [18, 60]], "So you're the Johto Champion. I was the Champion too, for about a minute.",
 		["kantoSabrina", "kantoMisty", "kantoErika", "kantoJanine", "kantoBrock", "kantoBlaine"]),
 ]
 const STORY_CHAPTERS = [
@@ -1278,7 +1279,7 @@ const STORY_CHAPTERS = [
 	{ id: "dojo", layer: "v", name: "Fighting Dojo", badges: 4, strength: 4.5, reward: "The Karate Master lets you choose Hitmonlee or Hitmonchan.",
 		trainers: [{ name: "Black Belt", team: [[66, 31], [67, 31]] }, { name: "Black Belt", team: [[56, 32], [57, 32]] }, { name: "Black Belt", team: [[67, 34]] },
 			{ name: "Karate Master", team: [[57, 37], [106, 37], [107, 37]] }] },
-	{ id: "mtSilver", layer: "v", region: "johto", name: "Mt. Silver", badges: 8, champion: true, needs: "kantoBlue", strength: 17, red: true,
+	{ id: "mtSilver", layer: "v", region: "johto", name: "Mt. Silver", badges: 8, champion: true, needs: "kantoBlue", strength: 14, red: true,
 		reward: "Red, the silent Champion of Kanto, nods and leaves the summit. Fame ×1.5 for this Hall of Fame entry.",
 		trainers: [{ name: "Red", team: JOHTO_RED.team, quote: "…" }] },
 	...KANTO_GYM_CHAPTERS,
@@ -1483,18 +1484,24 @@ const REGIONS = {
 	kanto: {
 		name: "Kanto", professor: "Oak", starters: STARTERS, zones: ZONES, gyms: GYMS, eliteFour: ELITE_FOUR,
 		champion: () => CHAMPIONS[player.t.starter] || CHAMPIONS[1], gymStrength: GYM_STRENGTH,
-		eliteFourStrength: ELITE_FOUR_STRENGTH, championStrength: CHAMPION_STRENGTH, badgeImage: 1, zoneCost: 1,
+		eliteFourStrength: ELITE_FOUR_STRENGTH, championStrength: CHAMPION_STRENGTH, badgeImage: 1, zoneCost: 1, pace: 3.4,
 		dex: Array.from({ length: 151 }, (_, i) => i + 1), rules: REGION_RULES,
 	},
 	johto: {
 		name: "Johto", professor: "Elm", starters: [152, 155, 158], zones: JOHTO_ZONES, gyms: JOHTO_GYMS,
 		eliteFour: JOHTO_ELITE_FOUR, champion: () => JOHTO_CHAMPION,
 		gymStrength: [3.5, 6, 8, 6.5, 11, 12.5, 13, 11], eliteFourStrength: 10, championStrength: 9.5,
-		badgeImage: 9, dex: JOHTO_DEX, zoneCost: 5,
+		badgeImage: 9, dex: JOHTO_DEX, zoneCost: 2, pace: 2,
 		rules: { keyItems: keyItemsFromGyms(JOHTO_GYMS), levelCaps: [16, 20, 24, 28, 33, 37, 40, 45, 55, 100], stoneBadges: JOHTO_STONES, tradeBadges: 3 },
 	},
 }
 function currentRegion() { return player.t?.region || "kanto" }
+/**
+ * The journey's pace: every timer (automatic searching, so the Safari Zone too, passive Research
+ * Points, the Day Care) runs this many times slower. Tuned so a first run of each region takes about 10-12 h
+ * in the simulator, which plays perfectly; later runs speed up through Fame.
+ */
+function pace() { return region().pace }
 function region() { return REGIONS[currentRegion()] }
 /** Points the engine at the current region's rules (call when the region may have changed). */
 function syncRegionRules() { REGION_RULES = region().rules }

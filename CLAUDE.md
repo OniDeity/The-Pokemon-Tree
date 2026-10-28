@@ -50,12 +50,20 @@ Sister project: OniDeity/idle-pokemon (its data is the source of ours).
   Lucky Machine); prize Pokémon (`PRIZE_COINS`) cost coins, not RP; jackpots in `player.d.jackpots`
   count for good), `y` Shiny hunting (row 2; a target species' chain multiplies its shiny odds,
   `chainBonus`/`huntStep`, the Lure through `rollEncounter`'s `lure`; shiny species in
-  `player.d.shiny` give +1% RP each and `SHINY_MILESTONES`), `r` Team Rocket and `v` Trainers
-  (row 2, `layers/story.js`): Kanto's story as `STORY_CHAPTERS` in logic.js, places whose trainers
-  are fought in order (`player[layer].progress[chapter]`, kept through badges). A cleared chapter
-  can gate a Gym (`gate`, the badge index) or the League (`gateLeague`), and `SPECIAL_STORY` gates
-  gifts. The rival's teams follow the starter (`rivalTeam`). `player.d.rockets`/`rivalWins` count
-  for good. Strengths were tuned with the simulator (which plays `storyTick`). Side layers `d` Pokédex (with the Diploma, `hasDiploma`) and `a` Achievements.
+  `player.d.shiny` give +1% RP each and `SHINY_MILESTONES`), `q` Story (row 2, `layers/story.js`,
+  v0.18; replaced Team Rocket `r` and Trainers `v`, which `migrateStory` folds in): the story as
+  `STORY_CHAPTERS` in logic.js, places whose trainers are fought in order
+  (`player.q.progress[chapter]`, kept through badges), each with an `arc` (rival, villain,
+  challenger: the tabs; rival-only chapters default to rival). The Storyline tab draws the
+  region's chapters as a map by the badges they need (`storyMapHtml`, `chapterOpens`). A cleared
+  chapter can gate a Gym (`gate`, the badge index) or the League (`gateLeague`), `needs` takes a
+  chapter or a list, and `SPECIAL_STORY` gates gifts. The rival's teams follow the starter
+  (`rivalTeam`). Rematch calls (`storyCallStep` per wild battle, adding its search time; every
+  `CALL_SECONDS` a cleared chapter of the region calls, up to `maxCalls()`): the last trainer at
+  the party's cap and 0.75× the last Gym beaten, paying a third of a story battle's RP; they
+  count only as story wins (`player.d.storyWins`), not Rockets/rivals: counting those too made
+  first runs 35% faster. Lifetime `ROCKET_`/`RIVAL_`/`STORY_MILESTONES` run into the hundreds.
+  The simulator plays `storyTick` and `rematchTick`. Side layers `d` Pokédex (with the Diploma, `hasDiploma`) and `a` Achievements.
 - Popups go through `pkPopup(kind, ...)` / `pkLog`, and `notifyOn(kind)` reads the player's
   switches (`NOTIFY_KINDS`, kept in TMT's `options.pkNotify`; the settings page draws
   `pk-notify-settings`, and `game.js`'s `shouldNotify` checks `glow`). Long lists of Pokémon get a
@@ -86,11 +94,14 @@ Sister project: OniDeity/idle-pokemon (its data is the source of ours).
   `young`, `unown` (Entei) and `dark` (Tyranitar, Celebi) in engine.js's `FORMS`. `JOHTO_DEX`
   ignores anime places. Johto's Champion revisits Kanto (`kantoRevisit`/`kantoRevisitOpen`:
   Kanto's non-anime zones open in the Johto journey, except `KANTO_CLOSED`; Cerulean Cave after
-  Red) and fights `KANTO_GYM_CHAPTERS` (layer `v`, `kantoGym`, drawn on the Gyms node; HGSS teams
+  Red) and fights `KANTO_GYM_CHAPTERS` (Story chapters with `kantoGym`, drawn on the Gyms node; HGSS teams
   from Serebii; each badge ×`BADGE_RP_BOOST` RP via `kantoBadges()`). `needs` takes a list; Red
   needs `kantoBlue`. Strengths act steeply here (the party's only growth after the League is
   gear): one step of strength moves Red by hours.
-- Pacing (v0.17): `pace()` (`REGIONS[r].pace`: Kanto 3.4, Johto 2) slows every timer: automatic
+- Pacing (v0.17; v0.18 retuned it with rematches: Kanto pace 3.8, the Radio Tower 17 → 15 (it
+  walled some runs for 5-11 h), Kanto's Brock 19.5 / Blaine 20 / Blue 20.5, Red 13. A first Kanto
+  run 8.6-14.2 h (median ~10.4), `SIM_JOHTO=1` journeys 9.3-15 h, later runs ~2.8 / 1.9 / 2.7 /
+  1.5 h. The v0.17 notes below are before that.) `pace()` (`REGIONS[r].pace`: Kanto 3.4, Johto 2) slows every timer: automatic
   search (hand searching before the Auto-Search Drone keeps the base speed), so the Safari Zone,
   passive RP and the Day Care's xp and Eggs. Simulator, all starters, seeds 1-3: a first Kanto run
   9.4-15.2 h (median ~10.7); later runs (`SIM_RUNS=5`) ~3 / 2 / 3 / 1.5 h; `SIM_JOHTO=1` journeys
@@ -218,7 +229,7 @@ The owner wants every Hall of Fame to feel like a proper reset:
 - Albino and Melanistic come with Hoenn (see below).
 - Anime: hoennAnime.ts's 34 places, Meta Groudon (post-League), Hoenn Cap Pikachu.
 - Pacing: about 10-12 h of simulated play per first Hoenn journey (`pace`).
-- Phases: (0) the Story node; (1) Hoenn's core and the journey; (2) Hoenn's story; (3) the side
+- Phases: (0) the Story node (done in v0.18); (1) Hoenn's core and the journey; (2) Hoenn's story; (3) the side
   nodes, Dive, Feebas, double battles; (4) Contests; (5) Albino/Melanistic; (6) anime places;
   (7) post-game visits and pacing.
 

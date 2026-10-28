@@ -15,7 +15,7 @@ function dexMatches(id) {
 }
 function dexHtml() {
 	let html = `<div class="pk-dex">`
-	for (const id of regionDex()) {
+	for (const id of regionDex(viewedDexRegion())) {
 		if (!dexMatches(id)) continue
 		const seen = player.d.seen[id], caught = player.d.caught[id], shiny = player.d.shiny[id]
 		const cls = caught ? "" : seen ? "pk-seen" : "pk-unseen"
@@ -66,6 +66,7 @@ addLayer("d", {
 		missingno: 0,
 		dexSearch: "",
 		dexFilter: "all",
+		dexRegion: "",
 	}},
 	layerShown() { return player.t.starter > 0 },
 	tooltip() { return `${regionCaught()}/${regionDex().length} caught` },
@@ -85,7 +86,7 @@ addLayer("d", {
 				["display-text", () => hasDiploma()
 					? `<div class="pk-trainer"><b>🎓 Game Freak's Diploma</b><br><small>"Congratulations! This is to certify that you have completed your Pokédex." Your Pokémon fight with ×1.1 Attack and Defense for good.</small></div>`
 					: `<small>Game Freak's Diploma: catch all 150 Kanto species in one run, Mew not needed; the reward stays for good (${Object.keys(player.d.caught).filter(id => id >= 1 && id <= 150).length}/150).</small>`],
-				["display-text", () => `<h3>${REGIONS[currentRegion()].name}</h3><br>Seen: <b>${seenCount()}</b> · Caught: <b>${regionCaught()}</b>/${regionDex().length} · Shiny records: <b>${Object.keys(player.d.shiny).length}</b> · Best Pokédex: <b>${Math.max(player.d.bestCaught || 0, caughtCount())}</b><br><small>The Pokédex starts over at every Hall of Fame entry (shiny and form records stay). Every species caught gives Research Points over time. Shiny odds: 1/${format(shinyOdds())}.</small>`],
+				["display-text", () => `${regionTabs()}<h3>${REGIONS[viewedDexRegion()].name}</h3><br>Seen: <b>${seenCount()}</b> · Caught: <b>${regionCaught(viewedDexRegion())}</b>/${regionDex(viewedDexRegion()).length} · Shiny records: <b>${Object.keys(player.d.shiny).length}</b> · Best Pokédex: <b>${Math.max(player.d.bestCaught || 0, caughtCount())}</b><br><small>The Pokédex starts over at every Hall of Fame entry (shiny and form records stay). Every species caught gives Research Points over time. Shiny odds: 1/${format(shinyOdds())}.</small>`],
 				"blank",
 				["display-text", () => filterBar("d", "dexFilter", DEX_FILTERS)],
 				["pk-search", "dexSearch"],

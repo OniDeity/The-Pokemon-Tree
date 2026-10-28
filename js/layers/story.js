@@ -23,7 +23,7 @@ function trainerIconsHtml(ch) {
 
 function chapterHtml(ch) {
 	const n = chapterProgress(ch), total = ch.trainers.length
-	const gate = ch.gate !== undefined ? ` · <small>opens ${GYMS[ch.gate].name}'s Gym</small>` : ch.gateLeague ? " · <small>opens the League</small>" : ""
+	const gate = ch.gate !== undefined ? ` · <small>opens ${regionGyms()[ch.gate].name}'s Gym</small>` : ch.gateLeague ? " · <small>opens the League</small>" : ""
 	if (!chapterOpen(ch)) return `<div class="pk-trainer pk-done"><b>${ch.name}</b>${gate}<br><small>${chapterLockText(ch)}</small></div>`
 	let html = `<div class="pk-trainer"><b>${ch.name}</b> (${n}/${total})${gate}<br><small>Reward: ${ch.reward}</small><br>`
 	const t = nextStoryTrainer(ch)
@@ -34,13 +34,13 @@ function chapterHtml(ch) {
 }
 
 function chaptersHtml(layer) {
-	return STORY_CHAPTERS.filter(ch => ch.layer === layer).map(chapterHtml).join("")
+	return STORY_CHAPTERS.filter(ch => ch.layer === layer && chapterRegion(ch) === currentRegion()).map(chapterHtml).join("")
 }
 function milestonesHtml(title, count, list) {
 	return `${title}: <b>${count}</b><br>${list.map(([n, text]) => `<span class="${count >= n ? "" : "pk-done"}">${n}: ${text}${count >= n ? " ✓" : ""}</span>`).join("<br>")}`
 }
 function storyLayerBase(layer) {
-	const chapters = () => STORY_CHAPTERS.filter(ch => ch.layer === layer)
+	const chapters = () => STORY_CHAPTERS.filter(ch => ch.layer === layer && chapterRegion(ch) === currentRegion())
 	return {
 		type: "none",
 		startData() { return { unlocked: true, points: new Decimal(0), progress: {}, masterBall: false } },
@@ -67,7 +67,7 @@ addLayer("r", {
 	color: "#C03028",
 	resource: "Rockets beaten",
 	branches: ["k"],
-	layerShown() { return player.t.starter > 0 && badges() >= 1 },
+	layerShown() { return player.t.starter > 0 && badges() >= 1 && STORY_CHAPTERS.some(ch => ch.layer === "r" && chapterRegion(ch) === currentRegion()) },
 	tabFormat: [
 		["display-text", () => `<h2>Team Rocket</h2><br><i>Team Rocket is up to no good all over Kanto. Some of its schemes stand in your way.</i>${player.r.masterBall ? "<br><b>You hold the Master Ball.</b>" : ""}`],
 		"blank",

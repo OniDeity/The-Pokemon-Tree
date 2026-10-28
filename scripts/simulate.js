@@ -1,5 +1,6 @@
 // Plays the game headlessly with a simple greedy strategy and reports when each badge falls.
 // Usage: node scripts/simulate.js [starter=1|4|7] [seed]
+//   SIM_JOHTO=1 starts with Johto open (three Hall of Fame entries) and plays the whole journey.
 //   SIM_HOURS=n stops after n hours. SIM_RUNS=n enters the Hall of Fame and replays n runs in all,
 //   buying Fame upgrades; SIM_CHALLENGE=id plays the runs after the first under that challenge.
 // Runs js/data/kanto.js, js/engine.js and js/logic.js unchanged against a fake `player`.
@@ -9,7 +10,7 @@ const vm = require("vm")
 
 const root = path.join(__dirname, "..")
 const ctx = vm.createContext({ console, Math, JSON, Object, Array, Set, Number, String })
-for (const file of ["js/technical/break_eternity.js", "js/data/kanto.js", "js/engine.js", "js/logic.js"])
+for (const file of ["js/technical/break_eternity.js", "js/data/kanto.js", "js/data/johto.js", "js/engine.js", "js/logic.js"])
 	vm.runInContext(fs.readFileSync(path.join(root, file), "utf8"), ctx, { filename: file })
 
 const starter = Number(process.argv[2] || 1)
@@ -33,7 +34,7 @@ function freshField(keep) {
 var player = {
 	points: new Decimal(0), timePlayed: 0,
 	f: freshField(),
-	t: { starter: 0, box: {}, party: [], specials: {}, autoEvolve: true, nuzlocke: {} },
+	t: { starter: 0, box: {}, party: [], specials: {}, autoEvolve: true, nuzlocke: {}, region: "kanto", johtoStarter: 0 },
 	g: { points: new Decimal(0) },
 	l: { beaten: 0, champion: false, hallOfFame: [] },
 	h: { points: new Decimal(0), hall: [], enshrined: {}, upgrades: [], buyables: {}, challenges: {}, activeChallenge: null, resetTime: 0 },
@@ -50,6 +51,7 @@ function startRun(id) {
 	if (hofUpgrade(11)) player.points = player.points.add(200)
 	player.f = freshField(fieldKeptUpgrades())
 }
+resetField = () => { player.f = freshField(fieldKeptUpgrades()) }
 // Entering the Hall of Fame: Fame, then a new run (the Pokédex stays).
 function hallOfFameReset(challenge) {
 	const fame = fameGain()
@@ -59,7 +61,7 @@ function hallOfFameReset(challenge) {
 	player.h.activeChallenge = challenge || null
 	player.h.resetTime = 0
 	player.points = new Decimal(0)
-	player.t = { starter: 0, box: {}, party: [], specials: {}, autoEvolve: true, nuzlocke: {} }
+	player.t = { starter: 0, box: {}, party: [], specials: {}, autoEvolve: true, nuzlocke: {}, region: "kanto", johtoStarter: 0 }
 	player.g = { points: new Decimal(0) }
 	player.l = { beaten: 0, champion: false, hallOfFame: [] }
 	player.k = { points: new Decimal(startingCoins()), upgrades: [], buyables: {}, spinning: false }
@@ -84,6 +86,7 @@ function fameShop() {
 const run = code => vm.runInContext(code, ctx)
 const RUNS = Number(process.env.SIM_RUNS || 1)
 const CHALLENGE = process.env.SIM_CHALLENGE || ""
+if (process.env.SIM_JOHTO) run(`player.h.hall = [1, 2, 3].map(() => ({ team: [], time: 0 }))`)
 run(`startRun(${starter})`)
 
 // Average Research Points per second in a zone with the current team (sampled battles).
@@ -103,7 +106,7 @@ function zoneValue(zone) {
 
 function chooseZone() {
 	if (run(`!canChooseRoute()`)) return
-	const open = run(`ZONES.filter(zoneOpen).map(z => z.id)`)
+	const open = run(`ALL_ZONES.filter(zoneOpen).map(z => z.id)`)
 	// Survey first: the frontier zone with unseen species, if the team can win there.
 	const unseen = run(`frontierZones().filter(z => zoneOpen(z) && zoneSpecies(z, badges()).some(id => !player.d.seen[id])).map(z => z.id)`)
 	let best = null, bestValue = -1
@@ -141,9 +144,9 @@ function shop() {
 				const cost = fieldBuyableCost(id)
 				options.push([cost, () => { player.points = player.points.sub(cost); player.f.buyables[id] = new Decimal(fieldBuyable(id) + 1) }])
 			}
-			for (const s of SPECIALS) if (specialStatus(s).ok) options.push([specialCost(s), () => takeSpecial(s)])
+			for (const s of ALL_SPECIALS) if (specialStatus(s).ok) options.push([specialCost(s), () => takeSpecial(s)])
 			// Game Corner prizes: buy the coins they still need, then trade them in.
-			for (const s of SPECIALS) if (isPrize(s) && !player.t.specials[s.id] && gameCornerOpen() && specialOpen(s)) {
+			for (const s of ALL_SPECIALS) if (isPrize(s) && !player.t.specials[s.id] && gameCornerOpen() && specialOpen(s)) {
 				const need = Math.max(0, prizeCoins(s) - coins())
 				if (need > 0) options.push([coinsCost(need), () => { buyCoins(need); takeSpecial(s) }])
 			}
@@ -162,7 +165,7 @@ const LIMIT = 60 * 60 * Number(process.env.SIM_HOURS || 40)
 let t = 0, last = 0, surveyAt = null, winAt = null, runStart = 0, runNumber = 1
 chooseZone(); chooseParty()
 while (t < LIMIT) {
-	run(`player.points = player.points.add(passiveRp() * ${STEP}); player.f.searching = true; challengeTick(${STEP}); searchTick(${STEP})`)
+	run(`syncRegionRules(); player.points = player.points.add(passiveRp() * ${STEP}); player.f.searching = true; challengeTick(${STEP}); searchTick(${STEP})`)
 	t += STEP
 	if (t % 10 === 0) shop()
 	if (t % 60 === 0) { chooseParty(); chooseZone() }
@@ -173,7 +176,7 @@ while (t < LIMIT) {
 		// Nuzlocke: wait until at most one Pokémon would faint (and be released).
 		if (run(`canChallengeGym() && !(inChallenge(11) && gymPrediction().fainted > 1)`)) {
 			const b = run(`badges()`) + 1
-			console.log(`${runNumber > 1 ? `Run ${runNumber} ` : ""}Badge ${b} at ${(t / 3600).toFixed(2)} h (+${((t - last) / 60).toFixed(0)} min; survey +${((surveyAt - last) / 60).toFixed(0)}, team +${((winAt - last) / 60).toFixed(0)}) gear ${run("[11,12,13,14].map(fieldBuyable).join('/')")} ups ${run("player.f.upgrades.join(',')")} RP ${run("format(player.points)")} caught ${run("caughtCount()")} cap ${run("currentCap()")} party ${run("player.t.party.map(k => keyName(k) + ' ' + player.t.box[k].level).join(', ')")}`)
+			console.log(`${runNumber > 1 ? `Run ${runNumber} ` : ""}${run("currentRegion() === 'johto' ? 'Johto ' : ''")}Badge ${b} at ${(t / 3600).toFixed(2)} h (+${((t - last) / 60).toFixed(0)} min; survey +${((surveyAt - last) / 60).toFixed(0)}, team +${((winAt - last) / 60).toFixed(0)}) gear ${run("[11,12,13,14].map(fieldBuyable).join('/')")} ups ${run("player.f.upgrades.join(',')")} RP ${run("format(player.points)")} caught ${run("caughtCount()")} cap ${run("currentCap()")} party ${run("player.t.party.map(k => keyName(k) + ' ' + player.t.box[k].level).join(', ')")}`)
 			last = t; surveyAt = winAt = null
 			run(`(() => {
 				winGymBattle()
@@ -191,6 +194,18 @@ while (t < LIMIT) {
 		}
 		for (let k = 0; k < 5; k++) if (run(`canChallengeLeague(player.l.beaten) && !(inChallenge(11) && leaguePrediction(player.l.beaten).fainted > (player.l.beaten === 4 ? 6 : 1)) && challengeLeague(player.l.beaten)`)) {
 			console.log(`League: ${run("player.l.beaten")} beaten at ${(t / 3600).toFixed(2)} h`)
+		}
+		// Kanto's Champion sails on to Johto when it's open, and takes Elm's starter of the same type.
+		if (run(`canSailToJohto()`)) {
+			console.log(`Kanto Champion at ${((t - runStart) / 3600).toFixed(2)} h: sailing to Johto`)
+			run(`sailToJohto(); chooseJohtoStarter(${({ 1: 152, 4: 155, 7: 158 })[starter] || 152})`)
+			last = t
+			chooseParty(); chooseZone()
+		}
+		if (run(`isChampion() && currentRegion() === "johto" && !chapterCleared("mtSilver")`)) {
+			if (run(`canStoryBattle(chapterById("mtSilver"))`)) { run(`storyBattle("mtSilver")`); console.log(`  Red beaten at ${((t - runStart) / 3600).toFixed(2)} h`) }
+			// Waits up to SIM_RED hours (default 2) for a team that beats Red, then enters the Hall anyway.
+			else if (t - last < 3600 * Number(process.env.SIM_RED || 2)) continue
 		}
 		if (run(`isChampion()`)) {
 			console.log(`Run ${runNumber}${run("anyChallenge() ? ' (' + CHALLENGES[player.h.activeChallenge].name + ')' : ''")}: Champion after ${((t - runStart) / 3600).toFixed(2)} h`)

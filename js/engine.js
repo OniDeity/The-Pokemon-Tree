@@ -33,6 +33,8 @@ const POOL_NAMES = { walk: "Grass & caves", surf: "Surfing", oldRod: "Old Rod", 
 // Evolution items, and the badges needed before you can get them.
 const STONE_BADGES = { moonStone: 1, fireStone: 3, waterStone: 3, thunderStone: 3, leafStone: 3 }
 const TRADE_BADGES = 3
+/** The current region's rules (logic.js swaps them when the journey moves on to Johto). */
+var REGION_RULES = { keyItems: KEY_ITEMS, levelCaps: LEVEL_CAPS, stoneBadges: STONE_BADGES, tradeBadges: TRADE_BADGES }
 
 // Forms: looks of a species seen in the anime, kept as variants (box keys like "150-clone").
 // sprite: its own image (resources/pokemon/<id>-<form>.png); filter/accessory: drawn over the
@@ -51,8 +53,8 @@ function spriteOf(id, shiny, form) {
 	const file = form && FORMS[form].sprite ? `${id}-${form}` : id
 	return `resources/pokemon/${shiny ? "shiny/" : ""}${file}.png`
 }
-function hasKeyItem(item, badges) { return badges >= KEY_ITEMS[item].badges }
-function levelCap(badges) { return LEVEL_CAPS[Math.min(badges, LEVEL_CAPS.length - 1)] }
+function hasKeyItem(item, badges) { return badges >= (REGION_RULES.keyItems[item]?.badges ?? 99) }
+function levelCap(badges) { const caps = REGION_RULES.levelCaps; return caps[Math.min(badges, caps.length - 1)] }
 
 // ---- Experience ----
 
@@ -80,25 +82,32 @@ function gainXp(entry, id, xp, cap) {
 	return entry.level - start
 }
 
+/**
+ * Whether an evolution (or breeding link) between Gen 1 and Gen 2 is open: logic.js replaces this
+ * so Crobat, Pichu and the like wait until Johto has been beaten once.
+ */
+var crossGenOpen = () => true
+function evolutionOpen(from, into) { return (from <= 151) === (into <= 151) || crossGenOpen() }
+
 /** The species this Pokémon evolves into by levelling at its current level, if any. */
 function levelEvolution(id, level) {
-	const evo = SPECIES[id].evolutions.find(e => e.method === "level" && e.level != null && level >= e.level)
+	const evo = SPECIES[id].evolutions.find(e => e.method === "level" && e.level != null && level >= e.level && evolutionOpen(id, e.into))
 	return evo ? evo.into : null
 }
 
 /** Evolutions that need an item or a trade, and whether the badges allow them yet. */
 function itemEvolutions(id, badges) {
 	return SPECIES[id].evolutions
-		.filter(e => e.method !== "level")
+		.filter(e => e.method !== "level" && evolutionOpen(id, e.into))
 		.map(e => ({
 			...e,
-			open: e.method === "trade" ? badges >= TRADE_BADGES : badges >= (STONE_BADGES[e.stone] ?? 99),
+			open: e.method === "trade" ? badges >= REGION_RULES.tradeBadges : badges >= (REGION_RULES.stoneBadges[e.stone] ?? 99),
 		}))
 }
 
 function evolutionLabel(e) {
 	if (e.method === "level") return `Lv. ${e.level}`
-	if (e.method === "trade") return "Trade"
+	if (e.method === "trade") return e.item ? `Trade holding ${e.item.replace(/([A-Z])/g, " $1").replace(/^./, c => c.toUpperCase())}` : "Trade"
 	return (e.stone || "").replace(/([A-Z])/g, " $1").replace(/^./, c => c.toUpperCase())
 }
 
@@ -219,7 +228,7 @@ const PRE_EVOLUTION = {}
 for (const id in SPECIES) for (const e of SPECIES[id].evolutions) PRE_EVOLUTION[e.into] = Number(id)
 /** The first stage of a species' family: what its Eggs hatch into. */
 function familyBase(id) {
-	while (PRE_EVOLUTION[id]) id = PRE_EVOLUTION[id]
+	while (PRE_EVOLUTION[id] && evolutionOpen(PRE_EVOLUTION[id], id)) id = PRE_EVOLUTION[id]
 	return id
 }
 // Nidoran♀ and Nidoran♂ are one family for breeding: their Eggs hatch into either.
@@ -240,9 +249,11 @@ function eggSpecies(a, b) {
 	const pair = (canBeMale(a) && canBeFemale(b)) || (canBeFemale(a) && canBeMale(b))
 	return pair ? eggOptions(a) : null
 }
-/** Every species an Egg can hatch into: first stages that breed (with a partner or Ditto). */
-const HATCHABLE = Object.keys(SPECIES).map(Number)
-	.filter(id => !SPECIES[id].legendary && id !== DITTO && eggSpecies(id, DITTO)?.includes(id))
+/** Every species up to `maxId` an Egg can hatch into: first stages that breed (with a partner or Ditto). */
+function hatchable(maxId = 151) {
+	return Object.keys(SPECIES).map(Number)
+		.filter(id => id <= maxId && !SPECIES[id].legendary && id !== DITTO && eggSpecies(id, DITTO)?.includes(id))
+}
 function eggOptions(id) {
 	const base = breedingFamily(id)
 	return base === 29 ? [29, 32] : [base]

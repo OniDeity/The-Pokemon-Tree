@@ -75,6 +75,8 @@ function rpMult() {
 	if (rivalMilestone(100)) m *= 1.2
 	if (storyMilestone(10)) m *= 1.1
 	if (storyMilestone(500)) m *= 1.25
+	m *= 1 + 0.005 * ribbonCount()
+	if (ribbonMilestone(60)) m *= 1.25
 	return m
 }
 function wildRpMult() { return rpMult() * (hasFieldUpgrade(21) ? 1.5 : 1) * (inChallenge(52) ? 0.5 : 1) }
@@ -276,7 +278,7 @@ function addToBox(id, level, variant = "normal", origin = null) {
 	if (old && origin && !old.origin) old.origin = origin
 	if (old && old.level >= level) return false
 	// origin: "egg" or "safari" where it matters (the Hatchling Run and Poacher's Net exempt them).
-	player.t.box[key] = { level, xp: xpForLevel(SPECIES[id].growth, level), variant, ...(origin || old?.origin ? { origin: origin || old.origin } : {}) }
+	player.t.box[key] = { level, xp: xpForLevel(SPECIES[id].growth, level), variant, ...(origin || old?.origin ? { origin: origin || old.origin } : {}), ...(old?.condition ? { condition: old.condition } : {}) }
 	if (!old && player.t.party.length < partySize() && canJoinParty(key)) player.t.party.push(key)
 	return true
 }
@@ -454,6 +456,7 @@ function winGymBattle() {
 	releaseFainted(gymPrediction())
 	// Emerald's first double battle waits on Route 104, just after Roxanne.
 	if (currentRegion() === "hoenn" && badges() === 0) unlockMechanic("doubleBattles", "Double battles! From now on your lead's partner (the next Pokémon in the party) fights beside it, in every region.")
+	if (currentRegion() === "hoenn" && badges() === 2) unlockMechanic("contests", "Pokémon Contests! Verdanturf's Contest Hall opens the Contests node: raise your Pokémon's condition with Pokéblocks and win ribbons, in every region.")
 }
 
 // ---- Mechanics unlocked for good (player.h.mechanics) ----
@@ -467,6 +470,131 @@ function unlockMechanic(id, text) {
 	pkLog(text, "story")
 }
 partnerDamage = () => mechanicOn("doubleBattles") ? PARTNER_DAMAGE : 0
+
+// ---- Pokémon Contests (the "n" node; Idle Pokémon's contests.ts) ----
+// A mechanic unlocked in Hoenn with the Dynamo Badge (Verdanturf's Contest Hall) and kept for good:
+// a Contest Hall in every region. A box Pokémon's condition in each category (raised with
+// Pokéblocks, kept on its box entry) plus its type appeal and half its level is judged against each
+// rank's field. Wins give a ribbon to the species (player.d.ribbons, kept for good: rank index per
+// category), RP, and the first Master Rank win in a category gives that category's Cosplay Pikachu.
+const CONTEST_CATEGORIES = {
+	cool: { name: "Cool", color: "red", pikachu: "rockStar", types: ["fire", "electric", "dragon", "flying", "fighting"] },
+	beauty: { name: "Beauty", color: "blue", pikachu: "belle", types: ["water", "ice", "psychic", "fairy"] },
+	cute: { name: "Cute", color: "pink", pikachu: "popStar", types: ["normal", "grass", "bug", "fairy"] },
+	smart: { name: "Smart", color: "green", pikachu: "phd", types: ["psychic", "ghost", "dark", "poison", "grass"] },
+	tough: { name: "Tough", color: "yellow", pikachu: "libre", types: ["rock", "ground", "steel", "fighting", "poison"] },
+}
+const CONTEST_RANKS = [
+	{ name: "Normal Rank", score: 40, seconds: 30, prize: 3 },
+	{ name: "Super Rank", score: 75, seconds: 45, prize: 6 },
+	{ name: "Hyper Rank", score: 110, seconds: 60, prize: 12 },
+	{ name: "Master Rank", score: 145, seconds: 90, prize: 24 },
+]
+const MAX_CONDITION = 100
+const POKEBLOCK_GAIN = 10
+/** Ribbons held (every rank won counts), lifetime. */
+const RIBBON_MILESTONES = [
+	[5, "Pokéblocks raise a condition by +5 more."],
+	[15, "Contests take half the time."],
+	[30, "Contest Pass: the Contest Hall feeds Pokéblocks and enters contests on its own (a switch on the Contests tab)."],
+	[60, "×1.25 Research Points."],
+	[120, "+10% chance to win every contest."],
+]
+function contestsOpen() { return mechanicOn("contests") }
+function ribbonMilestone(n) { return ribbonCount() >= n }
+function ribbonCount() { return Object.values(player.d?.ribbons || {}).reduce((s, r) => s + Object.values(r).reduce((a, rank) => a + rank + 1, 0), 0) }
+/** The rank (index) a species' ribbon in a category reached, or -1. */
+function ribbonRank(id, cat) { return player.d.ribbons?.[id]?.[cat] ?? -1 }
+function nextContestRank(id, cat) { const r = ribbonRank(id, cat) + 1; return r < CONTEST_RANKS.length ? r : null }
+function pokeblockGain() { return POKEBLOCK_GAIN + (ribbonMilestone(5) ? 5 : 0) }
+/** A Pokéblock costs a quarter of a Safari trip (it grows with the badges). */
+function contestBlockCost() { return safariTripCost().div(4) }
+function contestPrize(rank) { return contestBlockCost().times(CONTEST_RANKS[rank].prize).times(rpMult()) }
+function contestSeconds(rank) { return CONTEST_RANKS[rank].seconds / (ribbonMilestone(15) ? 2 : 1) }
+function conditionOf(key, cat) { return player.t.box[key]?.condition?.[cat] || 0 }
+/** Type appeal: 30 when the first type suits the category, 15 for the second. */
+function typeAppeal(id, cat) {
+	const types = SPECIES[id].types, suits = CONTEST_CATEGORIES[cat].types
+	return suits.includes(types[0]) ? 30 : types[1] && suits.includes(types[1]) ? 15 : 0
+}
+function contestScore(key, cat, condition = conditionOf(key, cat)) {
+	return condition + typeAppeal(speciesOf(key), cat) + (player.t.box[key]?.level || 0) / 2
+}
+/** Even odds at the rank's score, sure 30 points above it. */
+function contestWinChance(key, cat, rank, condition) {
+	const bonus = ribbonMilestone(120) ? 0.1 : 0
+	return Math.min(1, Math.max(0, 0.5 + (contestScore(key, cat, condition) - CONTEST_RANKS[rank].score) / 60 + bonus))
+}
+function canFeedPokeblock(key, cat) {
+	return contestsOpen() && !!player.t.box[key] && conditionOf(key, cat) < MAX_CONDITION && player.points.gte(contestBlockCost())
+}
+function feedPokeblock(key, cat) {
+	if (!canFeedPokeblock(key, cat)) return false
+	player.points = player.points.sub(contestBlockCost())
+	const entry = player.t.box[key]
+	entry.condition = { ...entry.condition, [cat]: Math.min(MAX_CONDITION, conditionOf(key, cat) + pokeblockGain()) }
+	return true
+}
+function contestRunning() { return !!player.n?.contest?.key }
+function canEnterContest(key, cat) { return contestsOpen() && !contestRunning() && !!player.t.box[key] && nextContestRank(speciesOf(key), cat) !== null }
+function enterContest(key, cat) {
+	if (!canEnterContest(key, cat)) return false
+	const rank = nextContestRank(speciesOf(key), cat)
+	player.n.contest = { key, cat, rank, remaining: contestSeconds(rank) }
+	return true
+}
+function contestHallName() { return currentRegion() === "hoenn" ? "Lilycove's Contest Hall" : `${region().name}'s Contest Hall` }
+function judgeContest(rng = Math.random) {
+	const { key, cat, rank } = player.n.contest
+	player.n.contest = { key: "", cat: "", rank: 0, remaining: 0 }
+	if (!player.t.box[key]) return
+	const id = speciesOf(key), label = `${CONTEST_CATEGORIES[cat].name} Contest (${CONTEST_RANKS[rank].name})`
+	player.n.entered++
+	if (rng() >= contestWinChance(key, cat, rank)) { pkLog(`${keyName(key)} didn't win the ${label}.`, "info", { id, form: formOf(key) }, isShiny(key), true); return }
+	player.n.won++
+	const firstMaster = rank === 3 && !Object.values(player.d.ribbons || {}).some(r => r[cat] === 3)
+	player.d.ribbons = { ...player.d.ribbons, [id]: { ...player.d.ribbons?.[id], [cat]: rank } }
+	const prize = contestPrize(rank)
+	player.points = player.points.add(prize)
+	pkLog(`${keyName(key)} won the ${label}! A ribbon and ${format(prize)} RP.`, "contest", { id, form: formOf(key) }, isShiny(key))
+	pkPopup("contest", `${keyName(key)} won the ${label}!`, "🎀 Ribbon!", 3, "#F85888")
+	if (firstMaster) {
+		const form = CONTEST_CATEGORIES[cat].pikachu
+		addToBox(25, Math.max(5, Math.min(currentCap(), 30)), form)
+		pkLog(`For your first ${CONTEST_CATEGORIES[cat].name} Master Rank win, the Contest Hall gives you ${formName(25, form)}!`, "catch", { id: 25, form })
+		pkPopup("contest", `The Contest Hall gives you ${formName(25, form)}!`, "Cosplay Pikachu", 4, "#F85888")
+	}
+}
+function contestTick(diff) {
+	// Saves already past Wattson (or with Hoenn beaten) before contests existed.
+	if (!contestsOpen() && player.h && ((currentRegion() === "hoenn" && badges() >= 3) || player.h.regionsBeaten?.hoenn)) unlockMechanic("contests", "Pokémon Contests! Verdanturf's Contest Hall opens the Contests node: raise your Pokémon's condition with Pokéblocks and win ribbons, in every region.")
+	if (!contestsOpen() || !player.n) return
+	if (contestRunning()) {
+		player.n.contest.remaining -= diff
+		if (player.n.contest.remaining <= 0) judgeContest()
+	}
+	if (!contestRunning() && ribbonMilestone(30) && player.n.auto) contestAutoEnter()
+}
+/**
+ * The Contest Pass: the entry needing the fewest Pokéblocks to reach a 90% chance at its next rank,
+ * if those blocks cost under a tenth of your RP; it's fed, then entered.
+ */
+function contestAutoEnter() {
+	let best = null
+	for (const key of Object.keys(player.t.box)) {
+		for (const cat of Object.keys(CONTEST_CATEGORIES)) {
+			const rank = nextContestRank(speciesOf(key), cat)
+			if (rank === null) continue
+			let cond = conditionOf(key, cat), blocks = 0
+			while (contestWinChance(key, cat, rank, cond) < 0.9 && cond < MAX_CONDITION) { cond = Math.min(MAX_CONDITION, cond + pokeblockGain()); blocks++ }
+			if (contestWinChance(key, cat, rank, cond) < 0.9) continue
+			if (!best || blocks < best.blocks || (blocks === best.blocks && rank < best.rank)) best = { key, cat, rank, blocks }
+		}
+	}
+	if (!best || contestBlockCost().times(best.blocks).times(10).gt(player.points)) return
+	for (let i = 0; i < best.blocks; i++) feedPokeblock(best.key, best.cat)
+	enterContest(best.key, best.cat)
+}
 
 function leagueTrainers() {
 	const r = region()
@@ -717,6 +845,7 @@ function animeOpen(zone) {
 const ALL_FORMS = [...new Set([
 	...[...ZONES, ...JOHTO_ZONES].flatMap(z => Object.values(z.pools).flat().filter(e => e[4]).map(e => `${e[0]}-${e[4]}`)),
 	...[...SPECIALS, ...JOHTO_SPECIALS].filter(s => s.form).map(s => `${s.species}-${s.form}`),
+	...Object.values(CONTEST_CATEGORIES).map(c => `25-${c.pikachu}`),
 ])].sort((a, b) => parseInt(a) - parseInt(b))
 function formsCaught() { return ALL_FORMS.filter(k => player.d.forms[k]).length }
 

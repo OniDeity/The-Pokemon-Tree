@@ -149,6 +149,14 @@ Sister project: OniDeity/idle-pokemon (its data is the source of ours).
   `addToBox`), ribbons for good in `player.d.ribbons` (species → category → rank index;
   `ribbonCount` counts every rank: +0.5% RP each, `RIBBON_MILESTONES`, the 30-ribbon Contest Pass
   `contestAutoEnter`). The simulator doesn't play contests.
+- Albino and Melanistic (v0.23): looks get a colour part (`COLORS`: "15-shiny", "15-albino",
+  "15-melanistic"; `colorOf`, `isShiny`/`isAlbino` both true for melanistic, `makeLook(form,
+  color)`, `COLOR_MARKS` ★ ◇ ✦). `rollColor(rng, shinyChance, albinoChance)` rolls both; both hit is
+  melanistic. `albinoOdds()` (base = shiny's; Pale Charm hunt upgrade 14, Snow Lens buyable 14,
+  `ALBINO_MILESTONES`), the hunting chain's `huntMode()` picks shiny or albino. Records:
+  `player.d.albino`/`melanistic` (melanistic also counts in `player.d.shiny`). Sprites in
+  `resources/pokemon/albino|melanistic/`, drawn by `scripts/generateVariants.py` (re-run after
+  adding sprites). `pkSprite`/`spriteOf` take a colour where they took a shiny flag.
 - Challenge highlights: `challengeStatus(key)`; hatching or a Safari catch marks an owned entry's
   `origin`, and `canEvolveInto` lets an entry with an origin evolve into one without.
 - Regions and the run's Pokédex (v0.12): `REGIONS` (`regionDex`, `currentRegion`, `dexRegions`)
@@ -275,7 +283,7 @@ The owner wants every Hall of Fame to feel like a proper reset:
 - Anime: hoennAnime.ts's 34 places, Meta Groudon (post-League), Hoenn Cap Pikachu.
 - Pacing: about 10-12 h of simulated play per first Hoenn journey (`pace`).
 - Phases: (0) the Story node (done in v0.18); (1) Hoenn's core and the journey (done in v0.19); (2) Hoenn's story (done in v0.20); (3) the side
-  nodes, Dive, Feebas, double battles (done in v0.21); (4) Contests (done in v0.22); (5) Albino/Melanistic; (6) anime places;
+  nodes, Dive, Feebas, double battles (done in v0.21); (4) Contests (done in v0.22); (5) Albino/Melanistic (done in v0.23); (6) anime places;
   (7) post-game visits and pacing.
 
 - Albino and Melanistic Pokémon (the owner's idea, part of the Hoenn update): Albino has the same

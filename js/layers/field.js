@@ -22,7 +22,7 @@ function freshLayerData(layer, keep = []) {
 // kept across saves like TMT's own options).
 const NOTIFY_KINDS = {
 	pokedex: "New Pokédex entries",
-	shiny: "Shiny Pokémon",
+	shiny: "Shiny, Albino and Melanistic Pokémon",
 	evolve: "Evolutions",
 	badge: "Badges",
 	league: "Pokémon League",
@@ -70,24 +70,25 @@ function filterBar(layer, field, modes) {
 /** Writes to the encounter log (and pops up the special ones, unless `quiet`). */
 function pkLog(text, kind, enc, shiny, quiet = false) {
 	if (!player.f) return
-	player.f.log.unshift({ text, kind, id: enc ? enc.id : null, form: enc?.form || null, shiny: !!shiny })
+	player.f.log.unshift({ text, kind, id: enc ? enc.id : null, form: enc?.form || null, shiny: shiny || false })
 	if (player.f.log.length > LOG_SIZE) player.f.log.length = LOG_SIZE
 	const popups = { new: ["pokedex", "Pokédex", "#F8D030"], evolve: ["evolve", "Evolution!", "#78C850"], league: ["league", "Pokémon League", "#A040A0"],
 		jackpot: ["jackpot", "Game Corner", "#E0B040"], rocket: ["rocket", currentRegion() === "hoenn" ? "Team Aqua & Magma" : "Team Rocket", "#C03028"], story: ["story", region().name, "#6890F0"],
 		glitch: ["pokedex", "?̷?̵?̸", "#888888"] }
-	const popup = shiny ? ["shiny", "Shiny!", "#F8D030"] : popups[kind]
+	const color = shiny === true ? "shiny" : shiny
+	const popup = color ? ["shiny", `${COLOR_NAMES[color]}!`, { shiny: "#F8D030", albino: "#D8D8E8", melanistic: "#9080B0" }[color]] : popups[kind]
 	if (popup && !quiet) pkPopup(popup[0], text, popup[1], 3, popup[2])
 }
 
 /** A Pokémon's sprite: forms with their own image use it; others are drawn over the species'. */
 function pkSprite(id, shiny, size = 48, extra = "", form = null) {
-	if (options.pkHideSprites) return `<span class="pk-sprite-off" style="width:${size}px">${shiny ? "★" : ""}${formName(id, form)}</span>`
+	if (options.pkHideSprites) return `<span class="pk-sprite-off" style="width:${size}px">${colorMark(shiny)}${formName(id, form)}</span>`
 	const f = form ? FORMS[form] : null
 	const style = f?.filter ? `style="filter:${f.filter}"` : ""
 	const img = `<img src="${spriteOf(id, shiny, form)}" width="${size}" height="${size}" class="pk-sprite" ${style} ${extra} alt="${formName(id, form)}">`
 	return f?.accessory ? `<span class="pk-accessory-wrap">${img}<span class="pk-accessory">${f.accessory}</span></span>` : img
 }
-function pkKeySprite(key, size = 48) { return pkSprite(speciesOf(key), isShiny(key), size, "", formOf(key)) }
+function pkKeySprite(key, size = 48) { return pkSprite(speciesOf(key), colorOf(key), size, "", formOf(key)) }
 
 function setZone(id) {
 	const zone = zoneById(id)

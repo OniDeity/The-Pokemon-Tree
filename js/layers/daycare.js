@@ -47,6 +47,7 @@ function dayCareStatusHtml() {
 	const fresh = eggs.filter(id => !player.d.hatched[id])
 	html += `<br>The two seem to get along! Their Eggs hatch into ${eggs.map(speciesName).join(" or ")}${fresh.length ? ` <span class="pk-missing">(new to your breeder's notes: +2% Research Points)</span>` : " (already in your breeder's notes)"}.`
 	if (slots.some(isShiny)) html += ` <small>(A shiny parent: shiny Eggs twice as likely.)</small>`
+	if (slots.some(isAlbino)) html += ` <small>(An albino parent: albino Eggs twice as likely.)</small>`
 	return html
 }
 

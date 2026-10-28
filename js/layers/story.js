@@ -6,7 +6,9 @@ function storyBattleById(id) { storyBattle(id) }
 
 function chapterLockText(ch) {
 	if (badges() < ch.badges) return `${ch.badges} badge${ch.badges > 1 ? "s" : ""}`
-	if (ch.needs && !chapterCleared(ch.needs)) return `Clear ${chapterById(ch.needs).name} first`
+	const need = [].concat(ch.needs || []).find(id => !chapterCleared(id))
+	if (ch.champion && !isChampion()) return "After the League"
+	if (need) return `Clear ${chapterById(need).name} first`
 	if (ch.needGameCorner && !gameCornerOpen()) return "Under the Game Corner"
 	return ""
 }
@@ -34,7 +36,7 @@ function chapterHtml(ch) {
 }
 
 function chaptersHtml(layer) {
-	return STORY_CHAPTERS.filter(ch => ch.layer === layer && chapterRegion(ch) === currentRegion()).map(chapterHtml).join("")
+	return STORY_CHAPTERS.filter(ch => ch.layer === layer && !ch.kantoGym && chapterRegion(ch) === currentRegion()).map(chapterHtml).join("")
 }
 function milestonesHtml(title, count, list) {
 	return `${title}: <b>${count}</b><br>${list.map(([n, text]) => `<span class="${count >= n ? "" : "pk-done"}">${n}: ${text}${count >= n ? " ✓" : ""}</span>`).join("<br>")}`

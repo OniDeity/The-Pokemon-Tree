@@ -90,7 +90,7 @@ function pkKeySprite(key, size = 48) { return pkSprite(speciesOf(key), isShiny(k
 
 function setZone(id) {
 	const zone = zoneById(id)
-	if (zone && zoneOpen(zone)) player.f.zone = id
+	if (zone && zoneOpen(zone) && canChooseRoute()) player.f.zone = id
 }
 
 /** "3 not in box": a route still has Pokémon (or forms) your box doesn't have this run. */
@@ -271,8 +271,11 @@ addLayer("f", {
 		player.f.zone = zoneOpen(zoneById(zone)) ? zone : ZONES[0].id
 	},
 	update(diff) {
+		challengeTick(diff)
 		searchTick(diff)
 		autoBuyTick()
+		player.f.autoTimer = (player.f.autoTimer || 0) + diff
+		if (player.f.autoTimer >= 2) { player.f.autoTimer = 0; automationTick() }
 	},
 	clickables: {
 		11: {

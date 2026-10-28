@@ -102,6 +102,7 @@ function zoneValue(zone) {
 }
 
 function chooseZone() {
+	if (run(`!canChooseRoute()`)) return
 	const open = run(`ZONES.filter(zoneOpen).map(z => z.id)`)
 	// Survey first: the frontier zone with unseen species, if the team can win there.
 	const unseen = run(`frontierZones().filter(z => zoneOpen(z) && zoneSpecies(z, badges()).some(id => !player.d.seen[id])).map(z => z.id)`)
@@ -115,25 +116,15 @@ function chooseZone() {
 	run(`player.f.zone = "${best}"`)
 }
 
-// The party: the box Pokémon that do best against the next opponent, else the strongest.
+// The party: the box Pokémon that do best against the next opponent, else the strongest (the Team
+// Coach's bestParty). Locked Party only fills empty slots after the first badge.
 function chooseParty() {
-	run(`(() => {
-		const size = partySize(), atk = atkMult(), def = defMult()
-		const gym = nextGym()
-		const foes = gym ? trainerBattlers(gym, GYM_STRENGTH[badges()]) : badges() >= 8 && player.l.beaten < 5
-			? trainerBattlers(leagueTrainers()[player.l.beaten], leagueTrainers()[player.l.beaten].strength) : null
-		const ids = Object.keys(player.t.box).filter(canJoinParty)
-		const score = id => {
-			const b = battler(speciesOf(id), player.t.box[id].level, atk, def)
-			if (!foes) return battlerScore(speciesOf(id), player.t.box[id].level)
-			const r = battle([b], foes)
-			return r.defeated + r.hpLeft + battlerScore(speciesOf(id), player.t.box[id].level) * 1e-12
-		}
-		ids.sort((a, b) => score(b) - score(a))
-		player.t.party = ids.slice(0, size)
-	})()`)
+	if (run(`inChallenge(42)`)) {
+		run(`(() => { for (const k of bestParty()) if (player.t.party.length < partySize() && !player.t.party.includes(k)) player.t.party.push(k) })()`)
+		return
+	}
+	run(`player.t.party = bestParty()`)
 }
-
 function shop() {
 	for (let guard = 0; guard < 50; guard++) {
 		const bought = run(`(() => {
@@ -171,7 +162,7 @@ const LIMIT = 60 * 60 * Number(process.env.SIM_HOURS || 40)
 let t = 0, last = 0, surveyAt = null, winAt = null, runStart = 0, runNumber = 1
 chooseZone(); chooseParty()
 while (t < LIMIT) {
-	run(`player.points = player.points.add(passiveRp() * ${STEP}); player.f.searching = true; searchTick(${STEP})`)
+	run(`player.points = player.points.add(passiveRp() * ${STEP}); player.f.searching = true; challengeTick(${STEP}); searchTick(${STEP})`)
 	t += STEP
 	if (t % 10 === 0) shop()
 	if (t % 60 === 0) { chooseParty(); chooseZone() }

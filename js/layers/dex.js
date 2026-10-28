@@ -15,7 +15,7 @@ function dexMatches(id) {
 }
 function dexHtml() {
 	let html = `<div class="pk-dex">`
-	for (let id = 1; id <= 151; id++) {
+	for (const id of regionDex()) {
 		if (!dexMatches(id)) continue
 		const seen = player.d.seen[id], caught = player.d.caught[id], shiny = player.d.shiny[id]
 		const cls = caught ? "" : seen ? "pk-seen" : "pk-unseen"
@@ -54,6 +54,10 @@ addLayer("d", {
 		shiny: {},
 		forms: {},
 		hatched: {},
+		everHatched: {},
+		lastSeen: {},
+		bestCaught: 0,
+		diploma: false,
 		safari: 0,
 		jackpots: 0,
 		bestChain: 0,
@@ -64,8 +68,11 @@ addLayer("d", {
 		dexFilter: "all",
 	}},
 	layerShown() { return player.t.starter > 0 },
-	tooltip() { return `${caughtCount()}/151 caught` },
-	update() { player.d.points = new Decimal(caughtCount()) },
+	tooltip() { return `${regionCaught()}/${regionDex().length} caught` },
+	update() {
+		player.d.points = new Decimal(caughtCount())
+		if (!player.d.diploma && hasDiploma()) player.d.diploma = true
+	},
 	milestonePopups() { return notifyOn("milestone") },
 	milestones: Object.fromEntries(DEX_MILESTONES.map(([n, text], i) => [i, {
 		requirementDescription: `${n} species caught`,
@@ -77,8 +84,8 @@ addLayer("d", {
 			content: [
 				["display-text", () => hasDiploma()
 					? `<div class="pk-trainer"><b>🎓 Game Freak's Diploma</b><br><small>"Congratulations! This is to certify that you have completed your Pokédex." Your Pokémon fight with ×1.1 Attack and Defense for good.</small></div>`
-					: `<small>Game Freak's Diploma: catch all 150 Kanto species, Mew not needed (${Object.keys(player.d.caught).filter(id => id >= 1 && id <= 150).length}/150).</small>`],
-				["display-text", () => `Seen: <b>${seenCount()}</b> · Caught: <b>${caughtCount()}</b>/151 · Shiny: <b>${Object.keys(player.d.shiny).length}</b><br><small>Every species caught gives Research Points over time. Shiny odds: 1/${format(shinyOdds())}.</small>`],
+					: `<small>Game Freak's Diploma: catch all 150 Kanto species in one run, Mew not needed; the reward stays for good (${Object.keys(player.d.caught).filter(id => id >= 1 && id <= 150).length}/150).</small>`],
+				["display-text", () => `<h3>${REGIONS[currentRegion()].name}</h3><br>Seen: <b>${seenCount()}</b> · Caught: <b>${regionCaught()}</b>/${regionDex().length} · Shiny records: <b>${Object.keys(player.d.shiny).length}</b> · Best Pokédex: <b>${Math.max(player.d.bestCaught || 0, caughtCount())}</b><br><small>The Pokédex starts over at every Hall of Fame entry (shiny and form records stay). Every species caught gives Research Points over time. Shiny odds: 1/${format(shinyOdds())}.</small>`],
 				"blank",
 				["display-text", () => filterBar("d", "dexFilter", DEX_FILTERS)],
 				["pk-search", "dexSearch"],

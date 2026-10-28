@@ -1,6 +1,6 @@
 // The Hall of Fame ("h"): after becoming Champion, enter the Hall to reset the whole region for
 // Fame. Fame buys permanent upgrades; challenges replay the region under a rule for a lasting reward.
-// The Pokédex and achievements are kept.
+// The Pokédex starts over; records of special looks, achievements and lifetime counters are kept.
 
 function hallHtml() {
 	if (!player.h.hall.length) return "<i>No entries yet. Become Champion, then enter the Hall of Fame.</i>"
@@ -47,7 +47,8 @@ function challengeDef(id) {
 		goalDescription: "Become Champion, then enter the Hall of Fame (Fame ×2). Gym Leaders and the League go a little easier on challengers.",
 		rewardDescription: def.reward,
 		canComplete() { return isChampion() },
-		onEnter() { showTab("t") },
+		onEnter() { resetRunPokedex(); showTab("t") },
+		onExit() { resetRunPokedex() },
 		style: { width: "280px", height: "280px" },
 	}
 }
@@ -80,7 +81,7 @@ addLayer("h", {
 	prestigeButtonText() {
 		if (!isChampion()) return "Become Champion to enter the Hall of Fame."
 		const faces = newFaces().length
-		return `Enter the Hall of Fame for ${formatWhole(fameGain())} Fame${faces ? ` (${faces} new face${faces > 1 ? "s" : ""})` : ""}.<br><small>Starts Kanto over with a new starter. Your Pokédex is kept.</small>`
+		return `Enter the Hall of Fame for ${formatWhole(fameGain())} Fame${faces ? ` (${faces} new face${faces > 1 ? "s" : ""})` : ""}.<br><small>Starts Kanto over with a new starter and a fresh Pokédex. Shiny and form records, achievements and Fame are kept.</small>`
 	},
 	onPrestige(gain) {
 		enterHallOfFame()
@@ -124,7 +125,7 @@ addLayer("h", {
 			content: [
 				["display-text", () => anyChallenge()
 					? `You're in the <b>${CHALLENGES[player.h.activeChallenge].name}</b> challenge. Clicking it again ends it early and starts a normal run.`
-					: "Starting a challenge resets this run (badges, Pokémon and gifts; the Pokédex is kept)."],
+					: "Starting a challenge resets this run (badges, Pokémon, gifts and the Pokédex; shiny and form records are kept)."],
 				"blank",
 				"challenges",
 			],

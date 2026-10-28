@@ -78,7 +78,7 @@ addLayer("k", {
 		currencyDisplayName: "coins",
 	}])),
 	tabFormat: [
-		["display-text", () => `<h2>${currentRegion() === "johto" ? "Goldenrod" : "Celadon"} Game Corner</h2><br><i>"Welcome! Need some coins for the slots?"</i><br><br>You have <h2 style="color:#E0B040">${formatCoins(coins())}</h2> coins`],
+		["display-text", () => `<h2>${{ johto: "Goldenrod", hoenn: "Mauville" }[currentRegion()] || "Celadon"} Game Corner</h2><br><i>"Welcome! Need some coins for the slots?"</i><br><br>You have <h2 style="color:#E0B040">${formatCoins(coins())}</h2> coins`],
 		"blank",
 		["row", [["clickable", 11], ["clickable", 12], ["clickable", 13]]],
 		"blank",

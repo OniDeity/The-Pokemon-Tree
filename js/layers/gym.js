@@ -30,6 +30,23 @@ function storyGateHtml(ch) {
 	return ch ? `<span style="color:#F08030">First clear ${ch.name} (the Story node).</span>` : ""
 }
 
+const KANTO_BADGE_TEXT = [
+	"Keep the Auto-Search Drone. Training Weights are for sale. (Every two badges also add a party slot.)",
+	"The Old Rod: fish in the water of every route.",
+	"Keep Running Shoes. The Bicycle (search ×1.5), evolution stones and trades.",
+	"The Good Rod and the Poké Flute.",
+	"Surf and the Super Rod.",
+	"The seas to Cinnabar Island.",
+	"Route 21 back to Viridian City.",
+	"Victory Road and the Pokémon League.",
+]
+function badgeMilestoneText(i) {
+	if (currentRegion() === "kanto") return KANTO_BADGE_TEXT[i]
+	const items = (regionGyms()[i]?.keyItems || []).map(id => REGION_RULES.keyItems[id]?.name || KEY_ITEM_NAMES[id] || id)
+	const always = ["Keep the Auto-Search Drone. Training Weights are for sale. (Every two badges also add a party slot.)", "", "Keep Running Shoes. Evolution stones and trades.", "", "", "", "", "Victory Road and the Pokémon League."][i]
+	return [always, items.length ? `${items.join(", ")}.` : ""].filter(Boolean).join(" ") || "The way on to the next Gym."
+}
+
 function badgeCaseHtml() {
 	return `<div class="pk-badges">${regionGyms().map((g, i) => i < badges()
 		? `<img src="resources/badges/${i + region().badgeImage}.png" width="40" height="40" title="${g.badge}">`
@@ -85,36 +102,12 @@ addLayer("g", {
 	},
 	tooltip() { return `${badges()} badge${badges() === 1 ? "" : "s"}` },
 	milestonePopups() { return notifyOn("milestone") },
-	milestones: {
-		0: {
-			requirementDescription: "Boulder Badge",
-			effectDescription: "Keep the Auto-Search Drone. Training Weights are for sale. (Every two badges also add a party slot.)",
-			done() { return badges() >= 1 },
-		},
-		1: {
-			requirementDescription: "Cascade Badge",
-			effectDescription: "The Old Rod: fish in the water of every route.",
-			done() { return badges() >= 2 },
-		},
-		2: {
-			requirementDescription: "Thunder Badge",
-			effectDescription: "Keep Running Shoes. The Bicycle (search ×1.5), evolution stones and trades.",
-			done() { return badges() >= 3 },
-		},
-		3: {
-			requirementDescription: "Rainbow Badge",
-			effectDescription: "The Good Rod and the Poké Flute.",
-			done() { return badges() >= 4 },
-		},
-		4: {
-			requirementDescription: "Soul Badge",
-			effectDescription: "Surf and the Super Rod.",
-			done() { return badges() >= 5 },
-		},
-		5: { requirementDescription: "Marsh Badge", effectDescription: "The seas to Cinnabar Island.", done() { return badges() >= 6 } },
-		6: { requirementDescription: "Volcano Badge", effectDescription: "Route 21 back to Viridian City.", done() { return badges() >= 7 } },
-		7: { requirementDescription: "Earth Badge", effectDescription: "Victory Road and the Pokémon League.", done() { return badges() >= 8 } },
-	},
+	// Badge milestones are named for the region's badges; outside Kanto they list the Gym's key items.
+	milestones: Object.fromEntries([0, 1, 2, 3, 4, 5, 6, 7].map(i => [i, {
+		requirementDescription() { return regionGyms()[i]?.badge || `Badge ${i + 1}` },
+		effectDescription() { return badgeMilestoneText(i) },
+		done() { return badges() >= i + 1 },
+	}])),
 	tabFormat: [
 		["display-text", () => badgeCaseHtml()],
 		["display-text", () => kantoGymsHtml()],
@@ -123,7 +116,7 @@ addLayer("g", {
 		["display-text", () => {
 			const gym = nextGym()
 			if (!gym) return ""
-			return `<h2>${gym.name}</h2><br>${gym.title} · ${gym.specialty ? `<span class="pk-type pk-type-${gym.specialty}">${gym.specialty}</span>` : ""}<br><i>"${gym.quote}"</i><br><br>${teamHtml(gym.team, GYM_STRENGTH[badges()])}`
+			return `<h2>${gym.name}</h2><br>${gym.title} · ${gym.specialty ? `<span class="pk-type pk-type-${gym.specialty}">${gym.specialty}</span>` : ""}<br><i>"${gym.quote}"</i><br><br>${teamHtml(gym.team, gymStrength())}`
 		}],
 		"blank",
 		["display-text", () => nextGym() ? surveyHtml() : ""],
@@ -164,7 +157,7 @@ addLayer("l", {
 	tabFormat: [
 		["display-text", () => isChampion()
 			? `<h2>Hall of Fame</h2><br>${player.l.hallOfFame.map((e, i) => `Entry ${i + 1} (${formatTime(e.time)}):<br>${teamHtml(e.team, 1)}`).join("<br>")}`
-			: `<h2>Indigo Plateau</h2><br>Survey ${currentRegion() === "johto" ? "Route 26 and Victory Road" : "Route 23 and Victory Road"}, then beat the Elite Four and the Champion in a row.`],
+			: `<h2>${currentRegion() === "hoenn" ? "Ever Grande City" : "Indigo Plateau"}</h2><br>Survey ${{ johto: "Route 26 and Victory Road", hoenn: "Ever Grande City and Victory Road" }[currentRegion()] || "Route 23 and Victory Road"}, then beat the Elite Four and the Champion in a row.`],
 		["display-text", () => canSailToJohto()
 			? `<div class="pk-trainer"><b>⛵ Johto awaits</b><br><small>Enter the Hall of Fame now, or sail on to Johto: a fresh start under Professor Elm (every Pokémon back at Lv. ${JOHTO_START_LEVEL}), and Fame ×${JOHTO_FAME} when Johto's Champion enters the Hall.</small><br><button class="pk-button pk-big" onclick="sailToJohto(); showTab('t')">Sail to Johto</button></div>`
 			: currentRegion() === "kanto" && isChampion() && !johtoOpen() ? `<small>Johto opens after ${JOHTO_ENTRIES} Hall of Fame entries (${hofEntries()}/${JOHTO_ENTRIES}).</small>` : ""],

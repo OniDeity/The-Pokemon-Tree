@@ -143,6 +143,7 @@ function kantoRevisitHtml() {
 function animeListHtml() {
 	const johto = currentRegion() === "johto", entries = animeEntries()
 	const places = regionZones().filter(z => z.anime)
+	if (!places.length) return ""
 	const nextTier = places.filter(z => z.hof > entries).reduce((m, z) => Math.min(m, z.hof), Infinity)
 	const entryText = n => `${n} ${johto ? "Johto " : ""}Hall of Fame entr${n > 1 ? "ies" : "y"}`
 	if (!places.some(z => z.hof <= entries)) return `<div class="pk-area"><b>Anime places</b><br><small>Enter the Hall of Fame to start finding places from the anime.</small></div>`

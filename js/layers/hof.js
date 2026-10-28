@@ -17,15 +17,26 @@ function automationHtml() {
 		}).join("")
 }
 
+/** The Fame shop's ceiling, and what the regions not beaten yet would add. */
+function fameShopHtml() {
+	const locked = FAME_REGIONS.filter(r => !regionBeaten(r))
+	let html = `Buyables go up to level <b>${hofBuyableCap()}</b>: ${FAME_CAP_STEP} more for every region whose Champion enters the Hall of Fame (Johto, Orange Islands, Sevii Islands, Hoenn).`
+	if (locked.length) html += `<br><small>Not beaten yet, each with a buyable and two upgrades of its own: ${locked.map(r => REGIONS[r].name).join(", ")}.</small>`
+	return html
+}
+
 function hofBuyableDef(id) {
 	const def = HOF_BUYABLES[id]
 	return {
 		title: def.title,
 		cost() { return hofBuyableCost(id, getBuyableAmount("h", id).toNumber()) },
 		display() {
-			return `${def.text}<br><br>Level ${formatWhole(getBuyableAmount("h", id))}<br>Cost: ${formatWhole(this.cost())} Fame`
+			const full = hofBuyable(id) >= hofBuyableCap()
+			return `${def.text}<br><br>Level ${formatWhole(getBuyableAmount("h", id))}/${hofBuyableCap()}<br>${full ? "Beat a new region to raise the cap" : `Cost: ${formatWhole(this.cost())} Fame`}`
 		},
-		canAfford() { return player.h.points.gte(this.cost()) },
+		canAfford() { return canBuyHofBuyable(id) && player.h.points.gte(this.cost()) },
+		purchaseLimit() { return hofBuyableCap() },
+		unlocked() { return fameItemOpen(def) },
 		buy() {
 			player.h.points = player.h.points.sub(this.cost())
 			addBuyables("h", id, 1)
@@ -36,7 +47,7 @@ function hofBuyableDef(id) {
 
 function hofUpgradeDef(id) {
 	const def = HOF_UPGRADES[id]
-	return { title: def.title, description: def.text, cost: new Decimal(def.cost) }
+	return { title: def.title, description: def.region ? `${REGIONS[def.region].name}: ${def.text}` : def.text, cost: new Decimal(def.cost), unlocked() { return fameItemOpen(def) } }
 }
 
 function challengeDef(id) {
@@ -72,6 +83,7 @@ addLayer("h", {
 		enshrined: {},
 		auto: {},
 		mechanics: {},
+		regionsBeaten: {},
 	}},
 	branches: ["l"],
 	layerShown() { return isChampion() || hofEntries() > 0 },
@@ -115,7 +127,7 @@ addLayer("h", {
 			],
 		},
 		"Fame shop": {
-			content: ["main-display", "buyables", "blank", "upgrades"],
+			content: ["main-display", ["display-text", () => fameShopHtml()], "blank", "buyables", "blank", "upgrades"],
 			unlocked() { return hofEntries() >= 1 },
 		},
 		Automation: {

@@ -75,12 +75,15 @@ function hallOfFameReset(challenge) {
 function fameShop() {
 	for (let guard = 0; guard < 200; guard++) {
 		const options = []
-		for (const id in HOF_UPGRADES) if (!hofUpgrade(id)) options.push([HOF_UPGRADES[id].cost, () => player.h.upgrades.push(Number(id))])
-		for (const id in HOF_BUYABLES) options.push([hofBuyableCost(id).toNumber(), () => { player.h.buyables[id] = new Decimal(hofBuyable(id) + 1) }])
-		options.sort((a, b) => a[0] - b[0])
+		// Cheapest first, but the regions' own items as if they cost three times as much: most of them
+		// help less than the core ones, so a player fills those up first.
+		const weight = def => def.region ? 3 : 1
+		for (const id in HOF_UPGRADES) if (!hofUpgrade(id) && fameItemOpen(HOF_UPGRADES[id])) options.push([HOF_UPGRADES[id].cost, weight(HOF_UPGRADES[id]), () => player.h.upgrades.push(Number(id))])
+		for (const id in HOF_BUYABLES) if (canBuyHofBuyable(id)) options.push([hofBuyableCost(id).toNumber(), weight(HOF_BUYABLES[id]), () => { player.h.buyables[id] = new Decimal(hofBuyable(id) + 1) }])
+		options.sort((a, b) => a[0] * a[1] - b[0] * b[1])
 		if (!options.length || player.h.points.lt(options[0][0])) return
 		player.h.points = player.h.points.sub(options[0][0])
-		options[0][1]()
+		options[0][2]()
 	}
 }
 `, ctx)

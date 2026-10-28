@@ -79,10 +79,10 @@ function rpMult() {
 	if (ribbonMilestone(60)) m *= 1.25
 	return m
 }
-function wildRpMult() { return rpMult() * (hasFieldUpgrade(21) ? 1.5 : 1) * (inChallenge(52) ? 0.5 : 1) }
+function wildRpMult() { return rpMult() * (hasFieldUpgrade(21) ? 1.5 : 1) * (1 + 0.1 * hofBuyable(31)) * (inChallenge(52) ? 0.5 : 1) }
 function passiveRp() {
 	if (!player.t.starter || inChallenge(51)) return 0
-	return caughtCount() * 0.05 * rpMult() * (hasFieldUpgrade(23) ? 5 : 1) * (hofUpgrade(22) ? 3 : 1) / pace()
+	return caughtCount() * 0.05 * rpMult() * (hasFieldUpgrade(23) ? 5 : 1) * (hofUpgrade(22) ? 3 : 1) * (1 + 0.25 * hofBuyable(41)) / pace()
 }
 function xpMult() {
 	let m = (1 + fieldBuyableStep(14, 0.25) * fieldBuyable(14)) * (1 + 0.25 * hofBuyable(12))
@@ -105,7 +105,7 @@ function searchTime() {
 	return t
 }
 function catchMult() {
-	let m = (1 + fieldBuyableStep(12, 0.15) * fieldBuyable(12)) * (1 + 0.1 * hofBuyable(15)) * (inChallenge(33) ? 0.1 : 1) * 1
+	let m = (1 + fieldBuyableStep(12, 0.15) * fieldBuyable(12)) * (1 + 0.1 * hofBuyable(15)) * (1 + 0.1 * hofBuyable(21)) * (inChallenge(33) ? 0.1 : 1)
 	if (dexMilestone(25)) m *= 1.25
 	if (formMilestone(10)) m *= 1.25
 	if (wardenMilestone(50)) m *= 1.1
@@ -115,7 +115,7 @@ function catchMult() {
 }
 function gearMult() { return 1 + 0.15 * fieldBuyable(13) }
 function atkMult() {
-	let m = gearMult() * Math.pow(BADGE_STAT_BOOST, badges()) * (1 + 0.05 * hofBuyable(13))
+	let m = gearMult() * Math.pow(BADGE_STAT_BOOST, badges()) * (1 + 0.05 * hofBuyable(13)) * (1 + 0.05 * hofBuyable(51))
 	if (hasFieldUpgrade(22)) m *= 1.25
 	if (dexMilestone(120)) m *= 1.2
 	if (rocketMilestone(40)) m *= 1.1
@@ -126,7 +126,7 @@ function atkMult() {
 	return m
 }
 function defMult() {
-	let m = gearMult() * Math.pow(BADGE_STAT_BOOST, badges()) * (1 + 0.05 * hofBuyable(13))
+	let m = gearMult() * Math.pow(BADGE_STAT_BOOST, badges()) * (1 + 0.05 * hofBuyable(13)) * (1 + 0.05 * hofBuyable(51))
 	if (dexMilestone(120)) m *= 1.2
 	if (rivalMilestone(7)) m *= 1.1
 	if (rocketMilestone(300)) m *= 1.15
@@ -166,7 +166,7 @@ function frontierZones() {
 }
 /** Each route of an area costs ×1.8 the last, up to the 8th (Hoenn's larger areas go ×1.2 after). */
 function zoneUnlockCost(index) {
-	return new Decimal(25).times(Decimal.pow(1.8, Math.min(index, 7))).times(Decimal.pow(1.2, Math.max(0, index - 7))).times(Decimal.pow(5, badges())).times(hofUpgrade(12) ? 0.5 : 1).times(region().zoneCost)
+	return new Decimal(25).times(Decimal.pow(1.8, Math.min(index, 7))).times(Decimal.pow(1.2, Math.max(0, index - 7))).times(Decimal.pow(5, badges())).times(hofUpgrade(12) ? 0.5 : 1).times(hofUpgrade(41) ? 0.75 : 1).times(region().zoneCost)
 }
 function zoneOpen(zone) {
 	if (zone.region !== currentRegion()) return revisitOpen(zone)
@@ -406,13 +406,13 @@ function doEncounter(rng) {
 	const fought = new Set(result.fought.map(i => player.t.party[i]))
 	for (const id of [...player.t.party]) {
 		if (fought.has(id)) giveXp(id, xp)
-		else if (hasFieldUpgrade(14)) giveXp(id, xp / 2)
+		else if (hasFieldUpgrade(14)) giveXp(id, hofUpgrade(61) ? xp : xp / 2)
 	}
 	if (nuzlocke && !firstHere && !shiny) {
 		pkLog(`Beat a wild ${name}.`, "win", enc, shiny)
 		return { ...enc, shiny, win: true, caught: false, rp }
 	}
-	let caught = rand(rng) < catchChance(enc.id, catchMult() * speciesCatchMult(enc.id) * ballMult(enc), enc.form)
+	let caught = rand(rng) < catchChance(enc.id, catchMult() * speciesCatchMult(enc.id) * ballMult(enc) * (enc.form && hofUpgrade(42) ? 2 : 1), enc.form)
 	// Silph Co.'s Master Ball: the next new Pokémon beaten is caught for sure.
 	if (!caught && player.q?.masterBall && !player.d.caught[enc.id]) {
 		caught = true
@@ -717,6 +717,11 @@ const HOF_BUYABLES = {
 	13: { title: "Champion's Might", base: 10, growth: 1.8, text: "+5% Attack and Defense for your Pokémon per level." },
 	14: { title: "Quick Feet", base: 8, growth: 1.7, text: "Search 10% faster per level." },
 	15: { title: "Ball Factory", base: 8, growth: 1.7, text: "+10% catch chance per level." },
+	// Each region beaten (its Champion in the Hall) adds a buyable and two upgrades (`region`).
+	21: { region: "johto", title: "Kurt's Apricorns", base: 20, growth: 1.8, text: "+10% catch chance per level (beside the Ball Factory's)." },
+	31: { region: "orange", title: "Tracey's Sketchbook", base: 15, growth: 1.8, text: "+10% Research Points from wild battles per level." },
+	41: { region: "sevii", title: "Berry Forest", base: 15, growth: 1.8, text: "+25% passive Research Points per level." },
+	51: { region: "hoenn", title: "Secret Power", base: 25, growth: 1.9, text: "+5% Attack and Defense per level (beside Champion's Might)." },
 }
 const HOF_UPGRADES = {
 	11: { title: "Head Start", cost: 15, text: "Start each run with 200 Research Points and your starter at Lv. 10." },
@@ -726,7 +731,25 @@ const HOF_UPGRADES = {
 	15: { title: "Shiny Charm", cost: 50, text: "Shiny Pokémon are twice as common." },
 	21: { title: "Gift Box", cost: 25, text: "Gifts and Game Corner prizes cost a quarter as much." },
 	22: { title: "Field Lab Grant", cost: 80, text: "Passive Research Points ×3." },
+	31: { region: "johto", title: "Elm's Egg Research", cost: 120, text: "Day Care Eggs hatch in half the battles." },
+	32: { region: "johto", title: "Radio Tower", cost: 150, text: "Rematch calls come twice as often." },
+	41: { region: "orange", title: "Island Hopper", cost: 100, text: "Opening routes costs a quarter less (beside Pathfinder)." },
+	42: { region: "orange", title: "Pinkan Berries", cost: 120, text: "Pokémon in special forms are twice as easy to catch." },
+	51: { region: "sevii", title: "Network Machine", cost: 180, text: "Story battles and rematches pay twice the Research Points." },
+	52: { region: "sevii", title: "Rainbow Pass", cost: 200, text: "The Old and Good Rods from the start of every run, in every region." },
+	61: { region: "hoenn", title: "Devon Exp. Share", cost: 250, text: "The Exp. Share gives the whole party full experience." },
+	62: { region: "hoenn", title: "Match Call", cost: 200, text: "Two more rematch lines on your phone." },
 }
+// A ceiling on the Fame shop before moving on: buyables stop at FAME_CAP levels, FAME_CAP_STEP more
+// for each region beaten, and each beaten region's own items open (levels bought before a cap stay).
+const FAME_CAP = 8
+const FAME_CAP_STEP = 4
+const FAME_REGIONS = ["johto", "orange", "sevii", "hoenn"]
+function fameRegionsBeaten() { return FAME_REGIONS.filter(regionBeaten).length }
+function hofBuyableCap() { return FAME_CAP + FAME_CAP_STEP * fameRegionsBeaten() }
+/** Whether a Fame item's region (if it has one) has been beaten. */
+function fameItemOpen(def) { return !def.region || regionBeaten(def.region) }
+function canBuyHofBuyable(id) { return fameItemOpen(HOF_BUYABLES[id]) && hofBuyable(id) < hofBuyableCap() }
 
 // Challenges: replay the region under a rule, become Champion and enter the Hall of Fame to beat it.
 const CHALLENGES = {
@@ -905,7 +928,7 @@ function dayCareXpRate() {
 	return 0.02 * Math.pow(currentCap(), 2.5) * xpMult() * (hasDayCareUpgrade(11) ? 3 : 1) * (1 + 0.5 * dayCareBuyable(11)) / pace()
 }
 function eggSeconds() { return EGG_SECONDS * pace() / (hasDayCareUpgrade(12) ? 2 : 1) / (1 + 0.15 * dayCareBuyable(12)) * (inChallenge(52) ? 3 : 1) }
-function eggBattles() { return Math.max(1, Math.ceil(EGG_BATTLES / (hasDayCareUpgrade(13) ? 2 : 1) / (1 + 0.1 * dayCareBuyable(13)) * (inChallenge(52) ? 3 : 1))) }
+function eggBattles() { return Math.max(1, Math.ceil(EGG_BATTLES / (hasDayCareUpgrade(13) ? 2 : 1) / (hofUpgrade(31) ? 2 : 1) / (1 + 0.1 * dayCareBuyable(13)) * (inChallenge(52) ? 3 : 1))) }
 /** The Breeder's Journal: Eggs of species hatched in any earlier run hatch after one battle. */
 function eggBattlesFor(species) { return automationOn("journal") && player.d.everHatched?.[species] ? 1 : eggBattles() }
 function maxEggs() { return MAX_EGGS + (hasDayCareUpgrade(14) ? 2 : 0) }
@@ -1790,7 +1813,7 @@ function canStoryBattle(ch) {
 	return !!p && p.win && !(inChallenge(11) && p.fainted > 0)
 }
 /** Research Points for beating a story trainer: three wild battles' worth of its team. */
-function storyRp(t) { return trainerTeam(t).reduce((s, [id, lv]) => s + researchYield(id, lv), 0) * 3 * rpMult() }
+function storyRp(t) { return trainerTeam(t).reduce((s, [id, lv]) => s + researchYield(id, lv), 0) * 3 * rpMult() * (hofUpgrade(51) ? 2 : 1) }
 function storyBattle(id) {
 	const ch = typeof id === "string" ? chapterById(id) : id
 	if (!ch || !canStoryBattle(ch)) return false
@@ -1828,8 +1851,8 @@ function countStoryWin(t) {
 // cap and nearly as strong as the last Gym beaten. Calls wait (up to maxCalls()); rematches pay
 // Research Points and count as story battles won. The simulator plays them.
 const CALL_SECONDS = 1200
-function maxCalls() { return storyMilestone(350) ? 5 : 3 }
-function callSeconds() { return CALL_SECONDS * (storyMilestone(25) ? 0.75 : 1) }
+function maxCalls() { return (storyMilestone(350) ? 5 : 3) + (hofUpgrade(62) ? 2 : 0) }
+function callSeconds() { return CALL_SECONDS * (storyMilestone(25) ? 0.75 : 1) / (hofUpgrade(32) ? 2 : 1) }
 function callable() { return STORY_CHAPTERS.filter(ch => chapterRegion(ch) === currentRegion() && chapterCleared(ch.id) && !player.q.calls.includes(ch.id)) }
 function storyCallStep() {
 	if (!player.q || player.q.calls.length >= maxCalls()) return
@@ -2063,7 +2086,11 @@ function currentRegion() { return player.t?.region || "kanto" }
 function pace() { return region().pace }
 function region() { return REGIONS[currentRegion()] }
 /** Points the engine at the current region's rules (call when the region may have changed). */
-function syncRegionRules() { REGION_RULES = region().rules }
+function syncRegionRules() {
+	const rules = region().rules
+	// The Rainbow Pass (Fame): the Old and Good Rods from the start, wherever the region gives them later.
+	REGION_RULES = hofUpgrade(52) ? { ...rules, keyItems: { ...rules.keyItems, oldRod: { badges: 0, name: "Old Rod" }, goodRod: { badges: 0, name: "Good Rod" } } } : rules
+}
 function regionZones() { return region().zones }
 function regionGyms() { return region().gyms }
 /** The badges that open the League: 8, or the Orange League's 4. */

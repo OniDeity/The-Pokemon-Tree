@@ -204,6 +204,13 @@ Sister project: OniDeity/idle-pokemon (its data is the source of ours).
   (`gate` 3, the Warehouse quest). Badges 29-33 in `scripts/drawSideBadges.py` (was
   drawOrangeBadges.py). Pacing: `SIM_START=sevii SIM_FAME=350` 4.7-7.1 h; the Kanto visit is a
   cliff again (8 instant, 10 never: Lv. 100 legendaries lose on Sevii's gear), now 9.
+- Fame shop ceiling (v0.27, the owner's idea: a cap on upgrading before moving on): Fame buyables stop
+  at `hofBuyableCap()` = `FAME_CAP` 8 + `FAME_CAP_STEP` 4 per region in `FAME_REGIONS` beaten
+  (`canBuyHofBuyable`, TMT `purchaseLimit`; levels above a cap stay). Items with a `region` (buyables
+  21/31/41/51, upgrades 31-62) open when that region is beaten (`fameItemOpen`). `player.h.regionsBeaten`
+  is in the Hall's startData so the shop re-renders. The simulator's `fameShop` weighs regional items
+  at 3× their cost (bought cheapest-first they took Fame from the core buyables: Hoenn went 11 → 19 h
+  and a Sevii run walled at the Tower); with the weight, every journey's pacing is unchanged.
 - Challenge highlights: `challengeStatus(key)`; hatching or a Safari catch marks an owned entry's
   `origin`, and `canEvolveInto` lets an entry with an origin evolve into one without.
 - Regions and the run's Pokédex (v0.12): `REGIONS` (`regionDex`, `currentRegion`, `dexRegions`)

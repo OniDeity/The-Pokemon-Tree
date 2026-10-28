@@ -30,6 +30,7 @@ const NOTIFY_KINDS = {
 	jackpot: "Game Corner jackpots",
 	rocket: "Team Rocket",
 	story: "Story (rival, S.S. Anne, Dojo)",
+	contest: "Contest wins",
 	milestone: "Milestones",
 	achievement: "Achievements",
 	glow: "Glowing nodes (something to buy or do)",

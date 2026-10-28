@@ -51,6 +51,12 @@ const FORMS = {
 	young: { name: "Young", sprite: true, text: "Silver, Lugia's child, born on Ogi Isle." },
 	unown: { name: "Unown", sprite: true, atk: 1.1, text: "The Entei the Unown conjured from Molly's wishes: Attack ×1.1." },
 	dark: { name: "Dark", sprite: true, atk: 1.15, text: "Corrupted by the Iron-Masked Marauder's Dark Ball: Attack ×1.15." },
+	// Cosplay Pikachu (Omega Ruby and Alpha Sapphire), one for each contest category's first Master Rank win.
+	rockStar: { name: "Pikachu Rock Star", sprite: true, ownName: true, text: "Cosplay Pikachu in its Cool costume, from the Contest Hall." },
+	belle: { name: "Pikachu Belle", sprite: true, ownName: true, text: "Cosplay Pikachu in its Beauty costume, from the Contest Hall." },
+	popStar: { name: "Pikachu Pop Star", sprite: true, ownName: true, text: "Cosplay Pikachu in its Cute costume, from the Contest Hall." },
+	phd: { name: "Pikachu, Ph.D.", sprite: true, ownName: true, text: "Cosplay Pikachu in its Smart costume, from the Contest Hall." },
+	libre: { name: "Pikachu Libre", sprite: true, ownName: true, text: "Cosplay Pikachu in its Tough costume, from the Contest Hall." },
 }
 // Unown's 28 letters (the Ruins of Alph chambers): "Unown B", "Unown !"...
 if (typeof UNOWN_FORMS !== "undefined") UNOWN_FORMS.forEach(f => {
@@ -61,6 +67,7 @@ if (typeof UNOWN_FORMS !== "undefined") UNOWN_FORMS.forEach(f => {
 function speciesName(id) { return SPECIES[id] ? SPECIES[id].name : "???" }
 function formName(id, form) {
 	if (!form) return speciesName(id)
+	if (FORMS[form].ownName) return FORMS[form].name
 	return FORMS[form].suffix ? `${speciesName(id)} ${FORMS[form].name}` : `${FORMS[form].name} ${speciesName(id)}`
 }
 function spriteOf(id, shiny, form) {

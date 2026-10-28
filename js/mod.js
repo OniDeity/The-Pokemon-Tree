@@ -5,7 +5,7 @@ let modInfo = {
 	pointsName: "Research Points",
 	modFiles: [
 		"data/kanto.js", "data/johto.js", "data/hoenn.js", "engine.js", "logic.js",
-		"layers/field.js", "layers/team.js", "layers/gym.js", "layers/daycare.js", "layers/safari.js", "layers/gamecorner.js", "layers/story.js", "layers/pokegear.js", "layers/hunt.js", "layers/hof.js", "layers/dex.js",
+		"layers/field.js", "layers/team.js", "layers/gym.js", "layers/daycare.js", "layers/safari.js", "layers/gamecorner.js", "layers/story.js", "layers/pokegear.js", "layers/hunt.js", "layers/contest.js", "layers/hof.js", "layers/dex.js",
 		"tree.js",
 	],
 
@@ -17,11 +17,16 @@ let modInfo = {
 
 // Set your version in num and name
 let VERSION = {
-	num: "0.21.1",
-	name: "Box Training",
+	num: "0.22",
+	name: "Pokémon Contests",
 }
 
 let changelog = `<h1>Changelog:</h1><br>
+	<h3>v0.22 Pokémon Contests</h3><br>
+		- Contests, a new node: Verdanturf's Contest Hall opens with Hoenn's Dynamo Badge, and from then on there's a Contest Hall in every region.<br>
+		- Feed a Pokémon Pokéblocks to raise its Cool, Beauty, Cute, Smart or Tough condition, then enter it from Normal to Master Rank. Its condition, how well its types suit the category, and half its level make its score.<br>
+		- Wins give RP and a ribbon for that species, kept for good: every ribbon gives +0.5% Research Points, and ribbon milestones make Pokéblocks stronger, contests faster, give a Contest Pass that enters on its own, and more.<br>
+		- The first Master Rank win in each category gives a Cosplay Pikachu: Rock Star, Belle, Pop Star, Ph.D. and Libre.<br><br>
 	<h3>v0.21.1 Box Training</h3><br>
 		- Team Coach's new Box Training switch (on the Automation page, with Team Coach): once you have the Exp. Share, the party keeps only as many Pokémon as it needs to win the next battle and fills the other slots with box Pokémon still waiting to evolve by level, closest to evolving first. They share every wild battle's experience and evolve on their own.<br><br>
 	<h3>v0.21 Hoenn's side systems</h3><br>

@@ -41,8 +41,7 @@ var player = {
 	d: { seen: {}, caught: {}, shiny: {}, forms: {}, hatched: {} },
 	c: { slots: [], eggs: [], eggProgress: 0, upgrades: [] },
 	k: { points: new Decimal(0), upgrades: [], buyables: {}, spinning: false },
-	r: { progress: {} },
-	v: { progress: {} },
+	q: { progress: {}, calls: [], callProgress: 0, rematches: {} },
 }
 // The game's chooseStarter, without the UI.
 function startRun(id) {
@@ -65,8 +64,7 @@ function hallOfFameReset(challenge) {
 	player.g = { points: new Decimal(0) }
 	player.l = { beaten: 0, champion: false, hallOfFame: [] }
 	player.k = { points: new Decimal(startingCoins()), upgrades: [], buyables: {}, spinning: false }
-	player.r = { progress: {} }
-	player.v = { progress: {} }
+	player.q = { progress: {}, calls: [], callProgress: 0, rematches: {} }
 	return fame
 }
 // Spends Fame greedily, cheapest first.
@@ -188,6 +186,7 @@ while (t < LIMIT) {
 		}
 		// Kanto's story: battle on whenever the forecast wins.
 		const cleared = run(`STORY_CHAPTERS.filter(ch => chapterCleared(ch.id)).map(ch => ch.id).join()`)
+		run(`rematchTick()`)
 		if (run(`storyTick()`)) {
 			const now = run(`STORY_CHAPTERS.filter(ch => chapterCleared(ch.id)).map(ch => ch.id)`)
 			for (const id of now) if (!cleared.split(",").includes(id)) console.log(`  ${id} cleared at ${(t / 3600).toFixed(2)} h (badges ${run("badges()")})`)

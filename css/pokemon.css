@@ -82,3 +82,24 @@
 .pk-card-handicap { opacity: 0.8; }
 .pk-exempt { color: #78C850; font-weight: bold; }
 .pk-handicap { color: #c08070; }
+
+/* The Story node's map: badge tiers down a line, chapters as buttons coloured by arc and state. */
+.pk-story-map { max-width: 680px; margin: 8px auto 8px 34px; text-align: left; border-left: 3px solid #444; padding-left: 14px; }
+.pk-story-tier { position: relative; margin: 0 0 10px; opacity: 0.6; }
+.pk-story-tier.pk-story-reached { opacity: 1; }
+.pk-story-marker { display: block; text-align: left; margin-left: -27px; }
+.pk-story-marker > * { vertical-align: middle; margin-right: 6px; }
+.pk-story-marker img { background: #222; border-radius: 50%; }
+.pk-story-mark { display: inline-block; width: 22px; height: 22px; line-height: 22px; text-align: center; border-radius: 50%; border: 2px solid #666; background: #222; font-size: 13px; }
+.pk-story-mark-on { border-color: #F8D030; color: #F8D030; }
+.pk-story-nodes { display: block; margin: 4px 0 0 12px; text-align: left; }
+.pk-story-node { display: inline-block; margin: 3px 6px 3px 0; vertical-align: top; font: inherit; font-size: 13px; color: inherit; background: #1d1d1d; border: 2px solid #555; border-left-width: 6px; border-radius: 8px; padding: 4px 8px; cursor: pointer; text-align: left; }
+.pk-story-node small { opacity: 0.8; }
+.pk-arc-rival { border-left-color: #6890F0; }
+.pk-arc-villain { border-left-color: #C03028; }
+.pk-arc-challenger { border-left-color: #E0B040; }
+.pk-story-cleared { background: #1f2f1f; border-color: #78C850; }
+.pk-story-open { border-color: #F8D030; box-shadow: 0 0 6px #F8D03088; }
+.pk-story-locked { opacity: 0.5; }
+.pk-story-selected { outline: 2px solid #fff; }
+.pk-arc-key { display: inline-block; border-left: 6px solid; padding-left: 4px; margin-right: 8px; }

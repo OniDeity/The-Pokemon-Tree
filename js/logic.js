@@ -70,6 +70,11 @@ function rpMult() {
 	m *= 1 + 0.01 * shinySpecies()
 	if (rocketMilestone(10)) m *= 1.1
 	if (rivalMilestone(15)) m *= 1.1
+	if (rocketMilestone(75)) m *= 1.15
+	if (rocketMilestone(500)) m *= 1.25
+	if (rivalMilestone(100)) m *= 1.2
+	if (storyMilestone(10)) m *= 1.1
+	if (storyMilestone(500)) m *= 1.25
 	return m
 }
 function wildRpMult() { return rpMult() * (hasFieldUpgrade(21) ? 1.5 : 1) * (inChallenge(52) ? 0.5 : 1) }
@@ -83,6 +88,8 @@ function xpMult() {
 	if (formMilestone(ALL_FORMS.length)) m *= 1.5
 	m *= 1 + 0.1 * gameCornerBuyable(13)
 	if (rivalMilestone(3)) m *= 1.2
+	if (rivalMilestone(30)) m *= 1.25
+	if (storyMilestone(50)) m *= 1.15
 	return m
 }
 function searchTime() {
@@ -99,6 +106,7 @@ function catchMult() {
 	if (formMilestone(10)) m *= 1.25
 	if (wardenMilestone(50)) m *= 1.1
 	if (rocketMilestone(20)) m *= 1.1
+	if (rocketMilestone(150)) m *= 1.15
 	return m
 }
 function gearMult() { return 1 + 0.15 * fieldBuyable(13) }
@@ -107,6 +115,9 @@ function atkMult() {
 	if (hasFieldUpgrade(22)) m *= 1.25
 	if (dexMilestone(120)) m *= 1.2
 	if (rocketMilestone(40)) m *= 1.1
+	if (rivalMilestone(60)) m *= 1.1
+	if (rivalMilestone(200)) m *= 1.1
+	if (storyMilestone(200)) m *= 1.1
 	if (hasDiploma()) m *= 1.1
 	return m
 }
@@ -114,6 +125,9 @@ function defMult() {
 	let m = gearMult() * Math.pow(BADGE_STAT_BOOST, badges()) * (1 + 0.05 * hofBuyable(13))
 	if (dexMilestone(120)) m *= 1.2
 	if (rivalMilestone(7)) m *= 1.1
+	if (rocketMilestone(300)) m *= 1.15
+	if (rivalMilestone(200)) m *= 1.1
+	if (storyMilestone(750)) m *= 1.1
 	if (hasDiploma()) m *= 1.1
 	return m
 }
@@ -344,6 +358,7 @@ function doEncounter(rng) {
 	dexSee(enc.id)
 	player.f.encounters++
 	eggStep()
+	storyCallStep()
 	const team = partyBattlers()
 	const result = battle(team, [battler(enc.id, enc.level)])
 	const name = `${shiny ? "★ " : ""}${formName(enc.id, enc.form)} (Lv. ${enc.level})`
@@ -375,9 +390,9 @@ function doEncounter(rng) {
 	}
 	let caught = rand(rng) < catchChance(enc.id, catchMult() * speciesCatchMult(enc.id) * apricornMult(enc), enc.form)
 	// Silph Co.'s Master Ball: the next new Pokémon beaten is caught for sure.
-	if (!caught && player.r?.masterBall && !player.d.caught[enc.id]) {
+	if (!caught && player.q?.masterBall && !player.d.caught[enc.id]) {
 		caught = true
-		player.r.masterBall = false
+		player.q.masterBall = false
 		pkLog(`You threw the Master Ball!`, "story", enc)
 	}
 	if (caught) {
@@ -650,6 +665,7 @@ function fameGain() {
 	if (anyChallenge()) fame *= CHALLENGE_FAME
 	if (beatChallenge(11)) fame *= 1.25
 	if (formMilestone(20)) fame *= 1.2
+	if (storyMilestone(1000)) fame *= 1.1
 	// A journey through Johto pays more, and beating Red on Mt. Silver more again.
 	if (currentRegion() === "johto") fame *= JOHTO_FAME
 	if (chapterCleared("mtSilver")) fame *= 1.5
@@ -1179,9 +1195,10 @@ function huntStep(enc, win) {
 }
 
 // ---- Kanto's story: Team Rocket, the rival, the S.S. Anne and the Fighting Dojo ----
-// Each chapter is a place with trainers fought in order (player.r.progress[chapter] for Team
-// Rocket's, player.v.progress for the Trainers node's). A cleared chapter gives its reward and can
-// open a Gym (`gate`, the badge index it gates). Kept through badges, reset by the Hall of Fame.
+// Each chapter is a place with trainers fought in order (player.q.progress[chapter], the Story
+// node). A cleared chapter gives its reward and can open a Gym (`gate`, the badge index it gates).
+// `arc` sorts it onto the Rivals, Villains or Challengers tab (rival-only chapters are rivals'; set
+// below). Kept through badges, reset by the Hall of Fame.
 // Giovanni's teams follow FireRed/LeafGreen and the rival's their structure; Grunts', Scientists'
 // and gauntlet trainers' teams are close to the games' (Idle Pokémon has no data for them).
 
@@ -1226,7 +1243,7 @@ const EXECUTIVE = (name, team, quote) => ({ name: `Executive ${name}`, rocket: t
 // Kanto's Gyms in Johto's post-game (HeartGold/SoulSilver's first battles, from Serebii). Lt. Surge
 // first (the S.S. Aqua docks in Vermilion), Blue last.
 const KANTO_GYM = (id, name, badge, leader, strength, team, quote, needs = "kantoSurge") => ({
-	id, layer: "v", region: "johto", kantoGym: true, name, badges: 8, champion: true, needs, strength, badge,
+	id, region: "johto", kantoGym: true, name, badges: 8, champion: true, needs, strength, badge,
 	reward: `The ${badge}: Research Points ×${BADGE_RP_BOOST}, like any badge.`,
 	trainers: [{ name: leader, team, quote }],
 })
@@ -1236,60 +1253,60 @@ const KANTO_GYM_CHAPTERS = [
 	KANTO_GYM("kantoMisty", "Cerulean Gym", "Cascade Badge", "Misty", 19.5, [[55, 49], [195, 49], [131, 52], [121, 54]], "You ruined my date at the Cape! You'd better be worth it."),
 	KANTO_GYM("kantoErika", "Celadon Gym", "Rainbow Badge", "Erika", 20, [[189, 51], [114, 52], [71, 56], [182, 56]], "Oh... I must have dozed off. A challenger from Johto? How lovely."),
 	KANTO_GYM("kantoJanine", "Fuchsia Gym", "Soul Badge", "Janine", 20, [[169, 47], [110, 44], [168, 47], [168, 47], [49, 50]], "Father handed the Gym to me. I won't let him down!"),
-	KANTO_GYM("kantoBrock", "Pewter Gym", "Boulder Badge", "Brock", 20.5, [[75, 51], [111, 51], [139, 53], [95, 54], [141, 52]], "My rock-hard willpower is even harder now. Show me yours!"),
-	KANTO_GYM("kantoBlaine", "Seafoam Gym", "Volcano Badge", "Blaine", 21, [[126, 54], [219, 54], [78, 59]], "The volcano took my Gym, not my fire! Have you got Burn Heal?"),
-	KANTO_GYM("kantoBlue", "Viridian Gym", "Earth Badge", "Blue", 22, [[103, 55], [68, 56], [59, 58], [112, 58], [130, 52], [18, 60]], "So you're the Johto Champion. I was the Champion too, for about a minute.",
+	KANTO_GYM("kantoBrock", "Pewter Gym", "Boulder Badge", "Brock", 19.5, [[75, 51], [111, 51], [139, 53], [95, 54], [141, 52]], "My rock-hard willpower is even harder now. Show me yours!"),
+	KANTO_GYM("kantoBlaine", "Seafoam Gym", "Volcano Badge", "Blaine", 20, [[126, 54], [219, 54], [78, 59]], "The volcano took my Gym, not my fire! Have you got Burn Heal?"),
+	KANTO_GYM("kantoBlue", "Viridian Gym", "Earth Badge", "Blue", 20.5, [[103, 55], [68, 56], [59, 58], [112, 58], [130, 52], [18, 60]], "So you're the Johto Champion. I was the Champion too, for about a minute.",
 		["kantoSabrina", "kantoMisty", "kantoErika", "kantoJanine", "kantoBrock", "kantoBlaine"]),
 ]
 const STORY_CHAPTERS = [
-	// Johto: the Trainers node.
-	{ id: "newBark", layer: "v", region: "johto", name: "Cherrygrove City", badges: 0, strength: 1.5, trainers: [SILVER(0)], reward: "Your rival's first battle: Research Points." },
-	{ id: "sproutTower", layer: "v", region: "johto", name: "Sprout Tower", badges: 0, strength: 5, gate: 0, reward: "Elder Li gives you Flash: Falkner's Gym opens.",
+	// Johto: rivals and challengers.
+	{ id: "newBark", region: "johto", name: "Cherrygrove City", badges: 0, strength: 1.5, trainers: [SILVER(0)], reward: "Your rival's first battle: Research Points." },
+	{ id: "sproutTower", region: "johto", name: "Sprout Tower", badges: 0, strength: 5, gate: 0, reward: "Elder Li gives you Flash: Falkner's Gym opens.",
 		trainers: [{ name: "Sage", team: [[69, 6], [69, 6]] }, { name: "Sage", team: [[69, 7]] }, { name: "Sage", team: [[69, 6], [69, 6], [69, 6]] },
 			{ name: "Elder Li", team: [[69, 7], [69, 7], [163, 10]], quote: "The flexible Bellsprout teaches us to bend with the wind." }] },
-	{ id: "azaleaRival", layer: "v", region: "johto", name: "Azalea Town", badges: 2, strength: 8, trainers: [SILVER(1)], reward: "Research Points." },
-	{ id: "burnedTowerRival", layer: "v", region: "johto", name: "Burned Tower", badges: 3, strength: 9, trainers: [SILVER(2)], reward: "Research Points." },
-	{ id: "lighthouse", layer: "v", region: "johto", name: "Olivine Lighthouse", badges: 5, strength: 15, gate: 5, reward: "Chuck's wife's medicine heals Amphy: Jasmine returns to her Gym.",
+	{ id: "azaleaRival", region: "johto", name: "Azalea Town", badges: 2, strength: 8, trainers: [SILVER(1)], reward: "Research Points." },
+	{ id: "burnedTowerRival", region: "johto", name: "Burned Tower", badges: 3, strength: 9, trainers: [SILVER(2)], reward: "Research Points." },
+	{ id: "lighthouse", region: "johto", name: "Olivine Lighthouse", badges: 5, strength: 15, gate: 5, reward: "Chuck's wife's medicine heals Amphy: Jasmine returns to her Gym.",
 		trainers: [{ name: "Sailor", team: [[66, 22], [61, 22]] }, { name: "Gentleman", team: [[58, 22], [164, 22]] }, { name: "Lass", team: [[183, 21], [209, 21]] },
 			{ name: "Bird Keeper", team: [[17, 22], [83, 22]] }, { name: "Sailor", team: [[72, 24], [73, 24]] }] },
-	{ id: "bellTower", layer: "v", region: "johto", name: "Bell Tower", badges: 7, needs: "radioTower", strength: 17, reward: "The Kimono Girls dance, and the Rainbow Wing calls Ho-Oh to the Bell Tower.",
+	{ id: "bellTower", region: "johto", name: "Bell Tower", badges: 7, needs: "radioTower", strength: 17, reward: "The Kimono Girls dance, and the Rainbow Wing calls Ho-Oh to the Bell Tower.",
 		trainers: [{ name: "Kimono Girl Zuki", team: [[197, 38]] }, { name: "Kimono Girl Naoko", team: [[196, 38]] }, { name: "Kimono Girl Miki", team: [[136, 38]] },
 			{ name: "Kimono Girl Sayo", team: [[134, 38]] }, { name: "Kimono Girl Kuni", team: [[135, 38]] }] },
-	{ id: "victoryRoadSilver", layer: "v", region: "johto", name: "Victory Road", badges: 8, strength: 15, gateLeague: true, trainers: [SILVER(4)], reward: "Silver steps aside: the Indigo Plateau opens." },
+	{ id: "victoryRoadSilver", region: "johto", name: "Victory Road", badges: 8, strength: 15, gateLeague: true, trainers: [SILVER(4)], reward: "Silver steps aside: the Indigo Plateau opens." },
 	// Johto: Team Rocket.
-	{ id: "slowpokeWell", layer: "r", region: "johto", name: "Slowpoke Well", badges: 1, strength: 8, gate: 1, reward: "The Slowpoke are safe: Kurt thanks you, and Bugsy's Gym opens.",
+	{ id: "slowpokeWell", arc: "villain", region: "johto", name: "Slowpoke Well", badges: 1, strength: 8, gate: 1, reward: "The Slowpoke are safe: Kurt thanks you, and Bugsy's Gym opens.",
 		trainers: [GRUNT([[19, 9], [19, 9]]), GRUNT([[41, 11], [41, 11]]), GRUNT([[23, 14]]),
 			EXECUTIVE("Proton", [[41, 8], [109, 12]], "Cutting off Slowpoke tails is a fine business!")] },
-	{ id: "mahoganyHideout", layer: "r", region: "johto", name: "Mahogany Hideout", badges: 6, strength: 16, gate: 6, reward: "Lance and you shut down the Rage signal: Pryce's Gym opens.",
+	{ id: "mahoganyHideout", arc: "villain", region: "johto", name: "Mahogany Hideout", badges: 6, strength: 16, gate: 6, reward: "Lance and you shut down the Rage signal: Pryce's Gym opens.",
 		trainers: [GRUNT([[19, 21], [41, 22]]), GRUNT([[88, 21], [109, 22]]), EXECUTIVE("Petrel", [[41, 22], [109, 22], [109, 24]], "...You think you can stop us?"),
 			GRUNT([[24, 23], [42, 23]]), EXECUTIVE("Ariana", [[24, 23], [44, 23], [198, 25]], "You've meddled enough!"),
 			{ name: "Electrode (the generator)", team: [[101, 23], [101, 23], [101, 23]] }] },
-	{ id: "radioTower", layer: "r", region: "johto", name: "Radio Tower", badges: 7, strength: 17, gate: 7, reward: "Team Rocket disbands: Clair's Gym opens, and the Director gives you the Silver Wing (Lugia).",
+	{ id: "radioTower", arc: "villain", region: "johto", name: "Radio Tower", badges: 7, strength: 15, gate: 7, reward: "Team Rocket disbands: Clair's Gym opens, and the Director gives you the Silver Wing (Lugia).",
 		trainers: [GRUNT([[20, 26], [42, 26]], { floor: "Underground" }), { ...SILVER(3), floor: "Underground" }, EXECUTIVE("Proton", [[42, 30], [110, 30]], "Do you know how hard we work?"),
 			GRUNT([[89, 28], [24, 28]], { floor: "2F" }), EXECUTIVE("Petrel", [[110, 32], [109, 30], [109, 30]], "Fooled you!"),
 			GRUNT([[229, 29], [42, 29]], { floor: "4F" }), EXECUTIVE("Ariana", [[24, 32], [45, 32], [198, 32]], "We will not be stopped!"),
 			{ ...EXECUTIVE("Archer", [[228, 35], [110, 35], [229, 38]], "We will revive Team Rocket... and await Giovanni's return!"), boss: true, floor: "5F" }] },
-	// The Trainers node ("v").
-	{ id: "oakLab", layer: "v", name: "Oak's Lab", badges: 0, strength: 1, trainers: [RIVAL(0)], reward: "Your rival's first lesson: Research Points." },
-	{ id: "route22", layer: "v", name: "Route 22", badges: 0, strength: 1.2, trainers: [RIVAL(1)], reward: "Research Points." },
-	{ id: "ceruleanRival", layer: "v", name: "Cerulean City", badges: 1, strength: 2.2, trainers: [RIVAL(2)], reward: "Research Points." },
-	{ id: "ssAnne", layer: "v", name: "S.S. Anne", badges: 2, strength: 3.2, gate: 2, reward: "The Captain teaches you Cut: the way to Lt. Surge's Gym opens.",
+	// Kanto: rivals and challengers.
+	{ id: "oakLab", name: "Oak's Lab", badges: 0, strength: 1, trainers: [RIVAL(0)], reward: "Your rival's first lesson: Research Points." },
+	{ id: "route22", name: "Route 22", badges: 0, strength: 1.2, trainers: [RIVAL(1)], reward: "Research Points." },
+	{ id: "ceruleanRival", name: "Cerulean City", badges: 1, strength: 2.2, trainers: [RIVAL(2)], reward: "Research Points." },
+	{ id: "ssAnne", name: "S.S. Anne", badges: 2, strength: 3.2, gate: 2, reward: "The Captain teaches you Cut: the way to Lt. Surge's Gym opens.",
 		trainers: [{ name: "Sailor", team: [[66, 18], [72, 18]] }, { name: "Gentleman", team: [[58, 18], [52, 18]] }, { name: "Lass", team: [[16, 18], [35, 18]] },
 			{ name: "Fisherman", team: [[118, 17], [129, 17], [118, 17]] }, { ...RIVAL(3) }, { name: "The Captain", team: [[66, 21], [90, 21], [72, 21]] }] },
-	{ id: "dojo", layer: "v", name: "Fighting Dojo", badges: 4, strength: 4.5, reward: "The Karate Master lets you choose Hitmonlee or Hitmonchan.",
+	{ id: "dojo", name: "Fighting Dojo", badges: 4, strength: 4.5, reward: "The Karate Master lets you choose Hitmonlee or Hitmonchan.",
 		trainers: [{ name: "Black Belt", team: [[66, 31], [67, 31]] }, { name: "Black Belt", team: [[56, 32], [57, 32]] }, { name: "Black Belt", team: [[67, 34]] },
 			{ name: "Karate Master", team: [[57, 37], [106, 37], [107, 37]] }] },
-	{ id: "mtSilver", layer: "v", region: "johto", name: "Mt. Silver", badges: 8, champion: true, needs: "kantoBlue", strength: 14, red: true,
+	{ id: "mtSilver", region: "johto", name: "Mt. Silver", badges: 8, champion: true, needs: "kantoBlue", strength: 13, red: true,
 		reward: "Red, the silent Champion of Kanto, nods and leaves the summit. Fame ×1.5 for this Hall of Fame entry.",
 		trainers: [{ name: "Red", team: JOHTO_RED.team, quote: "…" }] },
 	...KANTO_GYM_CHAPTERS,
-	{ id: "route22Final", layer: "v", name: "Route 22 again", badges: 8, strength: 10, gateLeague: true, trainers: [RIVAL(6)], reward: "Your rival steps aside: Victory Road and the League open." },
-	// Team Rocket ("r").
-	{ id: "mtMoon", layer: "r", name: "Mt. Moon", badges: 1, strength: 2.8, gate: 1, reward: "The way through Mt. Moon to Cerulean City (and Misty's Gym) opens.",
+	{ id: "route22Final", name: "Route 22 again", badges: 8, strength: 10, gateLeague: true, trainers: [RIVAL(6)], reward: "Your rival steps aside: Victory Road and the League open." },
+	// Kanto: Team Rocket.
+	{ id: "mtMoon", arc: "villain", name: "Mt. Moon", badges: 1, strength: 2.8, gate: 1, reward: "The way through Mt. Moon to Cerulean City (and Misty's Gym) opens.",
 		trainers: [GRUNT([[19, 13], [41, 13]]), GRUNT([[27, 11], [19, 11], [41, 11]]), JESSIE_JAMES([[23, 14], [109, 14]]), GRUNT([[41, 12], [23, 12]])] },
-	{ id: "nuggetBridge", layer: "r", name: "Nugget Bridge", badges: 1, strength: 2.4, nugget: true, reward: "A Nugget: a lump of Research Points.",
+	{ id: "nuggetBridge", arc: "villain", name: "Nugget Bridge", badges: 1, strength: 2.4, nugget: true, reward: "A Nugget: a lump of Research Points.",
 		trainers: [GRUNT([[23, 15], [41, 15]], { quote: "Join Team Rocket! ...No? Then I'll take you down!" })] },
-	{ id: "hideout", layer: "r", name: "Rocket Hideout", badges: 3, needGameCorner: true, strength: 3.2, reward: "The Silph Scope: Ghost Pokémon twice as easy to catch this run, and the Pokémon Tower's ghosts unmasked.",
+	{ id: "hideout", arc: "villain", name: "Rocket Hideout", badges: 3, needGameCorner: true, strength: 3.2, reward: "The Silph Scope: Ghost Pokémon twice as easy to catch this run, and the Pokémon Tower's ghosts unmasked.",
 		trainers: [
 			GRUNT([[19, 20], [20, 20]], { floor: "B1F", coins: 150 }), GRUNT([[41, 20], [23, 20], [41, 20]], { floor: "B1F", coins: 150 }),
 			GRUNT([[96, 21], [66, 21]], { floor: "B2F", coins: 300 }), GRUNT([[109, 21], [20, 21]], { floor: "B2F", coins: 300 }),
@@ -1297,11 +1314,11 @@ const STORY_CHAPTERS = [
 			GRUNT([[109, 23], [109, 23]], { floor: "B4F", coins: 600 }), GRUNT([[42, 23], [24, 23]], { floor: "B4F", coins: 600 }),
 			{ name: "Giovanni", rocket: true, boss: true, floor: "B4F", strength: 5.5, team: [[95, 25], [111, 24], [115, 29]], quote: "So! I must say, I am impressed you got here." },
 		] },
-	{ id: "pokemonTower", layer: "r", name: "Pokémon Tower", badges: 4, needs: "hideout", strength: 7, gate: 4, reward: "Mr. Fuji is free and gives you the Poké Flute: Snorlax can be woken, and Koga's Gym opens.",
+	{ id: "pokemonTower", arc: "villain", name: "Pokémon Tower", badges: 4, needs: "hideout", strength: 7, gate: 4, reward: "Mr. Fuji is free and gives you the Poké Flute: Snorlax can be woken, and Koga's Gym opens.",
 		trainers: [{ ...RIVAL(4), floor: "2F" }, { name: "Ghost (Marowak)", floor: "6F", team: [[105, 30]], quote: "Begone... Intruders..." },
 			GRUNT([[41, 25], [41, 25], [42, 25]], { floor: "7F" }), GRUNT([[109, 26], [96, 26]], { floor: "7F" }), JESSIE_JAMES([[24, 27], [110, 27], [52, 27]]),
 			GRUNT([[41, 23], [19, 23], [20, 23], [41, 23]], { floor: "7F" })] },
-	{ id: "silphCo", layer: "r", name: "Silph Co.", badges: 5, needs: "pokemonTower", strength: 5.6, gate: 5, reward: "The Master Ball (the next new Pokémon you beat is caught for sure), Lapras, and Sabrina's Gym opens.",
+	{ id: "silphCo", arc: "villain", name: "Silph Co.", badges: 5, needs: "pokemonTower", strength: 5.6, gate: 5, reward: "The Master Ball (the next new Pokémon you beat is caught for sure), Lapras, and Sabrina's Gym opens.",
 		trainers: [
 			GRUNT([[19, 29], [20, 29], [41, 29]], { floor: "2F" }), { name: "Scientist", rocket: true, floor: "2F", team: [[81, 29], [100, 29]] },
 			GRUNT([[23, 31], [24, 31]], { floor: "3F" }), GRUNT([[109, 31], [42, 31]], { floor: "4F" }), { name: "Scientist", rocket: true, floor: "5F", team: [[100, 30], [81, 30], [101, 30]] },
@@ -1310,16 +1327,40 @@ const STORY_CHAPTERS = [
 			{ name: "Giovanni", rocket: true, boss: true, floor: "11F", strength: 6.6, team: [[33, 37], [115, 35], [111, 37], [31, 41]], quote: "Ah, we meet again. I am not going to let you ruin this deal!" },
 		] },
 ]
+for (const ch of STORY_CHAPTERS) ch.arc = ch.arc || (ch.trainers.every(t => t.rival) ? "rival" : "challenger")
+
+// Lifetime milestones: villains beaten (player.d.rockets: Team Rocket now, Aqua and Magma later),
+// rival wins, and every story battle won (chapters and rematches, player.d.storyWins). The later
+// tiers come from rematches over many runs.
 const ROCKET_MILESTONES = [
 	[5, "Rocket loot: Grunts drop twice as many coins."],
 	[10, "Research Points ×1.1."],
 	[20, "+10% catch chance everywhere."],
 	[40, "Your party's Attack ×1.1."],
+	[75, "Research Points ×1.15."],
+	[150, "+15% catch chance everywhere."],
+	[300, "Your party's Defense ×1.15."],
+	[500, "Research Points ×1.25."],
 ]
 const RIVAL_MILESTONES = [
 	[3, "Experience ×1.2."],
 	[7, "Your party's Defense ×1.1."],
 	[15, "Research Points ×1.1."],
+	[30, "Experience ×1.25."],
+	[60, "Your party's Attack ×1.1."],
+	[100, "Research Points ×1.2."],
+	[200, "Your party's Attack and Defense ×1.1."],
+]
+const STORY_MILESTONES = [
+	[10, "Research Points ×1.1."],
+	[25, "Rematch calls come 25% sooner."],
+	[50, "Experience ×1.15."],
+	[100, "Rematches pay twice the Research Points."],
+	[200, "Your party's Attack ×1.1."],
+	[350, "Up to five rematch calls wait for you."],
+	[500, "Research Points ×1.25."],
+	[750, "Your party's Defense ×1.1."],
+	[1000, "Fame ×1.1."],
 ]
 
 // ---- Kanto after Johto's League (HeartGold/SoulSilver's post-game) ----
@@ -1342,7 +1383,7 @@ const DOJO_CHOICE = ["hitmonlee", "hitmonchan"]
 for (const s of SPECIALS) if (s.id === "hitmonchan") s.text = "...or the punching fiend. You may choose only one."
 
 function chapterById(id) { return STORY_CHAPTERS.find(c => c.id === id) }
-function storyState(ch) { return player[ch.layer] }
+function storyState(ch) { return player.q }
 function chapterProgress(ch) { return storyState(ch)?.progress?.[ch.id] || 0 }
 function chapterCleared(id) { const ch = chapterById(id); return !!ch && chapterProgress(ch) >= ch.trainers.length }
 function chapterRegion(ch) { return ch.region || "kanto" }
@@ -1376,8 +1417,7 @@ function storyBattle(id) {
 	releaseFainted(storyPrediction(ch))
 	const state = storyState(ch)
 	state.progress = { ...state.progress, [ch.id]: chapterProgress(ch) + 1 }
-	if (t.rocket) player.d.rockets = rocketsBeaten() + 1
-	if (t.rival) player.d.rivalWins = rivalWins() + 1
+	countStoryWin(t)
 	if (t.coins) {
 		const coins = t.coins * (rocketMilestone(5) ? 2 : 1)
 		addCoins(coins)
@@ -1392,8 +1432,71 @@ function storyBattle(id) {
 }
 function clearChapter(ch) {
 	if (ch.nugget) player.points = player.points.add(10000 * PRICE_TO_RP * rpMult() / 10)
-	if (ch.id === "silphCo") player.r.masterBall = true
-	pkLog(`${ch.name} cleared! ${ch.reward}`, ch.layer === "r" ? "rocket" : "story")
+	if (ch.id === "silphCo") player.q.masterBall = true
+	pkLog(`${ch.name} cleared! ${ch.reward}`, ch.arc === "villain" ? "rocket" : "story")
+}
+function countStoryWin(t) {
+	if (t.rocket) player.d.rockets = rocketsBeaten() + 1
+	if (t.rival) player.d.rivalWins = rivalWins() + 1
+	player.d.storyWins = storyWins() + 1
+}
+
+// ---- Rematches (the Pokégear's phone; the PokéNav's Match Call in Hoenn) ----
+// Every CALL_SECONDS of searching (each wild battle counts its search time, so offline time too) a
+// cleared chapter of this region calls for a rematch: its last trainer, levelled up to the party's
+// cap and nearly as strong as the last Gym beaten. Calls wait (up to maxCalls()); rematches pay
+// Research Points and count as story battles won. The simulator plays them.
+const CALL_SECONDS = 1200
+function maxCalls() { return storyMilestone(350) ? 5 : 3 }
+function callSeconds() { return CALL_SECONDS * (storyMilestone(25) ? 0.75 : 1) }
+function callable() { return STORY_CHAPTERS.filter(ch => chapterRegion(ch) === currentRegion() && chapterCleared(ch.id) && !player.q.calls.includes(ch.id)) }
+function storyCallStep() {
+	if (!player.q || player.q.calls.length >= maxCalls()) return
+	const options = callable()
+	if (!options.length) return
+	player.q.callProgress = (player.q.callProgress || 0) + searchTime()
+	if (player.q.callProgress < callSeconds()) return
+	player.q.callProgress = 0
+	const ch = options.reduce((a, b) => (player.q.rematches[b.id] || 0) < (player.q.rematches[a.id] || 0) ? b : a)
+	player.q.calls.push(ch.id)
+	pkLog(`📞 ${rematchTrainer(ch).name} calls from ${ch.name}: "Let's battle again!"`, ch.arc === "villain" ? "rocket" : "story")
+}
+function rematchTrainer(ch) { return ch.trainers[ch.trainers.length - 1] }
+/** Three-quarters of the last Gym beaten (the Elite Four once Champion), or the chapter's own. */
+function rematchStrength(ch) {
+	const r = region(), b = badges()
+	const beaten = isChampion() ? r.eliteFourStrength : b > 0 ? r.gymStrength[b - 1] : 0
+	return Math.max(ch.strength, 0.75 * beaten)
+}
+function rematchTeam(ch) {
+	const cap = currentCap()
+	return trainerTeam(rematchTrainer(ch)).map(([id, lv]) => [id, Math.max(lv, cap - 2)])
+}
+function rematchPrediction(ch) { return battle(partyBattlers(), trainerBattlers({ team: rematchTeam(ch) }, rematchStrength(ch))) }
+function canRematch(id) {
+	const ch = chapterById(id)
+	if (!ch || !player.q.calls.includes(id)) return false
+	const p = rematchPrediction(ch)
+	return p.win && !(inChallenge(11) && p.fainted > 0)
+}
+function rematch(id) {
+	if (!canRematch(id)) return false
+	const ch = chapterById(id), t = rematchTrainer(ch)
+	releaseFainted(rematchPrediction(ch))
+	player.q.calls = player.q.calls.filter(c => c !== id)
+	player.q.rematches = { ...player.q.rematches, [id]: (player.q.rematches[id] || 0) + 1 }
+	// Rematches count as story battles won, not toward the villain and rival tracks.
+	player.d.storyWins = storyWins() + 1
+	// One wild battle's worth per Pokémon (a story battle pays three).
+	const rp = storyRp({ team: rematchTeam(ch) }) / 3 * (storyMilestone(100) ? 2 : 1)
+	player.points = player.points.add(rp)
+	pkLog(`Won the rematch with ${t.name} (${ch.name}): ${format(rp)} Research Points.`, "win")
+	return true
+}
+function rematchTick() {
+	let any = false
+	for (const id of [...player.q.calls]) if (rematch(id)) any = true
+	return any
 }
 /** Every battle the story can take now, in order (the simulator and the automatic challenges). */
 function storyTick() {
@@ -1416,17 +1519,31 @@ function rocketsBeaten() { return player.d.rockets || 0 }
 function rocketMilestone(n) { return rocketsBeaten() >= n }
 function rivalWins() { return player.d.rivalWins || 0 }
 function rivalMilestone(n) { return rivalWins() >= n }
+function storyWins() { return player.d.storyWins || 0 }
+function storyMilestone(n) { return storyWins() >= n }
 function giovanniBeaten() { return chapterCleared("hideout") }
 function hasSilphScope() { return chapterCleared("hideout") }
 /** Species-specific catch help: the Silph Scope unmasks Ghost Pokémon. */
 function speciesCatchMult(id) { return hasSilphScope() && SPECIES[id].types.includes("ghost") ? 2 : 1 }
 
-/** v0.10 kept the Hideout's progress as a number (player.r.beaten). */
+/**
+ * v0.10 kept the Hideout's progress as a number (player.r.beaten); v0.18 moved Team Rocket ("r")
+ * and the Trainers node ("v") into the Story node ("q").
+ */
 function migrateStory() {
 	if (player.r && typeof player.r.beaten === "number") {
 		player.r.progress = { ...(player.r.progress || {}), hideout: Math.max(player.r.beaten, player.r.progress?.hideout || 0) }
 		delete player.r.beaten
 	}
+	if (!player.q || !(player.r || player.v)) return
+	for (const old of ["r", "v"]) {
+		if (!player[old]) continue
+		player.q.progress = { ...(player[old].progress || {}), ...player.q.progress }
+		if (player[old].masterBall) player.q.masterBall = true
+		delete player[old]
+	}
+	// Story battles won starts from the lifetime Rockets and rival wins.
+	player.d.storyWins = Math.max(storyWins(), rocketsBeaten() + rivalWins())
 }
 
 // ---- The Game Freak Diploma and Missingno. ----
@@ -1484,7 +1601,7 @@ const REGIONS = {
 	kanto: {
 		name: "Kanto", professor: "Oak", starters: STARTERS, zones: ZONES, gyms: GYMS, eliteFour: ELITE_FOUR,
 		champion: () => CHAMPIONS[player.t.starter] || CHAMPIONS[1], gymStrength: GYM_STRENGTH,
-		eliteFourStrength: ELITE_FOUR_STRENGTH, championStrength: CHAMPION_STRENGTH, badgeImage: 1, zoneCost: 1, pace: 3.4,
+		eliteFourStrength: ELITE_FOUR_STRENGTH, championStrength: CHAMPION_STRENGTH, badgeImage: 1, zoneCost: 1, pace: 3.8,
 		dex: Array.from({ length: 151 }, (_, i) => i + 1), rules: REGION_RULES,
 	},
 	johto: {
@@ -1657,6 +1774,7 @@ function sailToJohto() {
 	player.t.region = "johto"
 	player.t.johtoStarter = 0
 	syncRegionRules()
+	player.q.calls = []
 	// A fresh start: badges, the League and the Field start over, and every Pokémon is back at Lv. 5.
 	player.g.points = new Decimal(0)
 	player.l.beaten = 0

@@ -138,17 +138,18 @@ function canJoinParty(key) { return !inChallenge(12) || sharesStarterType(key) }
 
 // ---- Map ----
 
-function zoneById(id) { return ZONES.find(z => z.id === id) }
+function zoneById(id) { return ALL_ZONES.find(z => z.id === id) }
 
 /** Zones of the area you're surveying now: they open one by one, for Research Points. */
 function frontierZones() {
 	const b = badges()
-	return ZONES.filter(z => z.badges === b && !z.postGame && !z.anime)
+	return regionZones().filter(z => z.badges === b && !z.postGame && !z.anime)
 }
 function zoneUnlockCost(index) {
-	return new Decimal(25).times(Decimal.pow(1.8, index)).times(Decimal.pow(5, badges())).times(hofUpgrade(12) ? 0.5 : 1)
+	return new Decimal(25).times(Decimal.pow(1.8, index)).times(Decimal.pow(5, badges())).times(hofUpgrade(12) ? 0.5 : 1).times(region().zoneCost)
 }
 function zoneOpen(zone) {
+	if (zone.region !== currentRegion()) return false
 	if (zone.anime) return animeOpen(zone)
 	if (zone.postGame) return isChampion()
 	if (zone.badges < badges()) return true
@@ -254,9 +255,11 @@ function addToBox(id, level, variant = "normal", origin = null) {
 	const key = boxKey(id, variant)
 	const old = player.t.box[key]
 	dexCatch(id, isShiny(key), formOf(key))
+	// Hatching (or a Safari catch of) a species you already own marks the one you own.
+	if (old && origin && !old.origin) old.origin = origin
 	if (old && old.level >= level) return false
 	// origin: "egg" or "safari" where it matters (the Hatchling Run and Poacher's Net exempt them).
-	player.t.box[key] = { level, xp: xpForLevel(SPECIES[id].growth, level), variant, ...(origin ? { origin } : {}) }
+	player.t.box[key] = { level, xp: xpForLevel(SPECIES[id].growth, level), variant, ...(origin || old?.origin ? { origin: origin || old.origin } : {}) }
 	if (!old && player.t.party.length < partySize() && canJoinParty(key)) player.t.party.push(key)
 	return true
 }
@@ -268,7 +271,9 @@ function addToBox(id, level, variant = "normal", origin = null) {
  */
 function canEvolveInto(key, into) {
 	if (formOf(key)) return false
-	return !player.t.box[boxKey(into, variantOf(key))]
+	const owned = player.t.box[boxKey(into, variantOf(key))]
+	// A hatched or Safari Pokémon may evolve into one you own that isn't, passing that on.
+	return !owned || (!!player.t.box[key]?.origin && !owned.origin)
 }
 
 /** Evolves a box Pokémon: it takes the evolution's place in the box (and the party). */
@@ -279,7 +284,10 @@ function evolve(key, into) {
 	const newKey = boxKey(into, variantOf(key))
 	delete player.t.box[key]
 	const existing = player.t.box[newKey]
-	if (!existing || existing.level < entry.level) player.t.box[newKey] = entry
+	if (existing) {
+		existing.origin = existing.origin || entry.origin
+		if (existing.level < entry.level) Object.assign(existing, { level: entry.level, xp: entry.xp })
+	} else player.t.box[newKey] = entry
 	dexCatch(into, isShiny(key))
 	const slot = player.t.party.indexOf(key)
 	if (slot >= 0) {
@@ -325,7 +333,7 @@ function releaseFainted(result) {
 
 // ---- Encounters ----
 
-function currentZone() { return zoneById(player.f.zone) || ZONES[0] }
+function currentZone() { return zoneById(player.f.zone) || regionZones()[0] }
 
 function doEncounter(rng) {
 	const zone = currentZone()
@@ -409,11 +417,11 @@ function trainerBattlers(trainer, strength) {
 	if (anyChallenge()) strength *= CHALLENGE_TRAINER_STRENGTH
 	return trainer.team.map(([id, level]) => battler(id, level, strength, strength))
 }
-function nextGym() { return GYMS[badges()] || null }
+function nextGym() { return regionGyms()[badges()] || null }
 function gymPrediction() {
 	const gym = nextGym()
 	if (!gym) return null
-	return battle(partyBattlers(), trainerBattlers(gym, GYM_STRENGTH[badges()]))
+	return battle(partyBattlers(), trainerBattlers(gym, gymStrength()))
 }
 function canChallengeGym() {
 	const p = gymPrediction()
@@ -425,8 +433,8 @@ function winGymBattle() {
 }
 
 function leagueTrainers() {
-	const champion = CHAMPIONS[player.t.starter] || CHAMPIONS[1]
-	return [...ELITE_FOUR.map(t => ({ ...t, strength: ELITE_FOUR_STRENGTH })), { ...champion, strength: CHAMPION_STRENGTH }]
+	const r = region()
+	return [...r.eliteFour.map(t => ({ ...t, strength: r.eliteFourStrength })), { ...r.champion(), strength: r.championStrength }]
 }
 function leaguePrediction(k) {
 	const t = leagueTrainers()[k]
@@ -459,6 +467,7 @@ function specialCost(s) {
 	return new Decimal(s.price ? s.price * PRICE_TO_RP * (hofUpgrade(21) ? 0.25 : 1) * (inChallenge(43) ? 3 : 1) : 0)
 }
 function specialOpen(s) {
+	if (s.region !== currentRegion()) return false
 	if (s.anime && hofEntries() < s.hof) return false
 	if (s.postGame && !isChampion()) return false
 	return badges() >= s.badgesRequired
@@ -470,7 +479,7 @@ function legendaryPrediction(s) {
 function specialStatus(s) {
 	if (player.t.specials[s.id]) return { ok: false, why: "Done" }
 	if (!specialOpen(s)) return { ok: false, why: s.postGame ? "After the League" : `${s.badgesRequired} badges` }
-	if (s.keyItem && !hasKeyItem(s.keyItem, badges())) return { ok: false, why: `Needs the ${KEY_ITEMS[s.keyItem].name}` }
+	if (s.keyItem && !hasKeyItem(s.keyItem, badges())) return { ok: false, why: `Needs the ${REGION_RULES.keyItems[s.keyItem]?.name || KEY_ITEM_NAMES[s.keyItem] || s.keyItem}` }
 	if (specialStoryGate(s)) return { ok: false, why: `Clear ${specialStoryGate(s).name}` }
 	if (dojoChoiceTaken(s)) return { ok: false, why: "You chose the other" }
 	if (s.kind === "trade" && !ownsSpecies(s.wants)) return { ok: false, why: `Show a ${speciesName(s.wants)}` }
@@ -484,7 +493,7 @@ function takeSpecial(s) {
 	player.points = player.points.sub(specialCost(s))
 	if (isPrize(s)) addCoins(-prizeCoins(s))
 	player.t.specials[s.id] = true
-	const shiny = rand() < 1 / shinyOdds()
+	const shiny = !!s.shiny || rand() < 1 / shinyOdds()
 	addToBox(s.species, s.level, makeLook(s.form, shiny))
 	const name = formName(s.species, s.form)
 	pkLog(s.kind === "legendary" ? `You caught ${name}!` : `${name} joined you!`, "new", { id: s.species, form: s.form }, shiny)
@@ -494,7 +503,7 @@ function takeSpecial(s) {
 // ---- Evolution items ----
 
 /** Research Points for an evolution stone (₽2,100 in the games); trades are free. */
-function itemEvolutionCost(e) { return new Decimal(e.method === "trade" ? 0 : 2100 * PRICE_TO_RP) }
+function itemEvolutionCost(e) { return new Decimal(e.method === "trade" && !e.item ? 0 : 2100 * PRICE_TO_RP) }
 function canItemEvolve(key, e) {
 	return !inChallenge(43) && !!player.t.box[key] && e.open && canEvolveInto(key, e.into) && player.points.gte(itemEvolutionCost(e))
 }
@@ -636,13 +645,17 @@ function fameGain() {
 	if (anyChallenge()) fame *= CHALLENGE_FAME
 	if (beatChallenge(11)) fame *= 1.25
 	if (formMilestone(20)) fame *= 1.2
+	// A journey through Johto pays more, and beating Red on Mt. Silver more again.
+	if (currentRegion() === "johto") fame *= JOHTO_FAME
+	if (chapterCleared("mtSilver")) fame *= 1.5
 	return Math.floor(fame)
 }
 /** Records the run in the Hall of Fame and starts the Pokédex over (the rest of the reset is TMT's). */
 function enterHallOfFame() {
 	const team = player.l.team || []
 	for (const [id] of team) player.h.enshrined[id] = true
-	player.h.hall.push({ team, time: player.h.resetTime || 0, challenge: player.h.activeChallenge || null })
+	player.h.hall.push({ team, time: player.h.resetTime || 0, challenge: player.h.activeChallenge || null, region: currentRegion() })
+	if (currentRegion() === "johto") player.h.regionsBeaten = { ...player.h.regionsBeaten, johto: true }
 	resetRunPokedex()
 }
 
@@ -790,7 +803,7 @@ const WARDEN_MILESTONES = [
 ]
 
 function safariZone() { return zoneById("safariZone") }
-function safariOpen() { return hofEntries() >= 2 || badges() >= safariZone().badges }
+function safariOpen() { return currentRegion() === "kanto" && (hofEntries() >= 2 || badges() >= safariZone().badges) }
 function hasSafariUpgrade(id) { return !!player.s && player.s.upgrades.map(Number).includes(Number(id)) }
 function safariCaught() { return player.d.safari || 0 }
 function wardenMilestone(n) { return safariCaught() >= n }
@@ -904,6 +917,16 @@ function challengeHandicap(entry, key = "") {
 	if (inChallenge(33) && entry.origin !== "safari") return 0.6
 	if (inChallenge(53) && !isShiny(key)) return 0.75
 	return 1
+}
+/** What the active challenge says about this Pokémon: full strength, weakened, or barred. */
+function challengeStatus(key) {
+	const entry = player.t.box[key]
+	if (!entry || !anyChallenge()) return null
+	if (inChallenge(32)) return entry.origin === "egg" ? { ok: true, text: "🥚 Hatched: full strength" } : { ok: false, text: "Not hatched: half strength" }
+	if (inChallenge(33)) return entry.origin === "safari" ? { ok: true, text: "Safari catch: full strength" } : { ok: false, text: "Not from the Safari: 60% strength" }
+	if (inChallenge(53)) return isShiny(key) ? { ok: true, text: "★ Shiny: full strength" } : { ok: false, text: "Not shiny: 75% strength" }
+	if (inChallenge(12)) return sharesStarterType(key) ? { ok: true, text: "Shares your starter's type: Attack ×2" } : { ok: false, text: "Can't join the party (Monotype)" }
+	return null
 }
 function automationUnlocked(id) { return beatChallenge(AUTOMATIONS[id].challenge) }
 function automationOn(id) { return automationUnlocked(id) && player.h.auto?.[id] !== false }
@@ -1184,6 +1207,9 @@ const STORY_CHAPTERS = [
 	{ id: "dojo", layer: "v", name: "Fighting Dojo", badges: 4, strength: 4.5, reward: "The Karate Master lets you choose Hitmonlee or Hitmonchan.",
 		trainers: [{ name: "Black Belt", team: [[66, 31], [67, 31]] }, { name: "Black Belt", team: [[56, 32], [57, 32]] }, { name: "Black Belt", team: [[67, 34]] },
 			{ name: "Karate Master", team: [[57, 37], [106, 37], [107, 37]] }] },
+	{ id: "mtSilver", layer: "v", region: "johto", name: "Mt. Silver", badges: 8, champion: true, strength: 14, red: true,
+		reward: "Red, the silent Champion of Kanto, nods and leaves the summit. Fame ×1.5 for this Hall of Fame entry.",
+		trainers: [{ name: "Red", team: JOHTO_RED.team, quote: "…" }] },
 	{ id: "route22Final", layer: "v", name: "Route 22 again", badges: 8, strength: 10, gateLeague: true, trainers: [RIVAL(6)], reward: "Your rival steps aside: Victory Road and the League open." },
 	// Team Rocket ("r").
 	{ id: "mtMoon", layer: "r", name: "Mt. Moon", badges: 1, strength: 2.8, gate: 1, reward: "The way through Mt. Moon to Cerulean City (and Misty's Gym) opens.",
@@ -1232,8 +1258,11 @@ function chapterById(id) { return STORY_CHAPTERS.find(c => c.id === id) }
 function storyState(ch) { return player[ch.layer] }
 function chapterProgress(ch) { return storyState(ch)?.progress?.[ch.id] || 0 }
 function chapterCleared(id) { const ch = chapterById(id); return !!ch && chapterProgress(ch) >= ch.trainers.length }
+function chapterRegion(ch) { return ch.region || "kanto" }
 function chapterOpen(ch) {
 	if (!storyState(ch)) return false
+	if (chapterRegion(ch) !== currentRegion()) return false
+	if (ch.champion && !isChampion()) return false
 	if (badges() < ch.badges) return false
 	if (ch.needs && !chapterCleared(ch.needs)) return false
 	if (ch.needGameCorner && !gameCornerOpen()) return false
@@ -1287,8 +1316,8 @@ function storyTick() {
 }
 
 /** The chapter that must be cleared before Gym `index`, if any isn't. */
-function gymStoryGate(index) { return STORY_CHAPTERS.find(ch => ch.gate === index && !chapterCleared(ch.id)) || null }
-function leagueStoryGate() { return STORY_CHAPTERS.find(ch => ch.gateLeague && !chapterCleared(ch.id)) || null }
+function gymStoryGate(index) { return STORY_CHAPTERS.find(ch => chapterRegion(ch) === currentRegion() && ch.gate === index && !chapterCleared(ch.id)) || null }
+function leagueStoryGate() { return STORY_CHAPTERS.find(ch => chapterRegion(ch) === currentRegion() && ch.gateLeague && !chapterCleared(ch.id)) || null }
 function specialStoryGate(s) {
 	const need = SPECIAL_STORY[s.id]
 	if (need && !chapterCleared(need)) return chapterById(need)
@@ -1335,9 +1364,66 @@ function missingnoCheck(zone, enc, rng) {
 // special looks (player.d.shiny, player.d.forms), player.d.everHatched, the best Pokédex, the
 // Diploma and the lifetime counters. Regions list their Pokédex (more come with Johto).
 
-const REGIONS = { kanto: { name: "Kanto", dex: Array.from({ length: 151 }, (_, i) => i + 1) } }
-function currentRegion() { return "kanto" }
+// Every zone and special knows its region; lists show the current region's, lookups by id use all.
+for (const z of ZONES) z.region = z.region || "kanto"
+for (const z of JOHTO_ZONES) z.region = "johto"
+for (const s of SPECIALS) s.region = s.region || "kanto"
+for (const s of JOHTO_SPECIALS) s.region = "johto"
+const ALL_ZONES = [...ZONES, ...JOHTO_ZONES]
+const ALL_SPECIALS = [...SPECIALS, ...JOHTO_SPECIALS]
+
+const KEY_ITEM_NAMES = {
+	oldRod: "Old Rod", goodRod: "Good Rod", superRod: "Super Rod", surf: "Surf", bicycle: "Bicycle", pokeFlute: "Poké Flute",
+	headbutt: "Headbutt", rockSmash: "Rock Smash", squirtBottle: "SquirtBottle", radioCard: "Radio Card",
+}
+/** Key items from the Gyms' rewards: each comes with the badge of the Gym that gives it. */
+function keyItemsFromGyms(gyms) {
+	const items = {}
+	gyms.forEach((g, i) => { for (const id of g.keyItems || []) items[id] = { badges: i + 1, name: KEY_ITEM_NAMES[id] || id } })
+	return items
+}
+const JOHTO_STONES = Object.fromEntries(["moonStone", "fireStone", "waterStone", "thunderStone", "leafStone", "sunStone"].map(s => [s, 3]))
+const JOHTO_DEX = [...new Set([
+	...JOHTO_ZONES.flatMap(z => Object.values(z.pools).flat().map(e => e[0])),
+	...JOHTO_SPECIALS.map(s => s.species),
+	...Array.from({ length: 100 }, (_, i) => i + 152),
+])].sort((a, b) => a - b)
+
+/**
+ * The regions of a journey. Kanto's rules are the engine's own; Johto (HeartGold/SoulSilver) has
+ * its own Gyms, League, level caps, key items and strengths (tuned with the simulator).
+ */
+const REGIONS = {
+	kanto: {
+		name: "Kanto", professor: "Oak", starters: STARTERS, zones: ZONES, gyms: GYMS, eliteFour: ELITE_FOUR,
+		champion: () => CHAMPIONS[player.t.starter] || CHAMPIONS[1], gymStrength: GYM_STRENGTH,
+		eliteFourStrength: ELITE_FOUR_STRENGTH, championStrength: CHAMPION_STRENGTH, badgeImage: 1, zoneCost: 1,
+		dex: Array.from({ length: 151 }, (_, i) => i + 1), rules: REGION_RULES,
+	},
+	johto: {
+		name: "Johto", professor: "Elm", starters: [152, 155, 158], zones: JOHTO_ZONES, gyms: JOHTO_GYMS,
+		eliteFour: JOHTO_ELITE_FOUR, champion: () => JOHTO_CHAMPION,
+		gymStrength: [3.5, 6, 8, 6.5, 11, 12.5, 13, 11], eliteFourStrength: 10, championStrength: 9.5,
+		badgeImage: 9, dex: JOHTO_DEX, zoneCost: 5,
+		rules: { keyItems: keyItemsFromGyms(JOHTO_GYMS), levelCaps: [16, 20, 24, 28, 33, 37, 40, 45, 55, 100], stoneBadges: JOHTO_STONES, tradeBadges: 3 },
+	},
+}
+function currentRegion() { return player.t?.region || "kanto" }
+function region() { return REGIONS[currentRegion()] }
+/** Points the engine at the current region's rules (call when the region may have changed). */
+function syncRegionRules() { REGION_RULES = region().rules }
+function regionZones() { return region().zones }
+function regionGyms() { return region().gyms }
+function gymStrength() { return region().gymStrength[badges()] }
 function regionDex(region = currentRegion()) { return REGIONS[region].dex }
+/** Regions whose Pokédex pages show: Kanto, and Johto once it's open. */
+function dexRegions() { return Object.keys(REGIONS).filter(r => r === "kanto" || johtoOpen() || johtoBeaten()) }
+/** The Pokédex page being viewed (the current region unless another is picked). */
+function viewedDexRegion() { return dexRegions().includes(player.d?.dexRegion) ? player.d.dexRegion : currentRegion() }
+function regionTabs(layer) {
+	const regions = dexRegions()
+	return regions.length < 2 ? "" : regions.map(r => `<button class="pk-button ${viewedDexRegion() === r ? "pk-on" : ""}" onclick="player.d.dexRegion='${r}'">${REGIONS[r].name}</button>`).join(" ") + "<br>"
+}
 function regionCaught(region = currentRegion()) { return regionDex(region).filter(id => player.d.caught[id]).length }
 
 function resetRunPokedex() {
@@ -1363,7 +1449,7 @@ function challengeTick(diff, rng) {
 	if (player.f.wanderTimer > 0) return
 	player.f.wanderTimer = WANDER_SECONDS
 	const area = frontierZones().filter(zoneOpen)
-	const open = area.length ? area : ZONES.filter(zoneOpen)
+	const open = area.length ? area : ALL_ZONES.filter(zoneOpen)
 	player.f.zone = open[Math.floor(rand(rng) * open.length)].id
 }
 function canChooseRoute() { return !inChallenge(41) || !player.t.starter }
@@ -1374,7 +1460,7 @@ function canLeaveParty(key) { return !inChallenge(42) }
 function nextOpponent() {
 	const gym = nextGym()
 	if (gym && gymStoryGate(badges())) return storyFoes(gymStoryGate(badges()))
-	if (gym) return trainerBattlers(gym, GYM_STRENGTH[badges()])
+	if (gym) return trainerBattlers(gym, gymStrength())
 	if (badges() >= 8 && !isChampion()) {
 		if (leagueStoryGate()) return storyFoes(leagueStoryGate())
 		const t = leagueTrainers()[player.l.beaten]
@@ -1410,7 +1496,7 @@ function autoPartyTick() {
 /** The Route Planner: unseen species first, then Pokémon the box is missing; otherwise stay. */
 function autoRouteTick() {
 	if (!automationOn("route") || !player.t.starter || !canChooseRoute()) return
-	const open = ZONES.filter(zoneOpen)
+	const open = ALL_ZONES.filter(zoneOpen)
 	const unseen = z => zoneSpecies(z, badges()).filter(id => !player.d.seen[id]).length
 	const here = currentZone()
 	if (unseen(here) > 0) return
@@ -1426,7 +1512,7 @@ function autoItemTick() {
 	if (!automationOn("items") || !player.t.starter) return
 	for (const key of Object.keys(player.t.box)) for (const e of itemEvolutions(speciesOf(key), badges()))
 		if (canItemEvolve(key, e)) { itemEvolve(key, e.into); return }
-	for (const s of SPECIALS) {
+	for (const s of ALL_SPECIALS) {
 		if (player.t.specials[s.id] || !specialOpen(s)) continue
 		if (isPrize(s) && coins() < prizeCoins(s) && gameCornerOpen()) {
 			const need = prizeCoins(s) - coins()
@@ -1452,3 +1538,54 @@ function automationTick() {
 	autoItemTick()
 	autoHuntTick()
 }
+
+// ---- The journey: Kanto, then Johto ----
+// After JOHTO_ENTRIES Hall of Fame entries, Kanto's Champion may sail on to Johto instead of
+// entering the Hall: a fresh start under Professor Elm, with every Pokémon you own back at the
+// starter's level. Johto's Champion then enters the Hall of Fame for the whole journey.
+
+const JOHTO_ENTRIES = 3
+/** Starts the Field over as a badge does (the game's Field layer and the simulator each set this). */
+var resetField = () => {}
+const JOHTO_FAME = 2.5
+const JOHTO_START_LEVEL = 5
+
+function johtoOpen() { return hofEntries() >= JOHTO_ENTRIES }
+function johtoBeaten() { return !!player.h?.regionsBeaten?.johto }
+// Gen 2's evolutions and babies of Kanto Pokémon (Crobat, Pichu...) wait until Johto is beaten.
+crossGenOpen = johtoBeaten
+/** The highest species number this save can meet (Breeder's notes, Pokédex pages). */
+function maxSpecies() { return johtoOpen() || johtoBeaten() ? 251 : 151 }
+
+function canSailToJohto() { return currentRegion() === "kanto" && isChampion() && johtoOpen() }
+function sailToJohto() {
+	if (!canSailToJohto()) return false
+	player.t.journey = { kantoTeam: player.l.team || [], kantoTime: player.h.resetTime || 0 }
+	player.t.region = "johto"
+	player.t.johtoStarter = 0
+	syncRegionRules()
+	// A fresh start: badges, the League and the Field start over, and every Pokémon is back at Lv. 5.
+	player.g.points = new Decimal(0)
+	player.l.beaten = 0
+	player.l.champion = false
+	player.points = new Decimal(0)
+	resetField()
+	player.f.zone = regionZones()[0].id
+	for (const key in player.t.box) {
+		const entry = player.t.box[key]
+		entry.level = JOHTO_START_LEVEL
+		entry.xp = xpForLevel(SPECIES[speciesOf(key)].growth, JOHTO_START_LEVEL)
+	}
+	pkLog("You sail to Johto. Professor Elm is waiting in New Bark Town!", "story")
+	return true
+}
+/** Professor Elm's gift: one of Johto's starters, at the starter's level. */
+function chooseJohtoStarter(id) {
+	if (currentRegion() !== "johto" || player.t.johtoStarter || !REGIONS.johto.starters.includes(Number(id))) return false
+	player.t.johtoStarter = Number(id)
+	addToBox(Number(id), JOHTO_START_LEVEL)
+	if (!player.t.party.includes(String(id)) && player.t.party.length < partySize()) player.t.party.push(String(id))
+	pkLog(`Professor Elm gives you ${speciesName(Number(id))}. Your Johto research begins on Route 29!`, "new", { id: Number(id) })
+	return true
+}
+function needsJohtoStarter() { return currentRegion() === "johto" && !player.t.johtoStarter }

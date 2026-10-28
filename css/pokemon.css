@@ -76,3 +76,9 @@
 .pk-search { background: #1a1a1a; color: var(--color); border: 1px solid #555; border-radius: 6px; padding: 4px 8px; width: 260px; margin: 4px; font-family: inherit; }
 .pk-rocket { display: inline-block; vertical-align: top; margin: 4px 12px; white-space: nowrap; }
 .pk-sprite-off { display: inline-block; font-size: 10px; line-height: 1.1; vertical-align: middle; overflow: hidden; text-overflow: ellipsis; color: #aaa; }
+
+/* Challenge highlights: Pokémon the challenge's handicap doesn't touch, and those it does. */
+.pk-card-exempt { border-color: #78C850; box-shadow: 0 0 8px #78C850; }
+.pk-card-handicap { opacity: 0.8; }
+.pk-exempt { color: #78C850; font-weight: bold; }
+.pk-handicap { color: #c08070; }

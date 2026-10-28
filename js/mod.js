@@ -4,7 +4,7 @@ let modInfo = {
 	author: "Onide",
 	pointsName: "Research Points",
 	modFiles: [
-		"data/kanto.js", "data/johto.js", "data/hoenn.js", "engine.js", "logic.js",
+		"data/kanto.js", "data/johto.js", "data/hoenn.js", "data/orange.js", "engine.js", "logic.js",
 		"layers/field.js", "layers/team.js", "layers/gym.js", "layers/daycare.js", "layers/safari.js", "layers/gamecorner.js", "layers/story.js", "layers/pokegear.js", "layers/hunt.js", "layers/contest.js", "layers/hof.js", "layers/dex.js",
 		"tree.js",
 	],
@@ -17,11 +17,16 @@ let modInfo = {
 
 // Set your version in num and name
 let VERSION = {
-	num: "0.25.1",
-	name: "Journeys",
+	num: "0.26",
+	name: "The Orange Islands",
 }
 
 let changelog = `<h1>Changelog:</h1><br>
+	<h3>v0.26 The Orange Islands</h3><br>
+		- A side journey from the anime: after 3 Kanto Hall of Fame entries, the starter screen also offers Professor Ivy's Pikachu, Togepi and Lapras on Valencia Island.<br>
+		- 29 islands, from Valencia and Pinkan to Shamouti; Lapras's ferry lets you surf from the start. Four Orange Crew Gyms (Cissy, Danny, Rudy, Luana) and their badges, then Drake alone at the Winner's Cup on Pummelo Island.<br>
+		- Pinkan Pokémon (tinted pink by Pinkan Berries), Valencian Pokémon in unusual colours, and the glass Crystal Onix, as forms. Gifts from Professor Ivy and Tracey, a Pinkan Pikachu, Mahri's Slowking trade, and Shamouti's legendary birds and Lugia after the Winner's Cup.<br>
+		- After the Winner's Cup, Kanto's routes and Indigo Plateau's League open for a visit (Fame ×1.3). Orange's Champion enters the Hall for Fame ×1.5. A first Orange journey takes about 5-7 hours.<br><br>
 	<h3>v0.25.1 Journeys</h3><br>
 		- Behind the scenes: regions, the Hall of Fame entries that open them, their starters and post-game visits are now data, ready for the side games (Orange Islands, Sevii Islands, Orre). Nothing changes in play.<br><br>
 	<h3>v0.25 Post-game visits</h3><br>

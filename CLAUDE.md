@@ -180,6 +180,18 @@ Sister project: OniDeity/idle-pokemon (its data is the source of ours).
   prefix theirs; `visitChapters`). A new journey region is REGIONS data + VISITS + its data file.
   Simulator: `SIM_START=<region>` (SIM_HOENN=1 is SIM_START=hoenn) gives 3 entries of each region
   along the `opens` chain and the professor's starter at the same index as Oak's.
+- The Orange Islands (v0.26, side games phase 1): `js/data/orange.js` (`buildData.py`'s 6th argument,
+  orange.json dumped from orange.ts: ORANGE_ZONES + MORE_ORANGE_ZONES as ordinary routes, not anime
+  places; ORANGE_GYMS, ORANGE_CHAMPION Drake, ORANGE_SPECIALS). `REGIONS.orange` (Ivy; opens after 3
+  Kanto entries; journey button 51; no Elite Four; `league` names; `safari: false`; `storyIntro`; Surf
+  from the start as `keyItems.surf` at 0 badges; caps [20, 28, 35, 42, 50, 100]). `allBadges()` is
+  the region's Gym count (League, story map tiers, Gym milestones' `unlocked`). Forms `pinkan`
+  (1000+), `valencian` (2000+; `FORMS[].filters` per species, read by `pkSprite`), `crystal` (3095);
+  7021 is a plain Snorlax. Badges 25-28 drawn by `scripts/drawOrangeBadges.py`. Visit chapters need
+  no badges (`champion` gates them; with `badges: 8` Orange's never opened). Pacing: pace 12, Gyms
+  [3.2, 4, 3.6, 4.8], Drake 5.4, Kanto visit 11; `SIM_START=orange` at 200 Fame (about three Kanto
+  runs) 4-7.4 h (median ~5.3), 100 Fame 6.3-9.4 h. Rudy walls at 4.2+ (Lv. 32-34 against a Lv. 35
+  cap); the visit is a cliff (10 instant, 14 1.75 h, 18 never).
 - Challenge highlights: `challengeStatus(key)`; hatching or a Safari catch marks an owned entry's
   `origin`, and `canEvolveInto` lets an entry with an origin evolve into one without.
 - Regions and the run's Pokédex (v0.12): `REGIONS` (`regionDex`, `currentRegion`, `dexRegions`)
@@ -344,6 +356,6 @@ The owner wants every Hall of Fame to feel like a proper reset:
 - Pacing: shorter than main regions, about 5-8 h of simulated play per first side journey. Fame
   factors below Johto's and Hoenn's 2.5 for the islands, at or above them for Orre.
 - Phases: (0) the side-journey framework (branches on the starter screen, region entries, a
-  region-agnostic journey start; done in v0.25.1); (1) Orange Islands (with Pinkan/Valencian); (2) Sevii; (3)
+  region-agnostic journey start; done in v0.25.1); (1) Orange Islands (with Pinkan/Valencian; done in v0.26); (2) Sevii; (3)
   Shadow Pokémon and Colosseum (trainer-battle places, snagging, hearts, Relic Stone, sprites);
   (4) XD (Poké Spots, carried mechanics); (5) post-game visits and pacing for each.

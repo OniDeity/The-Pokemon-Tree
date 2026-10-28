@@ -84,7 +84,8 @@ function pkLog(text, kind, enc, shiny, quiet = false) {
 function pkSprite(id, shiny, size = 48, extra = "", form = null) {
 	if (options.pkHideSprites) return `<span class="pk-sprite-off" style="width:${size}px">${colorMark(shiny)}${formName(id, form)}</span>`
 	const f = form ? FORMS[form] : null
-	const style = f?.filter ? `style="filter:${f.filter}"` : ""
+	const filter = f?.filters?.[id] || f?.filter
+	const style = filter ? `style="filter:${filter}"` : ""
 	const img = `<img src="${spriteOf(id, shiny, form)}" width="${size}" height="${size}" class="pk-sprite" ${style} ${extra} alt="${formName(id, form)}">`
 	return f?.accessory ? `<span class="pk-accessory-wrap">${img}<span class="pk-accessory">${f.accessory}</span></span>` : img
 }

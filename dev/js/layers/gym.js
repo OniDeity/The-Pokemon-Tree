@@ -43,7 +43,7 @@ const KANTO_BADGE_TEXT = [
 function badgeMilestoneText(i) {
 	if (currentRegion() === "kanto") return KANTO_BADGE_TEXT[i]
 	const items = (regionGyms()[i]?.keyItems || []).map(id => REGION_RULES.keyItems[id]?.name || KEY_ITEM_NAMES[id] || id)
-	const always = ["Keep the Auto-Search Drone. Training Weights are for sale. (Every two badges also add a party slot.)", "", "Keep Running Shoes. Evolution stones and trades.", "", "", "", "", "Victory Road and the Pokémon League."][i]
+	const always = i === allBadges() - 1 ? "The Pokémon League." : ["Keep the Auto-Search Drone. Training Weights are for sale. (Every two badges also add a party slot.)", "", "Keep Running Shoes. Evolution stones and trades."][i] || ""
 	return [always, items.length ? `${items.join(", ")}.` : ""].filter(Boolean).join(" ") || "The way on to the next Gym."
 }
 
@@ -107,6 +107,7 @@ addLayer("g", {
 		requirementDescription() { return regionGyms()[i]?.badge || `Badge ${i + 1}` },
 		effectDescription() { return badgeMilestoneText(i) },
 		done() { return badges() >= i + 1 },
+		unlocked() { return i < allBadges() },
 	}])),
 	tabFormat: [
 		["display-text", () => badgeCaseHtml()],
@@ -148,16 +149,16 @@ addLayer("l", {
 		hallOfFame: [],
 	}},
 	branches: ["g"],
-	layerShown() { return badges() >= 8 || isChampion() },
+	layerShown() { return badges() >= allBadges() || isChampion() },
 	doReset(resettingLayer) {
 		if (resettingLayer === "h") freshLayerData("l")
 	},
 	tooltip() { return isChampion() ? "Champion!" : `${player.l.beaten}/5 beaten` },
-	shouldNotify() { return !isChampion() && badges() >= 8 && canChallengeLeague(player.l.beaten) },
+	shouldNotify() { return !isChampion() && badges() >= allBadges() && canChallengeLeague(player.l.beaten) },
 	tabFormat: [
 		["display-text", () => isChampion()
 			? `<h2>Hall of Fame</h2><br>${player.l.hallOfFame.map((e, i) => `Entry ${i + 1} (${formatTime(e.time)}):<br>${teamHtml(e.team, 1)}`).join("<br>")}`
-			: `<h2>${currentRegion() === "hoenn" ? "Ever Grande City" : "Indigo Plateau"}</h2><br>Survey ${{ johto: "Route 26 and Victory Road", hoenn: "Ever Grande City and Victory Road" }[currentRegion()] || "Route 23 and Victory Road"}, then beat the Elite Four and the Champion in a row.`],
+			: `<h2>${region().league?.name || "Indigo Plateau"}</h2><br>Survey ${region().league?.survey || { johto: "Route 26 and Victory Road" }[currentRegion()] || "Route 23 and Victory Road"}, then beat ${region().league?.trainers || "the Elite Four and the Champion in a row"}.`],
 		["display-text", () => canSailToJohto()
 			? `<div class="pk-trainer"><b>⛵ Johto awaits</b><br><small>Enter the Hall of Fame now, or sail on to Johto: a fresh start under Professor Elm (every Pokémon back at Lv. ${JOHTO_START_LEVEL}), and Fame ×${JOHTO_FAME} when Johto's Champion enters the Hall.</small><br><button class="pk-button pk-big" onclick="sailToJohto(); showTab('t')">Sail to Johto</button></div>`
 			: currentRegion() === "kanto" && isChampion() && !johtoOpen() ? `<small>Johto opens after ${JOHTO_ENTRIES} Hall of Fame entries (${hofEntries()}/${JOHTO_ENTRIES}).</small>`

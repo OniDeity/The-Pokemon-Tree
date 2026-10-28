@@ -624,7 +624,7 @@ function leaguePrediction(k) {
 	return battle(partyBattlers(), trainerBattlers(t, t.strength))
 }
 function canChallengeLeague(k) {
-	return badges() >= 8 && !isChampion() && k < leagueTrainers().length && player.l.beaten === k && surveyStatus().done && !leagueStoryGate() && leaguePrediction(k).win
+	return badges() >= allBadges() && !isChampion() && k < leagueTrainers().length && player.l.beaten === k && surveyStatus().done && !leagueStoryGate() && leaguePrediction(k).win
 }
 function challengeLeague(k) {
 	if (!canChallengeLeague(k)) return false
@@ -865,8 +865,8 @@ function animeOpen(zone) {
 
 /** Every form Kanto has: "id-form" keys from the anime places and events. */
 const ALL_FORMS = [...new Set([
-	...[...ZONES, ...JOHTO_ZONES, ...HOENN_ZONES].flatMap(z => Object.values(z.pools).flat().filter(e => e[4]).map(e => `${e[0]}-${e[4]}`)),
-	...[...SPECIALS, ...JOHTO_SPECIALS, ...HOENN_SPECIALS].filter(s => s.form).map(s => `${s.species}-${s.form}`),
+	...[...ZONES, ...JOHTO_ZONES, ...HOENN_ZONES, ...ORANGE_ZONES].flatMap(z => Object.values(z.pools).flat().filter(e => e[4]).map(e => `${e[0]}-${e[4]}`)),
+	...[...SPECIALS, ...JOHTO_SPECIALS, ...HOENN_SPECIALS, ...ORANGE_SPECIALS].filter(s => s.form).map(s => `${s.species}-${s.form}`),
 	...Object.values(CONTEST_CATEGORIES).map(c => `25-${c.pikachu}`),
 ])].sort((a, b) => parseInt(a) - parseInt(b))
 function formsCaught() { return ALL_FORMS.filter(k => player.d.forms[k]).length }
@@ -1034,7 +1034,7 @@ function withPokeblock(zone) {
 	const pools = Object.fromEntries(Object.entries(zone.pools).map(([p, entries]) => [p, entries.map(e => drawn(e) ? [e[0], e[1] * POKEBLOCK_DRAW, ...e.slice(2)] : e)]))
 	return { ...zone, pools }
 }
-function safariOpen() { return hofEntries() >= 2 || badges() >= safariZone().badges }
+function safariOpen() { return region().safari !== false && (hofEntries() >= 2 || badges() >= safariZone().badges) }
 function hasSafariUpgrade(id) { return !!player.s && player.s.upgrades.map(Number).includes(Number(id)) }
 function safariCaught() { return player.d.safari || 0 }
 function wardenMilestone(n) { return safariCaught() >= n }
@@ -1526,6 +1526,7 @@ const REVISITS = {
 }
 const VISITS = {
 	johto: { kanto: null },
+	orange: { kanto: 11 },
 	hoenn: { kanto: 22, johto: 26 },
 }
 /** A visit's Story chapter: Hoenn's keep their first ids ("visitKanto"); later hosts prefix theirs. */
@@ -1582,7 +1583,7 @@ const HOENN_CHAPTERS = [
 		trainers: [{ name: "Steven", team: [[227, 77], [344, 75], [306, 76], [346, 76], [348, 76], [376, 78]], quote: "I'd like to see how far you've come. Let's battle!" }] },
 	// Post-game visits: Hoenn's Champion travels to the earlier regions and takes on their Leagues.
 	...Object.entries(VISITS).flatMap(([host, regions]) => Object.entries(regions).filter(([, strength]) => strength).map(([r, strength]) => ({
-		id: visitChapterId(host, r), region: host, visit: r, name: REVISITS[r].place, badges: 8, champion: true, strength,
+		id: visitChapterId(host, r), region: host, visit: r, name: REVISITS[r].place, badges: 0, champion: true, strength,
 		reward: `${REVISITS[r].name}'s League bows to ${host[0].toUpperCase()}${host.slice(1)}'s Champion: Fame ×${VISIT_FAME} for this Hall of Fame entry.`, trainers: REVISITS[r].trainers }))),
 ]
 
@@ -1923,9 +1924,11 @@ for (const s of SPECIALS) s.region = s.region || "kanto"
 for (const s of JOHTO_SPECIALS) s.region = "johto"
 for (const z of HOENN_ZONES) z.region = "hoenn"
 for (const s of HOENN_SPECIALS) s.region = "hoenn"
+for (const z of ORANGE_ZONES) z.region = "orange"
+for (const s of ORANGE_SPECIALS) s.region = "orange"
 for (const z of HOENN_ZONES) if (z.id === "mirageIsland") z.mirage = true
-const ALL_ZONES = [...ZONES, ...JOHTO_ZONES, ...HOENN_ZONES]
-const ALL_SPECIALS = [...SPECIALS, ...JOHTO_SPECIALS, ...HOENN_SPECIALS]
+const ALL_ZONES = [...ZONES, ...JOHTO_ZONES, ...HOENN_ZONES, ...ORANGE_ZONES]
+const ALL_SPECIALS = [...SPECIALS, ...JOHTO_SPECIALS, ...HOENN_SPECIALS, ...ORANGE_SPECIALS]
 
 const KEY_ITEM_NAMES = {
 	oldRod: "Old Rod", goodRod: "Good Rod", superRod: "Super Rod", surf: "Surf", bicycle: "Bicycle", pokeFlute: "Poké Flute",
@@ -1938,6 +1941,7 @@ function keyItemsFromGyms(gyms) {
 	return items
 }
 const JOHTO_STONES = Object.fromEntries(["moonStone", "fireStone", "waterStone", "thunderStone", "leafStone", "sunStone"].map(s => [s, 3]))
+const ORANGE_DEX = [...new Set([...ORANGE_ZONES.flatMap(z => Object.values(z.pools).flat().map(e => e[0])), ...ORANGE_SPECIALS.map(s => s.species), 25, 175, 131])].sort((a, b) => a - b)
 const JOHTO_DEX = [...new Set([
 	...JOHTO_ZONES.filter(z => !z.anime).flatMap(z => Object.values(z.pools).flat().map(e => e[0])),
 	...JOHTO_SPECIALS.map(s => s.species),
@@ -1970,6 +1974,20 @@ const REGIONS = {
 		opens: { after: "kanto", entries: 3 },
 		rules: { keyItems: keyItemsFromGyms(JOHTO_GYMS), levelCaps: [16, 20, 24, 28, 33, 37, 40, 45, 55, 100], stoneBadges: JOHTO_STONES, tradeBadges: 3 },
 	},
+	// The Orange Islands (the anime): a side journey after Kanto. Four Orange Crew Gyms, then Drake
+	// alone at the Winner's Cup; Lapras's ferry sails the islands from the start (Surf).
+	orange: {
+		name: "Orange Islands", professor: "Ivy", starters: [25, 175, 131], zones: ORANGE_ZONES, gyms: ORANGE_GYMS,
+		eliteFour: [], champion: () => ORANGE_CHAMPION,
+		gymStrength: [3.2, 4, 3.6, 4.8], eliteFourStrength: 4.8, championStrength: 5.4,
+		badgeImage: 25, dex: ORANGE_DEX, zoneCost: 1, pace: 12, maxSpecies: 251, fame: 1.5,
+		opens: { after: "kanto", entries: 3 },
+		journey: { button: 51, intro: "Professor Ivy, on Valencia Island, studies the Orange Archipelago's unusual Pokémon and has three for a researcher willing to island-hop." },
+		league: { name: "Pummelo Stadium", survey: "Pummelo Island", trainers: "Drake, alone, at the Winner's Cup" },
+		safari: false,
+		storyIntro: "Tracey Sketchit, a Pokémon watcher, sketches your Pokémon as you island-hop toward the Orange League. No story battles here yet.",
+		rules: { keyItems: { surf: { badges: 0, name: "Lapras's ferry" } }, levelCaps: [20, 28, 35, 42, 50, 100], stoneBadges: JOHTO_STONES, tradeBadges: 2 },
+	},
 	// Hoenn (Emerald): a journey of its own, opened by Johto's Hall of Fame entries. `journey` puts
 	// a region on the starter screen: its professor's starters (clickables from `button`) and intro.
 	hoenn: {
@@ -1979,6 +1997,7 @@ const REGIONS = {
 		badgeImage: 17, dex: HOENN_DEX, zoneCost: 0.25, pace: 18, maxSpecies: 386, fame: 2.5,
 		opens: { after: "johto", entries: 3 },
 		journey: { button: 41, intro: "Professor Birch, in Littleroot Town, has three Pokémon of his own for a researcher willing to survey Hoenn." },
+		league: { name: "Ever Grande City", survey: "Ever Grande City and Victory Road" },
 		rules: { keyItems: keyItemsFromGyms(HOENN_GYMS), levelCaps: [16, 20, 25, 30, 32, 34, 43, 47, 58, 100], stoneBadges: JOHTO_STONES, tradeBadges: 3 },
 	},
 }
@@ -1994,6 +2013,8 @@ function region() { return REGIONS[currentRegion()] }
 function syncRegionRules() { REGION_RULES = region().rules }
 function regionZones() { return region().zones }
 function regionGyms() { return region().gyms }
+/** The badges that open the League: 8, or the Orange League's 4. */
+function allBadges() { return regionGyms().length }
 function gymStrength() { return region().gymStrength[badges()] }
 function regionDex(region = currentRegion()) { return REGIONS[region].dex }
 /** Regions whose Pokédex pages show: Kanto, and Johto once it's open. */
@@ -2041,7 +2062,7 @@ function nextOpponent() {
 	const gym = nextGym()
 	if (gym && gymStoryGate(badges())) return storyFoes(gymStoryGate(badges()))
 	if (gym) return trainerBattlers(gym, gymStrength())
-	if (badges() >= 8 && !isChampion()) {
+	if (badges() >= allBadges() && !isChampion()) {
 		if (leagueStoryGate()) return storyFoes(leagueStoryGate())
 		const t = leagueTrainers()[player.l.beaten]
 		if (t) return trainerBattlers(t, t.strength)

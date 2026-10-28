@@ -57,7 +57,7 @@ function fieldBuyableCost(id, amount = fieldBuyable(id)) {
 }
 
 function rpMult() {
-	let m = Math.pow(BADGE_RP_BOOST, badges()) * (1 + 0.25 * hofBuyable(11)) * (inChallenge(31) ? 0.25 : 1)
+	let m = Math.pow(BADGE_RP_BOOST, badges() + kantoBadges()) * (1 + 0.25 * hofBuyable(11)) * (inChallenge(31) ? 0.25 : 1)
 	if (hasFieldUpgrade(13)) m *= 1 + caughtCount() / 50
 	if (dexMilestone(10)) m *= 1.5
 	if (dexMilestone(80)) m *= 2
@@ -149,7 +149,7 @@ function zoneUnlockCost(index) {
 	return new Decimal(25).times(Decimal.pow(1.8, index)).times(Decimal.pow(5, badges())).times(hofUpgrade(12) ? 0.5 : 1).times(region().zoneCost)
 }
 function zoneOpen(zone) {
-	if (zone.region !== currentRegion()) return false
+	if (zone.region !== currentRegion()) return kantoRevisitOpen(zone)
 	if (zone.anime) return animeOpen(zone)
 	if (zone.postGame) return isChampion()
 	if (zone.badges < badges()) return true
@@ -471,7 +471,7 @@ function specialCost(s) {
 }
 function specialOpen(s) {
 	if (s.region !== currentRegion()) return false
-	if (s.anime && hofEntries() < s.hof) return false
+	if (s.anime && animeEntries(s.region) < s.hof) return false
 	if (s.postGame && !isChampion()) return false
 	return badges() >= s.badgesRequired
 }
@@ -481,6 +481,7 @@ function legendaryPrediction(s) {
 /** Whether a special can be taken now, and why not. */
 function specialStatus(s) {
 	if (player.t.specials[s.id]) return { ok: false, why: "Done" }
+	if (s.anime && animeEntries(s.region) < s.hof) return { ok: false, why: `${s.hof} ${s.region === "johto" ? "Johto " : ""}Hall of Fame entr${s.hof > 1 ? "ies" : "y"}` }
 	if (!specialOpen(s)) return { ok: false, why: s.postGame ? "After the League" : `${s.badgesRequired} badges` }
 	if (s.keyItem && !hasKeyItem(s.keyItem, badges())) return { ok: false, why: `Needs the ${REGION_RULES.keyItems[s.keyItem]?.name || KEY_ITEM_NAMES[s.keyItem] || s.keyItem}` }
 	if (specialStoryGate(s)) return { ok: false, why: `Clear ${specialStoryGate(s).name}` }
@@ -666,18 +667,21 @@ function starterChoices() { return hofEntries() >= 3 ? [...STARTERS, 25, 133] : 
 
 // ---- The anime ----
 // Kanto's anime places open with Hall of Fame entries (zone.hof, by badge tier), then with badges
-// like the games' routes. They aren't part of the Gym surveys. Their forms count in the Pokédex's
-// Forms page, with milestones of their own.
+// like the games' routes; Johto's count Johto's entries only. They aren't part of the Gym surveys.
+// Their forms count in the Pokédex's Forms page, with milestones of their own.
 
+function johtoEntries() { return player.h ? player.h.hall.filter(e => e.region === "johto").length : 0 }
+/** The Hall of Fame entries that open a region's anime tiers. */
+function animeEntries(region = currentRegion()) { return region === "johto" ? johtoEntries() : hofEntries() }
 function animeOpen(zone) {
-	if (hofEntries() < zone.hof) return false
+	if (animeEntries(zone.region) < zone.hof) return false
 	return zone.postGame ? isChampion() : badges() >= zone.badges
 }
 
 /** Every form Kanto has: "id-form" keys from the anime places and events. */
 const ALL_FORMS = [...new Set([
 	...[...ZONES, ...JOHTO_ZONES].flatMap(z => Object.values(z.pools).flat().filter(e => e[4]).map(e => `${e[0]}-${e[4]}`)),
-	...SPECIALS.filter(s => s.form).map(s => `${s.species}-${s.form}`),
+	...[...SPECIALS, ...JOHTO_SPECIALS].filter(s => s.form).map(s => `${s.species}-${s.form}`),
 ])].sort((a, b) => parseInt(a) - parseInt(b))
 function formsCaught() { return ALL_FORMS.filter(k => player.d.forms[k]).length }
 
@@ -1218,6 +1222,24 @@ function silverTeam(stage) {
 const SILVER = stage => ({ name: "Rival Silver", rival: true, team: () => silverTeam(stage), quote: "...Hmph. Weaklings like you shouldn't have Pokémon." })
 const EXECUTIVE = (name, team, quote) => ({ name: `Executive ${name}`, rocket: true, team, quote })
 
+// Kanto's Gyms in Johto's post-game (HeartGold/SoulSilver's first battles, from Serebii). Lt. Surge
+// first (the S.S. Aqua docks in Vermilion), Blue last.
+const KANTO_GYM = (id, name, badge, leader, strength, team, quote, needs = "kantoSurge") => ({
+	id, layer: "v", region: "johto", kantoGym: true, name, badges: 8, champion: true, needs, strength, badge,
+	reward: `The ${badge}: Research Points ×${BADGE_RP_BOOST}, like any badge.`,
+	trainers: [{ name: leader, team, quote }],
+})
+const KANTO_GYM_CHAPTERS = [
+	KANTO_GYM("kantoSurge", "Vermilion Gym", "Thunder Badge", "Lt. Surge", 20, [[26, 51], [101, 47], [101, 47], [82, 47], [125, 53]], "Hey, kid! Johto's Champion, huh? Let's see you take a real shock!", null),
+	KANTO_GYM("kantoSabrina", "Saffron Gym", "Marsh Badge", "Sabrina", 21, [[196, 53], [122, 53], [65, 55]], "I foresaw your arrival. I also foresee this battle."),
+	KANTO_GYM("kantoMisty", "Cerulean Gym", "Cascade Badge", "Misty", 21, [[55, 49], [195, 49], [131, 52], [121, 54]], "You ruined my date at the Cape! You'd better be worth it."),
+	KANTO_GYM("kantoErika", "Celadon Gym", "Rainbow Badge", "Erika", 21.5, [[189, 51], [114, 52], [71, 56], [182, 56]], "Oh... I must have dozed off. A challenger from Johto? How lovely."),
+	KANTO_GYM("kantoJanine", "Fuchsia Gym", "Soul Badge", "Janine", 21.5, [[169, 47], [110, 44], [168, 47], [168, 47], [49, 50]], "Father handed the Gym to me. I won't let him down!"),
+	KANTO_GYM("kantoBrock", "Pewter Gym", "Boulder Badge", "Brock", 22, [[75, 51], [111, 51], [139, 53], [95, 54], [141, 52]], "My rock-hard willpower is even harder now. Show me yours!"),
+	KANTO_GYM("kantoBlaine", "Seafoam Gym", "Volcano Badge", "Blaine", 22.5, [[126, 54], [219, 54], [78, 59]], "The volcano took my Gym, not my fire! Have you got Burn Heal?"),
+	KANTO_GYM("kantoBlue", "Viridian Gym", "Earth Badge", "Blue", 24, [[103, 55], [68, 56], [59, 58], [112, 58], [130, 52], [18, 60]], "So you're the Johto Champion. I was the Champion too, for about a minute.",
+		["kantoSabrina", "kantoMisty", "kantoErika", "kantoJanine", "kantoBrock", "kantoBlaine"]),
+]
 const STORY_CHAPTERS = [
 	// Johto: the Trainers node.
 	{ id: "newBark", layer: "v", region: "johto", name: "Cherrygrove City", badges: 0, strength: 1.5, trainers: [SILVER(0)], reward: "Your rival's first battle: Research Points." },
@@ -1256,9 +1278,10 @@ const STORY_CHAPTERS = [
 	{ id: "dojo", layer: "v", name: "Fighting Dojo", badges: 4, strength: 4.5, reward: "The Karate Master lets you choose Hitmonlee or Hitmonchan.",
 		trainers: [{ name: "Black Belt", team: [[66, 31], [67, 31]] }, { name: "Black Belt", team: [[56, 32], [57, 32]] }, { name: "Black Belt", team: [[67, 34]] },
 			{ name: "Karate Master", team: [[57, 37], [106, 37], [107, 37]] }] },
-	{ id: "mtSilver", layer: "v", region: "johto", name: "Mt. Silver", badges: 8, champion: true, strength: 14, red: true,
+	{ id: "mtSilver", layer: "v", region: "johto", name: "Mt. Silver", badges: 8, champion: true, needs: "kantoBlue", strength: 17, red: true,
 		reward: "Red, the silent Champion of Kanto, nods and leaves the summit. Fame ×1.5 for this Hall of Fame entry.",
 		trainers: [{ name: "Red", team: JOHTO_RED.team, quote: "…" }] },
+	...KANTO_GYM_CHAPTERS,
 	{ id: "route22Final", layer: "v", name: "Route 22 again", badges: 8, strength: 10, gateLeague: true, trainers: [RIVAL(6)], reward: "Your rival steps aside: Victory Road and the League open." },
 	// Team Rocket ("r").
 	{ id: "mtMoon", layer: "r", name: "Mt. Moon", badges: 1, strength: 2.8, gate: 1, reward: "The way through Mt. Moon to Cerulean City (and Misty's Gym) opens.",
@@ -1298,6 +1321,20 @@ const RIVAL_MILESTONES = [
 	[15, "Research Points ×1.1."],
 ]
 
+// ---- Kanto after Johto's League (HeartGold/SoulSilver's post-game) ----
+// Johto's Champion takes the S.S. Aqua to Vermilion: Kanto's routes open again (FireRed/LeafGreen's
+// tables; Fuchsia's Safari Zone is closed, Cerulean Cave waits for Red) and its Leaders, with
+// their HGSS teams, are the Trainers node's Kanto Gyms. Red only sees a trainer with all 16 badges.
+// Each Kanto badge counts like a badge for Research Points.
+const KANTO_CLOSED = ["safariZone"]
+function kantoRevisit() { return currentRegion() === "johto" && isChampion() }
+function kantoRevisitOpen(zone) {
+	if (zone.region !== "kanto" || zone.anime || KANTO_CLOSED.includes(zone.id) || !kantoRevisit()) return false
+	return !zone.postGame || chapterCleared("mtSilver")
+}
+function kantoRevisitZones() { return ZONES.filter(z => !z.anime && !KANTO_CLOSED.includes(z.id)) }
+function kantoBadges() { return KANTO_GYM_CHAPTERS.filter(ch => chapterCleared(ch.id)).length }
+
 // Gift rules from the story: the Dojo's choice and Silph Co.'s Lapras, Snorlax's Poké Flute.
 const SPECIAL_STORY = { hitmonlee: "dojo", hitmonchan: "dojo", lapras: "silphCo", snorlax: "pokemonTower", whirlLugia: "radioTower", bellTowerHoOh: "bellTower" }
 const DOJO_CHOICE = ["hitmonlee", "hitmonchan"]
@@ -1313,7 +1350,7 @@ function chapterOpen(ch) {
 	if (chapterRegion(ch) !== currentRegion()) return false
 	if (ch.champion && !isChampion()) return false
 	if (badges() < ch.badges) return false
-	if (ch.needs && !chapterCleared(ch.needs)) return false
+	if (ch.needs && ![].concat(ch.needs).every(chapterCleared)) return false
 	if (ch.needGameCorner && !gameCornerOpen()) return false
 	return true
 }
@@ -1433,7 +1470,7 @@ function keyItemsFromGyms(gyms) {
 }
 const JOHTO_STONES = Object.fromEntries(["moonStone", "fireStone", "waterStone", "thunderStone", "leafStone", "sunStone"].map(s => [s, 3]))
 const JOHTO_DEX = [...new Set([
-	...JOHTO_ZONES.flatMap(z => Object.values(z.pools).flat().map(e => e[0])),
+	...JOHTO_ZONES.filter(z => !z.anime).flatMap(z => Object.values(z.pools).flat().map(e => e[0])),
 	...JOHTO_SPECIALS.map(s => s.species),
 	...Array.from({ length: 100 }, (_, i) => i + 152),
 ])].sort((a, b) => a - b)

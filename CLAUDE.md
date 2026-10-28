@@ -75,13 +75,24 @@ Sister project: OniDeity/idle-pokemon (its data is the source of ours).
   answering Elm's starter); the Bell Tower's Kimono Girls gate Ho-Oh and the Radio Tower Lugia.
   The journey still takes 5.1-6.6 h in the simulator (the Radio Tower is the main Johto gate). Gen 1↔2
   evolution and breeding links go through the engine's `evolutionOpen`/`crossGenOpen`
-  (= `johtoBeaten`). `SIM_JOHTO=1` plays the whole journey: 5.0-5.6 h for all starters and two
-  seeds, Red about 3.8 h after Johto's League (`SIM_RED=h` waits for him).
+  (= `johtoBeaten`). `SIM_JOHTO=1` plays the whole journey: since v0.16's Kanto Gyms, 5.6-10 h for
+  all starters and two seeds (`SIM_RED=h` waits for Red). The Radio Tower (17) sometimes walls a
+  weak team for ~5 h (seen before v0.16 too: starter 1 seed 3, starter 7 seed 2).
 - Johto's side systems (v0.15): `headbutt`/`rockSmash` pools (Johto only, keyed by
   `POOL_KEY`), Unown letters as `UNOWN_FORMS` forms (`suffix` names: "Unown B"; sprites
   `201-unownB.png`), the Pokégear layer `p` (`JOHTO_SWARMS` via `tuneSwarm`/`withSwarm`, Kurt's
   `APRICORN_BALLS` via `apricornMult`), the Safari node as `BUG_CONTEST_ZONE` in Johto
   (`inJohtoContest`), Goldenrod's prizes in `PRIZE_COINS`.
+- Johto's anime and Kanto's post-game (v0.16): `buildData.py` appends johtoAnime.ts's places to
+  `JOHTO_ZONES` (`anime`, `hof` = Johto Hall of Fame entries: `johto_hof_for`, read through
+  `animeEntries(region)`/`johtoEntries()`) and its specials to `JOHTO_SPECIALS`; forms `pudgy`,
+  `young`, `unown` (Entei) and `dark` (Tyranitar, Celebi) in engine.js's `FORMS`. `JOHTO_DEX`
+  ignores anime places. Johto's Champion revisits Kanto (`kantoRevisit`/`kantoRevisitOpen`:
+  Kanto's non-anime zones open in the Johto journey, except `KANTO_CLOSED`; Cerulean Cave after
+  Red) and fights `KANTO_GYM_CHAPTERS` (layer `v`, `kantoGym`, drawn on the Gyms node; HGSS teams
+  from Serebii; each badge ×`BADGE_RP_BOOST` RP via `kantoBadges()`). `needs` takes a list; Red
+  needs `kantoBlue`. Strengths act steeply here (the party's only growth after the League is
+  gear): Brock 22 / Blue 24 / Red 17 put Red 1-4 h after Johto's League; Red at 18 took 8 h+.
 - Challenge highlights: `challengeStatus(key)`; hatching or a Safari catch marks an owned entry's
   `origin`, and `canEvolveInto` lets an entry with an origin evolve into one without.
 - Regions and the run's Pokédex (v0.12): `REGIONS` (`regionDex`, `currentRegion`, `dexRegions`)
@@ -160,7 +171,8 @@ The owner wants every Hall of Fame to feel like a proper reset:
   151); (2) the Kanto → Johto journey and Johto's core (50 places, Gyms, Will/Koga/Bruno/Karen/
   Lance, gifts, roaming beasts, Lugia, Ho-Oh, Celebi, Red); (3) Johto's story (done in v0.14);
   (4) Johto in the side nodes (done in v0.15; Gen 2 breeding comes with
-  `crossGenOpen`, held-item trades are trades with an RP cost); (5) Johto's anime places and Kanto's post-game; (6) pacing (about a
+  `crossGenOpen`, held-item trades are trades with an RP cost); (5) Johto's anime places and Kanto's post-game (done in
+  v0.16); (6) pacing (about a
   day per first journey).
 - More automation challenges, to soften the resets (rewards for good, switches on the Automation
   page): Route Planner (search moves to the best route: unseen species first, then missing ones),

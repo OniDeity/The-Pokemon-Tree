@@ -1,6 +1,8 @@
 // Plays the game headlessly with a simple greedy strategy and reports when each badge falls.
 // Usage: node scripts/simulate.js [starter=1|4|7] [seed]
 //   SIM_JOHTO=1 starts with Johto open (three Hall of Fame entries) and plays the whole journey.
+//   SIM_HOENN=1 starts in Hoenn (three Kanto and three Johto entries) with Birch's starter of the
+//   same type. SIM_FAME=n spends n Fame in the Hall of Fame's shop before the run.
 //   SIM_HOURS=n stops after n hours. SIM_RUNS=n enters the Hall of Fame and replays n runs in all,
 //   buying Fame upgrades; SIM_CHALLENGE=id plays the runs after the first under that challenge.
 // Runs js/data/kanto.js, js/engine.js and js/logic.js unchanged against a fake `player`.
@@ -10,7 +12,7 @@ const vm = require("vm")
 
 const root = path.join(__dirname, "..")
 const ctx = vm.createContext({ console, Math, JSON, Object, Array, Set, Number, String })
-for (const file of ["js/technical/break_eternity.js", "js/data/kanto.js", "js/data/johto.js", "js/engine.js", "js/logic.js"])
+for (const file of ["js/technical/break_eternity.js", "js/data/kanto.js", "js/data/johto.js", "js/data/hoenn.js", "js/engine.js", "js/logic.js"])
 	vm.runInContext(fs.readFileSync(path.join(root, file), "utf8"), ctx, { filename: file })
 
 const starter = Number(process.argv[2] || 1)
@@ -85,7 +87,10 @@ const run = code => vm.runInContext(code, ctx)
 const RUNS = Number(process.env.SIM_RUNS || 1)
 const CHALLENGE = process.env.SIM_CHALLENGE || ""
 if (process.env.SIM_JOHTO) run(`player.h.hall = [1, 2, 3].map(() => ({ team: [], time: 0 }))`)
-run(`startRun(${starter})`)
+if (process.env.SIM_HOENN) run(`player.h.hall = ["kanto", "kanto", "kanto", "johto", "johto", "johto"].map(region => ({ team: [], time: 0, region }));
+	player.h.regionsBeaten = { johto: true }; startInRegion("hoenn")`)
+if (process.env.SIM_FAME) run(`player.h.points = new Decimal(${Number(process.env.SIM_FAME)}); fameShop()`)
+run(`startRun(${process.env.SIM_HOENN ? ({ 1: 252, 4: 255, 7: 258 })[starter] || 252 : starter})`)
 
 // Average Research Points per second in a zone with the current team (sampled battles).
 function zoneValue(zone) {

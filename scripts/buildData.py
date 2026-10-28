@@ -8,7 +8,8 @@ anime.json is its Kanto anime places (`zones`: ZONES with `anime`) and Kanto `sp
 johto.json is its src/game/pokemon/johto.ts: JOHTO_ZONES, JOHTO_GYMS, johtoFinale() and
 JOHTO_SPECIALS, JOHTO_SWARMS, BUG_CONTEST_POOL, plus johtoAnime.ts's JOHTO_ANIME_ZONES and
 JOHTO_ANIME_SPECIALS as `animeZones`/`animeSpecials` (dumped with tsx). hoenn.json is its hoenn.ts:
-HOENN_ZONES, HOENN_GYMS, hoennFinale() and HOENN_SPECIALS (`finale`).
+HOENN_ZONES, HOENN_GYMS, hoennFinale() and HOENN_SPECIALS (`finale`), plus hoennAnime.ts's
+HOENN_ANIME_ZONES and HOENN_ANIME_SPECIALS as `animeZones`/`animeSpecials`.
 """
 import json
 import sys
@@ -100,7 +101,9 @@ for s in kanto["specials"]:
 FORM_IDS = {3012: (12, "pink"), 3101: (25, "balloon"), 10094: (25, "originalCap"),
             7150: (65, "giant"), 7151: (94, "giant"), 7152: (39, "giant"), 7153: (149, "giant"), 7020: (143, None),
             # Johto's: Pudgy Pidgey, Silver (the young Lugia), the Unown's Entei, the Dark Ball's Celebi and Tyranitar.
-            3016: (16, "pudgy"), 3249: (249, "young"), 3244: (244, "unown"), 3251: (251, "dark"), 3248: (248, "dark")}
+            3016: (16, "pudgy"), 3249: (249, "young"), 3244: (244, "unown"), 3251: (251, "dark"), 3248: (248, "dark"),
+            # Hoenn's: Meta Groudon ("Jirachi: Wish Maker") and Hoenn Cap Pikachu.
+            3383: (383, "meta"), 10095: (25, "hoennCap")}
 
 
 def form_of(vid, max_id=MAX_ID):
@@ -303,6 +306,42 @@ for s in hoenn["specials"]:
     for k in ("price", "wants", "strength", "keyItem", "postGame"):
         if k in s:
             out[k] = s[k]
+    HOENN_SPECIALS.append(out)
+
+# Hoenn's anime places open like Johto's, by Hoenn Hall of Fame entries for the later tiers.
+for z in hoenn["animeZones"]:
+    pools = {}
+    for p, v in z["encounters"].items():
+        entries = []
+        for e in v:
+            f = form_of(e["id"], MAX_SPECIES)
+            if not f:
+                continue
+            entry = [f[0], e["weight"], e["minLevel"], e["maxLevel"]]
+            if f[1]:
+                entry.append(f[1])
+            entries.append(entry)
+        if entries:
+            pools[p] = entries
+    if not pools:
+        continue
+    zone = {"id": z["id"], "name": z["name"], "badges": z["badgesRequired"], "blurb": z["blurb"],
+            "anime": True, "hof": johto_hof_for(z["badgesRequired"], z.get("postGame")), "pools": pools}
+    if z.get("postGame"):
+        zone["postGame"] = True
+    HOENN_ZONES.append(zone)
+
+for s in hoenn["animeSpecials"]:
+    f = form_of(s["speciesId"], MAX_SPECIES)
+    out = {k: s[k] for k in ("kind", "id", "level", "place", "badgesRequired", "text") if k in s}
+    out["species"] = f[0]
+    if f[1]:
+        out["form"] = f[1]
+    for k in ("price", "strength", "postGame"):
+        if k in s:
+            out[k] = s[k]
+    out["anime"] = True
+    out["hof"] = johto_hof_for(s["badgesRequired"], s.get("postGame"))
     HOENN_SPECIALS.append(out)
 
 with open("js/data/hoenn.js", "w") as f:

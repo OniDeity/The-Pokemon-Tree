@@ -107,9 +107,10 @@ function zoneListHtml() {
 	const areas = {}
 	for (const z of regionZones()) {
 		if (z.anime) continue
+		if (z.mechanic && !mechanicOn(z.mechanic)) continue
 		if (z.postGame && !isChampion()) continue
 		if (z.badges > b) continue
-		const label = z.postGame ? "After the League" : z.badges === 0 ? `Before ${regionGyms()[0].name}` : `${z.badges} badge${z.badges > 1 ? "s" : ""}`
+		const label = z.mechanic ? z.name : z.postGame ? "After the League" : z.badges === 0 ? `Before ${regionGyms()[0].name}` : `${z.badges} badge${z.badges > 1 ? "s" : ""}`
 		;(areas[label] = areas[label] || []).push(z)
 	}
 	let html = ""

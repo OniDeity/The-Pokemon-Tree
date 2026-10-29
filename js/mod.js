@@ -4,7 +4,7 @@ let modInfo = {
 	author: "Onide",
 	pointsName: "Research Points",
 	modFiles: [
-		"data/kanto.js", "data/johto.js", "data/hoenn.js", "data/orange.js", "data/sevii.js", "data/orre.js", "engine.js", "logic.js",
+		"data/kanto.js", "data/johto.js", "data/hoenn.js", "data/orange.js", "data/sevii.js", "data/orre.js", "data/xd.js", "engine.js", "logic.js",
 		"layers/field.js", "layers/team.js", "layers/gym.js", "layers/daycare.js", "layers/safari.js", "layers/gamecorner.js", "layers/story.js", "layers/pokegear.js", "layers/hunt.js", "layers/contest.js", "layers/hof.js", "layers/dex.js",
 		"tree.js",
 	],
@@ -17,11 +17,17 @@ let modInfo = {
 
 // Set your version in num and name
 let VERSION = {
-	num: "0.28",
-	name: "Orre and Shadow Pokémon",
+	num: "0.29",
+	name: "Orre (XD) and Poké Spots",
 }
 
 let changelog = `<h1>Changelog:</h1><br>
+	<h3>v0.29 Orre (XD) and Poké Spots</h3><br>
+		- A side journey from Pokémon XD: after 3 Orre Hall of Fame entries, Professor Krane sends you off with an Eevee (Lv. 10) and the Snag Machine.<br>
+		- Cipher is back: snag Shadow Pokémon from trainers across Orre, beat Lovrina, Snattle, Gorigan, Ardos and Eldes, then XD001 (Shadow Lugia) and Greevil at Citadark Isle.<br>
+		- Poké Spots: the desert's Rock, Oasis and Cave spots draw wild Pokémon with a Poké Snack each (paid in Research Points). Beating Lovrina unlocks Poké Spots for good: from then on every region has a Poké Spots place.<br>
+		- XD's story: the HQ Lab's Battle Sim, Gateon Port's peons, Mt. Battle, Pyrite Colosseum, the Cipher Key Lair (before Gorigan), Citadark Isle's guards (before the finale) and, after it, Wanderer Miror B. XD's Champion can visit Hoenn and Orre (Realgam Tower) and enters the Hall for Fame ×3.5.<br>
+		- XD's Fame items: Krane's Research (+20% Research Points a level), the Poké Snack Factory (free snacks) and the Shadow Monitor (snags twice as likely). They also raise the Fame shop's ceiling once XD is beaten.<br><br>
 	<h3>v0.28 Orre and Shadow Pokémon</h3><br>
 		- A side journey from Pokémon Colosseum: after 3 Hoenn Hall of Fame entries, leave Team Snagem with Espeon or Umbreon (Lv. 25) and the Snag Machine.<br>
 		- Orre has no wild Pokémon: its 12 places are trainer battles. Trainers' Pokémon can't be caught, but Cipher's Shadow Pokémon can be snagged, once each per journey. The Cipher admins (Miror B., Dakim, Venus, Ein) are the trials and give up their Shadow Pokémon, Entei, Suicune and Raikou among them; Gonzap, Nascour and Evice wait at Realgam Tower.<br>

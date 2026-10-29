@@ -20,7 +20,7 @@ function automationHtml() {
 /** The Fame shop's ceiling, and what the regions not beaten yet would add. */
 function fameShopHtml() {
 	const locked = FAME_REGIONS.filter(r => !regionBeaten(r))
-	let html = `Buyables go up to level <b>${hofBuyableCap()}</b>: ${FAME_CAP_STEP} more for every region whose Champion enters the Hall of Fame (Johto, Orange Islands, Sevii Islands, Hoenn).`
+	let html = `Buyables go up to level <b>${hofBuyableCap()}</b>: ${FAME_CAP_STEP} more for every region whose Champion enters the Hall of Fame (${FAME_REGIONS.map(r => REGIONS[r].name).join(", ")}).`
 	if (locked.length) html += `<br><small>Not beaten yet, each with a buyable and two upgrades of its own: ${locked.map(r => REGIONS[r].name).join(", ")}.</small>`
 	return html
 }

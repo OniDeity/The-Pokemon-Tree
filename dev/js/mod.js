@@ -4,7 +4,7 @@ let modInfo = {
 	author: "Onide",
 	pointsName: "Research Points",
 	modFiles: [
-		"data/kanto.js", "data/johto.js", "data/hoenn.js", "data/orange.js", "data/sevii.js", "engine.js", "logic.js",
+		"data/kanto.js", "data/johto.js", "data/hoenn.js", "data/orange.js", "data/sevii.js", "data/orre.js", "engine.js", "logic.js",
 		"layers/field.js", "layers/team.js", "layers/gym.js", "layers/daycare.js", "layers/safari.js", "layers/gamecorner.js", "layers/story.js", "layers/pokegear.js", "layers/hunt.js", "layers/contest.js", "layers/hof.js", "layers/dex.js",
 		"tree.js",
 	],
@@ -17,11 +17,18 @@ let modInfo = {
 
 // Set your version in num and name
 let VERSION = {
-	num: "0.27",
-	name: "The Sevii Islands",
+	num: "0.28",
+	name: "Orre and Shadow Pokémon",
 }
 
 let changelog = `<h1>Changelog:</h1><br>
+	<h3>v0.28 Orre and Shadow Pokémon</h3><br>
+		- A side journey from Pokémon Colosseum: after 3 Hoenn Hall of Fame entries, leave Team Snagem with Espeon or Umbreon (Lv. 25) and the Snag Machine.<br>
+		- Orre has no wild Pokémon: its 12 places are trainer battles. Trainers' Pokémon can't be caught, but Cipher's Shadow Pokémon can be snagged, once each per journey. The Cipher admins (Miror B., Dakim, Venus, Ein) are the trials and give up their Shadow Pokémon, Entei, Suicune and Raikou among them; Gonzap, Nascour and Evice wait at Realgam Tower.<br>
+		- Shadow Pokémon (in a dark aura) can't gain experience or evolve until their heart opens: 100 wild battles won in the party. Then the Relic Stone (from Agate Village, after Miror B.) purifies them into their species, at their level and colour. Purified species are a record kept for good, with milestones on the Pokédex's Milestones tab.<br>
+		- The Snag Machine and the Relic Stone are kept for good: from your first Orre journey, Cipher Peons turn about 1 in 50 encounters in every region Shadow.<br>
+		- Orre's story: Willie, Phenac Stadium, the Pyrite and Under colosseums, Mt. Battle (before Dakim), Realgam Tower's Cipher peons, and Mt. Battle's 100 straight wins (Ho-Oh). After Realgam, the Leagues of Kanto, Johto and Hoenn can be visited (Fame ×1.3 each); Orre's Champion enters the Hall for Fame ×3. Orre's own Fame items: Mt. Battle Training, the Purification Chamber and the Cipher Key Lair.<br>
+		- Branching evolutions: Pokémon that evolve by level into more than one species (Wurmple, Tyrogue, Eevee by friendship) show a button for each branch they've reached, and automatic evolution (and the Item Kit) takes the first one you don't own yet. Before, they always took the first and never evolved once you had it.<br><br>
 	<h3>v0.27 The Sevii Islands</h3><br>
 		- A side journey from FireRed and LeafGreen's post-game: after 3 Orange Islands Hall of Fame entries, Celio on One Island offers Chikorita, Cyndaquil or Totodile, already at Lv. 25, with every Kanto HM and rod.<br>
 		- 23 places from Kindle Road to the Tanoby Chambers (and their Unown). Five quests take the Gyms' place: the Ruby at Mt. Ember, Lostelle's rescue, Icefall Cave's Lapras, the Rocket Warehouse and Gideon's Sapphire. The Trainer Tower's three floors are the finale. Moltres, a Togepi Egg, and Ho-Oh and Lugia at Navel Rock after the Tower.<br>

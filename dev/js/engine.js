@@ -60,6 +60,8 @@ const FORMS = {
 		45: "hue-rotate(38deg) saturate(1.7) brightness(1.1)", 46: "hue-rotate(-20deg) saturate(1.6)", 70: "sepia(1) saturate(3.5) hue-rotate(-18deg) brightness(1.05)",
 		182: "hue-rotate(22deg) saturate(1.4) brightness(1.05)" } },
 	crystal: { name: "Crystal", filter: "grayscale(0.6) brightness(1.5) hue-rotate(170deg) opacity(0.85)", catchRate: 10, def: 1.2, text: "An Onix made of living glass: Defense ×1.2." },
+	// Orre's Shadow Pokémon: their own sprite in a dark purple aura (the look; see logic.js's Shadow rules).
+	shadow: { name: "Shadow", filter: "drop-shadow(0 0 3px #9040d0) drop-shadow(0 0 2px #40105a) saturate(0.75)", text: "Its heart was closed by Cipher: it can't gain experience until it opens, then the Relic Stone purifies it." },
 	// Hoenn's anime and movies.
 	meta: { name: "Meta", sprite: true, atk: 1.15, def: 1.1, text: "The artificial Groudon Butler built from its fossil and Jirachi's power: Attack ×1.15, Defense ×1.1." },
 	hoennCap: { name: "Hoenn Cap", sprite: true, text: "Wearing Ash's Hoenn cap." },
@@ -130,11 +132,12 @@ function evolutionOpen(from, into) {
 	return a === b || crossGenOpen(Math.max(a, b))
 }
 
-/** The species this Pokémon evolves into by levelling at its current level, if any. */
-function levelEvolution(id, level) {
-	const evo = SPECIES[id].evolutions.find(e => e.method === "level" && e.level != null && level >= e.level && evolutionOpen(id, e.into))
-	return evo ? evo.into : null
+/** The species this Pokémon can evolve into by levelling at its current level (branches in order). */
+function levelEvolutions(id, level) {
+	return SPECIES[id].evolutions.filter(e => e.method === "level" && e.level != null && level >= e.level && evolutionOpen(id, e.into)).map(e => e.into)
 }
+/** The first of them, if any. */
+function levelEvolution(id, level) { return levelEvolutions(id, level)[0] ?? null }
 
 /** Evolutions that need an item or a trade, and whether the badges allow them yet. */
 function itemEvolutions(id, badges) {

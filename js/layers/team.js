@@ -4,7 +4,9 @@
 function chooseStarter(id) {
 	if (player.t.starter) return
 	player.t.starter = id
-	addToBox(id, Math.max(region().startLevel || 0, hofUpgrade(11) ? 10 : 5))
+	const level = Math.max(region().startLevel || 0, hofUpgrade(11) ? 10 : 5)
+	addToBox(id, level)
+	unpackCarried(level)
 	if (hofUpgrade(11)) player.points = player.points.add(200)
 	for (const up of fieldKeptUpgrades()) if (!hasFieldUpgrade(up)) player.f.upgrades.push(up)
 	// With the Auto-Search Drone kept from the start, the search starts on its own.

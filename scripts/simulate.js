@@ -8,6 +8,10 @@
 //   SIM_BEATEN=orange,sevii counts those regions as beaten (their post-game visits open).
 //   SIM_HOURS=n stops after n hours. SIM_RUNS=n enters the Hall of Fame and replays n runs in all,
 //   buying Fame upgrades; SIM_CHALLENGE=id plays the runs after the first under that challenge.
+//   SIM_SAVE=file enters the Hall of Fame at the end and saves what lasts (the Hall of Fame and the
+//   Pokédex's records); SIM_LOAD=file starts from such a save (its Fame spent first) instead of the
+//   made-up Hall of Fame entries, so a region can be tested after real earlier runs. saves/ holds a
+//   bank of them (scripts/saveBank.sh), with browser import strings beside them.
 // Runs js/data/kanto.js, js/engine.js and js/logic.js unchanged against a fake `player`.
 const fs = require("fs")
 const path = require("path")
@@ -42,7 +46,7 @@ var player = {
 	t: { starter: 0, box: {}, party: [], specials: {}, autoEvolve: true, nuzlocke: {}, region: "kanto", johtoStarter: 0 },
 	g: { points: new Decimal(0) },
 	l: { beaten: 0, champion: false, hallOfFame: [] },
-	h: { points: new Decimal(0), hall: [], enshrined: {}, upgrades: [], buyables: {}, challenges: {}, activeChallenge: null, resetTime: 0 },
+	h: { points: new Decimal(0), hall: [], enshrined: {}, enshrinedLooks: {}, carry: [], carried: [], upgrades: [], buyables: {}, challenges: {}, activeChallenge: null, resetTime: 0 },
 	d: { seen: {}, caught: {}, shiny: {}, forms: {}, hatched: {} },
 	c: { slots: [], eggs: [], eggProgress: 0, upgrades: [] },
 	k: { points: new Decimal(0), upgrades: [], buyables: {}, spinning: false },
@@ -51,7 +55,9 @@ var player = {
 // The game's chooseStarter, without the UI.
 function startRun(id) {
 	player.t.starter = id
-	addToBox(id, Math.max(region().startLevel || 0, hofUpgrade(11) ? 10 : 5))
+	const level = Math.max(region().startLevel || 0, hofUpgrade(11) ? 10 : 5)
+	addToBox(id, level)
+	unpackCarried(level)
 	if (hofUpgrade(11)) player.points = player.points.add(200)
 	player.f = freshField(fieldKeptUpgrades())
 }
@@ -92,11 +98,20 @@ function fameShop() {
 const run = code => vm.runInContext(code, ctx)
 const RUNS = Number(process.env.SIM_RUNS || 1)
 const CHALLENGE = process.env.SIM_CHALLENGE || ""
-if (process.env.SIM_JOHTO) run(`player.h.hall = [1, 2, 3].map(() => ({ team: [], time: 0 }))`)
+const LOAD = process.env.SIM_LOAD
+if (LOAD) {
+	const saved = JSON.parse(fs.readFileSync(LOAD, "utf8"))
+	run(`player.h = Object.assign(player.h, ${JSON.stringify(saved.h)}); player.d = Object.assign(player.d, ${JSON.stringify(saved.d)})
+		player.h.points = new Decimal(player.h.points); player.h.total = new Decimal(player.h.total || 0)
+		for (const id in player.h.buyables) player.h.buyables[id] = new Decimal(player.h.buyables[id])`)
+	if (!process.env.SIM_FAME) run(`fameShop()`)
+}
+if (process.env.SIM_JOHTO && !LOAD) run(`player.h.hall = [1, 2, 3].map(() => ({ team: [], time: 0 }))`)
 // SIM_START=<region> starts a journey there, with the Hall of Fame entries that open it (3 of each
 // region along the way, each one beaten) and its professor's starter of the same type.
 const START = process.env.SIM_START || (process.env.SIM_HOENN ? "hoenn" : "")
-if (START) run(`(() => {
+if (START && LOAD) run(`startInRegion("${START}")`)
+else if (START) run(`(() => {
 	const hall = [], beaten = {}
 	for (let r = "${START}"; REGIONS[r].opens; r = REGIONS[r].opens.after) {
 		const { after, entries } = REGIONS[r].opens
@@ -108,7 +123,8 @@ if (START) run(`(() => {
 // SIM_BEATEN=orange,sevii marks regions as beaten before (their visits open after the League).
 if (process.env.SIM_BEATEN) run(`player.h.regionsBeaten = { ...player.h.regionsBeaten, ...Object.fromEntries(${JSON.stringify(process.env.SIM_BEATEN.split(","))}.map(r => [r, true])) }`)
 if (process.env.SIM_FAME) run(`player.h.points = new Decimal(${Number(process.env.SIM_FAME)}); fameShop()`)
-run(`startRun(${START ? `REGIONS["${START}"].starters[Math.max(0, STARTERS.indexOf(${starter})) % REGIONS["${START}"].starters.length]` : starter})`)
+const runStarter = START ? `REGIONS["${START}"].starters[Math.max(0, STARTERS.indexOf(${starter})) % REGIONS["${START}"].starters.length]` : starter
+run(`startRun(${runStarter})`)
 
 // Average Research Points per second in a zone with the current team (sampled battles).
 function zoneValue(zone) {
@@ -243,7 +259,7 @@ while (t < LIMIT) {
 			console.log(`Run ${runNumber}${run("anyChallenge() ? ' (' + CHALLENGES[player.h.activeChallenge].name + ')' : ''")}: Champion after ${((t - runStart) / 3600).toFixed(2)} h`)
 			if (runNumber >= RUNS) break
 			console.log(`  Hall of Fame: +${run(`hallOfFameReset(${JSON.stringify(CHALLENGE)})`)} Fame`)
-			run(`fameShop(); startRun(${starter})`)
+			run(`fameShop(); ${START ? `startInRegion("${START}"); ` : ""}startRun(${runStarter})`)
 			console.log(`  Fame now spent: ${run("JSON.stringify({ups: player.h.upgrades, buy: Object.fromEntries(Object.keys(HOF_BUYABLES).map(id => [id, hofBuyable(id)]))})")}`)
 			runNumber++; runStart = t; last = t
 			chooseParty(); chooseZone()
@@ -253,5 +269,10 @@ while (t < LIMIT) {
 }
 
 console.log(`Starter ${starter}: ${run("isChampion()") ? "Champion" : "not Champion"} after ${(t / 3600).toFixed(2)} h in all (run ${runNumber}), caught ${run("caughtCount()")}`)
+if (process.env.SIM_SAVE) {
+	if (run("isChampion()")) console.log(`  Hall of Fame: +${run(`hallOfFameReset("")`)} Fame`)
+	fs.writeFileSync(process.env.SIM_SAVE, run(`JSON.stringify({ h: player.h, d: player.d })`))
+	console.log(`Saved to ${process.env.SIM_SAVE}`)
+}
 // A run that can't even beat Brock means something broke.
 if (run("badges() === 0 && hofEntries() === 0")) { console.error("No badge earned"); process.exit(1) }

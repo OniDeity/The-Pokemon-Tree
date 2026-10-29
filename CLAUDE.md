@@ -278,6 +278,17 @@ Sister project: OniDeity/idle-pokemon (its data is the source of ours).
   it seed-swingy), Orre 28 → 280 (5.6-7 h), XD 46 → 290 (~6-6.6 h). Kanto unchanged. After a pacing
   change, rebuild the bank in order (scripts/saveBank.sh) and re-check the regions after it. The older
   `SIM_FAME` figures in these notes are from before this. Players who skip records arrive slower.
+- Pacing for completionists (v0.33, the owner's rule: tune for a player who completes the journey's
+  base-form Pokédex, what's open at the time, before each Hall of Fame entry): the simulator's
+  completion phase after the League and finale (`COMPLETE`, default on; `SIM_COMPLETE=0` skips it):
+  `completionZone()` picks the open place likeliest to give an uncaught species of `regionDex()` the
+  party beats (Orre's trainers only their Shadow Pokémon; visits' routes don't count), the party is
+  half core + `trainees` so box Pokémon evolve, until the regional Pokédex is done or `SIM_DEX_WAIT`
+  hours (2) pass without a new catch (`SIM_DEX_MISSING=1` lists what's left). Kanto ends at 147/151
+  (Hitmonchan, Jolteon/Flareon and Tentacruel aren't all reachable in one run). Bank-tuned paces:
+  Hoenn 42 → 39 (11.2-11.4 h), Sevii 30 → 40 (4.3-8.9 h); Kanto 10.8, Johto 9.8-10.9, Orange
+  4.6-6.3, Orre 5.1-6.4, XD 6.2-6.5 h unchanged. Completion is quick because post-League places
+  level the box fast.
 - Challenge highlights: `challengeStatus(key)`; hatching or a Safari catch marks an owned entry's
   `origin`, and `canEvolveInto` lets an entry with an origin evolve into one without.
 - Regions and the run's Pokédex (v0.12): `REGIONS` (`regionDex`, `currentRegion`, `dexRegions`)

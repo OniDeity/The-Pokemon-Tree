@@ -252,6 +252,22 @@ Sister project: OniDeity/idle-pokemon (its data is the source of ours).
   (`journeyFinaleLeft`). Pacing: Orange pace 12 → 18 (4.4-8 h, median ~6.2 at 200 Fame), XD 40 → 46
   (5.4-6.3 h at 2000); Sevii 4.3-7.4, Orre 4.5-7.4 unchanged. Carried Poké Spots keep to their
   region's `maxSpecies`. Visit rewards read "<place> bows to <host>'s Champion" (`possessive`).
+- The Hall's honours (v0.31, the owner's asks): enshrinement for good (`player.h.enshrined` by
+  species, `enshrinedLooks` by box key for colours and forms, set in `enterHallOfFame`): `ENSHRINE_RP`
+  0.5% / `ENSHRINE_FAME` 0.2% each (`enshrineRpMult` in `rpMult`, `enshrineFameMult` in `fameGain`),
+  `ENSHRINE_MILESTONES` (species, Fame ×1.1) and `LOOK_MILESTONES` (looks, RP ×1.1). The owner's rule:
+  tune for 100% completion of the normal species; Shiny/Albino/forms are a bonus on top. Bill's
+  Transfer (automation `carry`, challenge 61 Light Traveller: party of three, `unlocked` once Johto
+  is beaten; `challengeDef` reads `unlocked`): `carrySlots()` 1 + `CARRY_REGIONS` beaten (max 6),
+  `player.h.carry` (picked on the Hall's Bill's Transfer tab), `carryPicks()` (with `carryAuto`, the
+  strongest never-enshrined species fill empty slots) → `player.h.carried` at the Hall, then
+  `unpackCarried(level)` after the starter (team.js and the simulator's `startRun`). Later Kanto runs
+  (`SIM_RUNS=5`) move by ~±15%, inside the simulator's noise.
+- Save bank (v0.31): `SIM_SAVE=file` enters the Hall at the end and writes `{ h, d }`; `SIM_LOAD=file`
+  starts from it (Fame spent unless `SIM_FAME`), skipping the made-up entries of `SIM_START`/
+  `SIM_JOHTO`; repeat runs with `SIM_START` replay that region. `scripts/saveBank.sh` builds `saves/`
+  (kanto-3, johto-3, orange-3, sevii-3, hoenn-3, orre-3, xd-3: three real entries each, chained), and
+  `scripts/saveToImport.js` writes each as a `.txt` for the game's Import (lands on the starter screen).
 - Challenge highlights: `challengeStatus(key)`; hatching or a Safari catch marks an owned entry's
   `origin`, and `canEvolveInto` lets an entry with an origin evolve into one without.
 - Regions and the run's Pokédex (v0.12): `REGIONS` (`regionDex`, `currentRegion`, `dexRegions`)

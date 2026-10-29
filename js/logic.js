@@ -57,7 +57,7 @@ function fieldBuyableCost(id, amount = fieldBuyable(id)) {
 }
 
 function rpMult() {
-	let m = Math.pow(BADGE_RP_BOOST, badges() + kantoBadges()) * (1 + 0.25 * hofBuyable(11)) * (inChallenge(31) ? 0.25 : 1)
+	let m = Math.pow(BADGE_RP_BOOST, badges() + kantoBadges()) * (1 + 0.25 * hofBuyable(11)) * (1 + 0.2 * hofBuyable(71)) * (inChallenge(31) ? 0.25 : 1)
 	if (hasFieldUpgrade(13)) m *= 1 + caughtCount() / 50
 	if (dexMilestone(10)) m *= 1.5
 	if (dexMilestone(80)) m *= 2
@@ -163,7 +163,7 @@ function zoneById(id) { return ALL_ZONES.find(z => z.id === id) }
 /** Zones of the area you're surveying now: they open one by one, for Research Points. */
 function frontierZones() {
 	const b = badges()
-	return regionZones().filter(z => z.badges === b && !z.postGame && !z.anime)
+	return regionZones().filter(z => z.badges === b && !z.postGame && !z.anime && !z.mechanic)
 }
 /** Each route of an area costs ×1.8 the last, up to the 8th (Hoenn's larger areas go ×1.2 after). */
 function zoneUnlockCost(index) {
@@ -171,6 +171,7 @@ function zoneUnlockCost(index) {
 }
 function zoneOpen(zone) {
 	if (zone.region !== currentRegion()) return revisitOpen(zone)
+	if (zone.mechanic) return mechanicOn(zone.mechanic)
 	if (zone.anime) return animeOpen(zone)
 	if (zone.mirage) return isChampion() && mirageVisible()
 	if (zone.postGame) return isChampion()
@@ -395,6 +396,11 @@ function currentZone() { return zoneById(player.f.zone) || regionZones()[0] }
 
 function doEncounter(rng) {
 	const zone = currentZone()
+	// A Poké Spot's Pokémon only comes out for a Poké Snack.
+	if (zone.pokeSpot) {
+		if (player.points.lt(pokeSnackCost())) return { id: 0, win: false, caught: false, snack: false }
+		player.points = player.points.sub(pokeSnackCost())
+	}
 	const enc = rollEncounter(withSnagged(withSwarm(zone)), badges(), rng, huntLure())
 	// The Snag Machine (for good): Cipher Peons send out Shadow versions of Pokémon everywhere else.
 	if (mechanicOn("snagMachine") && !zone.trainerBattles && !enc.form && rand(rng) < cipherPeonChance()) enc.form = "shadow"
@@ -441,7 +447,7 @@ function doEncounter(rng) {
 		pkLog(`Beat a wild ${name}.`, "win", enc, shiny)
 		return { ...enc, shiny, win: true, caught: false, rp }
 	}
-	const snag = enc.form === "shadow" ? SNAG_BONUS * (purifyMilestone(25) ? 2 : 1) : 1
+	const snag = enc.form === "shadow" ? SNAG_BONUS * (purifyMilestone(25) ? 2 : 1) * (hofUpgrade(82) ? 2 : 1) : 1
 	let caught = rand(rng) < catchChance(enc.id, catchMult() * speciesCatchMult(enc.id) * ballMult(enc) * (enc.form && hofUpgrade(42) ? 2 : 1) * snag, enc.form)
 	// Silph Co.'s Master Ball: the next new Pokémon beaten is caught for sure.
 	if (!caught && player.q?.masterBall && !player.d.caught[enc.id]) {
@@ -510,7 +516,8 @@ function winGymBattle() {
 	releaseFainted(gymPrediction())
 	// Emerald's first double battle waits on Route 104, just after Roxanne.
 	if (currentRegion() === "hoenn" && badges() === 0) unlockMechanic("doubleBattles", "Double battles! From now on your lead's partner (the next Pokémon in the party) fights beside it, in every region.")
-	if (currentRegion() === "orre") snagFrom(regionGyms()[badges()])
+	if (currentRegion() === "orre" || currentRegion() === "xd") snagFrom(regionGyms()[badges()])
+	if (currentRegion() === "xd" && badges() === 0) unlockMechanic("pokeSpots", "Poké Spots! Snack-loving wild Pokémon now gather at Poké Spots in every region (a Poké Snack each).")
 	if (currentRegion() === "orre" && badges() === 0) unlockMechanic("relicStone", "The Relic Stone! In Agate Village, Eagun shows you how to purify a Shadow Pokémon whose heart has opened, in every region from now on.")
 	if (currentRegion() === "hoenn" && badges() === 2) unlockMechanic("contests", "Pokémon Contests! Verdanturf's Contest Hall opens the Contests node: raise your Pokémon's condition with Pokéblocks and win ribbons, in every region.")
 }
@@ -554,7 +561,16 @@ function withSnagged(zone) {
 	return { ...zone, pools: { walk: zone.pools.walk.filter(e => e[4] !== "shadow" || !snagged[e[0]]) } }
 }
 /** Who sends a Pokémon out in Orre's trainer battles. */
-function orreTrainer(enc) { return enc.form === "shadow" ? ORRE_SHADOW_TRAINERS[enc.id] || "a Cipher Peon" : "a trainer" }
+function orreTrainer(enc) {
+	const names = currentRegion() === "xd" ? XD_SHADOW_TRAINERS : ORRE_SHADOW_TRAINERS
+	return enc.form === "shadow" ? names[enc.id] || "a Cipher Peon" : "a trainer"
+}
+
+// ---- Poké Spots (XD) ----
+// XD's Poké Spots: wild Pokémon that come out for a Poké Snack each (bought with Research Points as
+// they're needed). The `pokeSpots` mechanic (XD's first trial) adds a Poké Spots place to every
+// other region (XD_CARRIED_SPOTS, `mechanic`), outside the Gym surveys and route costs.
+function pokeSnackCost() { return hofUpgrade(81) ? new Decimal(0) : new Decimal(10).times(Decimal.pow(3, badges())) }
 function cipherPeonChance() { return CIPHER_PEON_CHANCE * (hofUpgrade(72) ? 2 : 1) }
 function heartStep() { return (purifyMilestone(3) ? 2 : 1) * (hofUpgrade(71) ? 2 : 1) }
 /** Each wild battle won, the Shadow Pokémon in the party open their hearts a little. */
@@ -828,6 +844,7 @@ const HOF_BUYABLES = {
 	41: { region: "sevii", title: "Berry Forest", base: 15, growth: 1.8, text: "+25% passive Research Points per level." },
 	51: { region: "hoenn", title: "Secret Power", base: 25, growth: 1.9, text: "+5% Attack and Defense per level (beside Champion's Might)." },
 	61: { region: "orre", title: "Mt. Battle Training", base: 30, growth: 1.9, text: "+20% experience per level (beside the Trainer School)." },
+	71: { region: "xd", title: "Krane's Research", base: 35, growth: 1.9, text: "+20% Research Points per level (beside the Professor's Grant)." },
 }
 const HOF_UPGRADES = {
 	11: { title: "Head Start", cost: 15, text: "Start each run with 200 Research Points and your starter at Lv. 10." },
@@ -847,12 +864,14 @@ const HOF_UPGRADES = {
 	62: { region: "hoenn", title: "Match Call", cost: 200, text: "Two more rematch lines on your phone." },
 	71: { region: "orre", title: "Purification Chamber", cost: 250, text: "Shadow Pokémon's hearts open twice as fast." },
 	72: { region: "orre", title: "Cipher Key Lair", cost: 300, text: "Cipher Peons turn up twice as often." },
+	81: { region: "xd", title: "Poké Snack Factory", cost: 250, text: "Poké Snacks are free." },
+	82: { region: "xd", title: "Shadow Monitor", cost: 300, text: "Snagging Shadow Pokémon is twice as likely." },
 }
 // A ceiling on the Fame shop before moving on: buyables stop at FAME_CAP levels, FAME_CAP_STEP more
 // for each region beaten, and each beaten region's own items open (levels bought before a cap stay).
 const FAME_CAP = 8
 const FAME_CAP_STEP = 4
-const FAME_REGIONS = ["johto", "orange", "sevii", "hoenn", "orre"]
+const FAME_REGIONS = ["johto", "orange", "sevii", "hoenn", "orre", "xd"]
 function fameRegionsBeaten() { return FAME_REGIONS.filter(regionBeaten).length }
 function hofBuyableCap() { return FAME_CAP + FAME_CAP_STEP * fameRegionsBeaten() }
 /** Whether a Fame item's region (if it has one) has been beaten. */
@@ -1656,12 +1675,17 @@ const REVISITS = {
 		trainers: [...JOHTO_ELITE_FOUR, JOHTO_CHAMPION].map(t => ({ name: t.name, team: t.team })) },
 	hoenn: { name: "Hoenn", place: "Ever Grande City", chapter: "visitHoenn", closed: ["mirageIsland"], via: "by boat to Slateport",
 		trainers: [...HOENN_ELITE_FOUR, HOENN_CHAMPION].map(t => ({ name: t.name, team: t.team })) },
+	// Orre's trainer-battle places stay closed (their Shadow Pokémon are one journey's); Realgam's
+	// Colosseum is the visit.
+	orre: { name: "Orre", place: "Realgam Tower", chapter: "visitOrre", closed: ORRE_ZONES.map(z => z.id), via: "by motorbike across the desert",
+		trainers: ORRE_FINALE.map(t => ({ name: t.name, team: t.team })) },
 }
 const VISITS = {
 	johto: { kanto: null },
 	orange: { kanto: 11 },
 	sevii: { kanto: 9 },
 	orre: { kanto: 9, johto: 11, hoenn: 9 },
+	xd: { hoenn: 9, orre: 9 },
 	hoenn: { kanto: 22, johto: 26 },
 }
 /** A visit's Story chapter: Hoenn's keep their first ids ("visitKanto"); later hosts prefix theirs. */
@@ -1770,6 +1794,24 @@ const SIDE_CHAPTERS = [
 	{ id: "mtBattle100", region: "orre", name: "Mt. Battle, 100 straight wins", badges: 4, champion: true, strength: 6, arc: "challenger", reward: "A hundred straight wins: Ho-Oh descends on Mt. Battle.",
 		trainers: [{ name: "Area 7 Leader", team: [[376, 58], [350, 58]] }, { name: "Area 8 Leader", team: [[373, 59], [334, 59]] }, { name: "Area 9 Leader", team: [[248, 60], [289, 60]] },
 			{ name: "Area 10 Leader", team: [[149, 62], [306, 62], [365, 62]] }] },
+	// Orre five years on (XD): the HQ Lab's Battle Sim, Cipher's peons, Orre's colosseums again, and
+	// Wanderer Miror B., who dances his way back after Citadark Isle.
+	{ id: "hqLab", region: "xd", name: "Pokémon HQ Lab", badges: 0, strength: 1.8, arc: "challenger", reward: "Professor Krane's Battle Sim says you're ready: Research Points.",
+		trainers: [{ name: "Battle Sim", team: [[263, 9], [261, 9]] }, { name: "Battle Sim", team: [[190, 10], [261, 10]] }] },
+	{ id: "gateonPeons", arc: "villain", region: "xd", name: "Gateon Port", badges: 0, strength: 2.4, reward: "The peons scatter: Research Points.",
+		trainers: [{ name: "Cipher Peon", rocket: true, team: [[41, 11], [19, 11]] }, { name: "Cipher Peon", rocket: true, team: [[23, 12], [109, 12]], quote: "Lovrina's lab is off limits!" }] },
+	{ id: "mtBattleXdAreas", region: "xd", name: "Mt. Battle", badges: 1, strength: 2.9, arc: "challenger", reward: "Mt. Battle's areas: Research Points.",
+		trainers: [{ name: "Area 1 Leader", team: [[296, 23], [66, 24]] }, { name: "Area 2 Leader", team: [[332, 25], [328, 25]] }, { name: "Area 3 Leader", team: [[306, 26], [208, 26]] }] },
+	{ id: "pyriteXd", region: "xd", name: "Pyrite Colosseum", badges: 2, strength: 3, arc: "challenger", reward: "Pyrite Colosseum's trophy: Research Points.",
+		trainers: [{ name: "Hunter", team: [[262, 29], [302, 29]] }, { name: "Rider", team: [[22, 30], [227, 30]] }, { name: "Pyrite's champion", team: [[357, 31], [310, 32]] }] },
+	{ id: "keyLairPeons", arc: "villain", region: "xd", name: "Cipher Key Lair", badges: 2, strength: 3.5, gate: 2, reward: "The Key Lair's guards fall: Gorigan waits inside.",
+		trainers: [{ name: "Cipher Peon", rocket: true, team: [[24, 31], [42, 31]] }, { name: "Cipher Peon", rocket: true, team: [[110, 32], [89, 32]] },
+			{ name: "Cipher R&D", rocket: true, team: [[82, 33], [101, 33]], quote: "Our research is nearly complete!" }] },
+	{ id: "citadarkPeons", arc: "villain", region: "xd", name: "Citadark Isle", badges: 5, strength: 4, gateLeague: true, reward: "Citadark Isle's guards fall: XD001 and Greevil wait in the tower.",
+		trainers: [{ name: "Cipher Peon", rocket: true, team: [[262, 46], [319, 46]] }, { name: "Cipher Peon", rocket: true, team: [[336, 47], [354, 47]] },
+			{ name: "Cipher Admin", rocket: true, team: [[302, 48], [342, 48], [229, 49]], quote: "Master Greevil will not be disturbed!" }] },
+	{ id: "wandererMirorB", region: "xd", name: "Gateon Port, Wanderer Miror B.", badges: 5, champion: true, strength: 4.5, arc: "challenger", reward: "Miror B. dances off, still the best dancer in Orre: Research Points.",
+		trainers: [{ name: "Wanderer Miror B.", team: [[272, 55], [272, 55], [272, 55], [272, 56], [185, 56]], quote: "Ludicolo, let's dance! Feel the rhythm!" }] },
 ]
 const KANTO_GYM = (id, name, badge, leader, strength, team, quote, needs = "kantoSurge") => ({
 	id, region: "johto", kantoGym: true, name, badges: 8, champion: true, needs, strength, badge,
@@ -1905,7 +1947,7 @@ function revisitOpen(zone) {
 	if (currentRegion() === "johto") return !zone.postGame || chapterCleared("mtSilver")
 	return !zone.postGame
 }
-function revisitZones(r) { return REGIONS[r].zones.filter(z => !z.anime && !REVISITS[r].closed.includes(z.id)) }
+function revisitZones(r) { return REGIONS[r].zones.filter(z => !z.anime && !z.mechanic && !REVISITS[r].closed.includes(z.id)) }
 function kantoBadges() { return KANTO_GYM_CHAPTERS.filter(ch => chapterCleared(ch.id)).length }
 
 // Gift rules from the story: the Dojo's choice and Silph Co.'s Lapras, Snorlax's Poké Flute.
@@ -2119,9 +2161,11 @@ for (const z of SEVII_ZONES) z.region = "sevii"
 for (const s of SEVII_SPECIALS) s.region = "sevii"
 for (const z of ORRE_ZONES) z.region = "orre"
 for (const s of ORRE_SPECIALS) s.region = "orre"
+for (const z of XD_ZONES) z.region = "xd"
+for (const s of XD_SPECIALS) s.region = "xd"
 for (const z of HOENN_ZONES) if (z.id === "mirageIsland") z.mirage = true
-const ALL_ZONES = [...ZONES, ...JOHTO_ZONES, ...HOENN_ZONES, ...ORANGE_ZONES, ...SEVII_ZONES, ...ORRE_ZONES]
-const ALL_SPECIALS = [...SPECIALS, ...JOHTO_SPECIALS, ...HOENN_SPECIALS, ...ORANGE_SPECIALS, ...SEVII_SPECIALS, ...ORRE_SPECIALS]
+const ALL_ZONES = [...ZONES, ...JOHTO_ZONES, ...HOENN_ZONES, ...ORANGE_ZONES, ...SEVII_ZONES, ...ORRE_ZONES, ...XD_ZONES, ...XD_CARRIED_SPOTS]
+const ALL_SPECIALS = [...SPECIALS, ...JOHTO_SPECIALS, ...HOENN_SPECIALS, ...ORANGE_SPECIALS, ...SEVII_SPECIALS, ...ORRE_SPECIALS, ...XD_SPECIALS]
 
 const KEY_ITEM_NAMES = {
 	oldRod: "Old Rod", goodRod: "Good Rod", superRod: "Super Rod", surf: "Surf", bicycle: "Bicycle", pokeFlute: "Poké Flute",
@@ -2135,6 +2179,9 @@ function keyItemsFromGyms(gyms) {
 }
 const JOHTO_STONES = Object.fromEntries(["moonStone", "fireStone", "waterStone", "thunderStone", "leafStone", "sunStone"].map(s => [s, 3]))
 /** Orre's Pokédex: what can be snagged or received (its trainers' own Pokémon can only be seen). */
+/** XD's Pokédex: what can be snagged, met at the Poké Spots or received. */
+const XD_DEX = [...new Set([...XD_ZONES.flatMap(z => z.pools.walk.filter(e => z.pokeSpot || e[4] === "shadow").map(e => e[0])), ...XD_GYMS.flatMap(g => g.snag || []),
+	...XD_FINALE.flatMap(t => t.snag || []), ...XD_SPECIALS.map(s => s.species), 133])].sort((a, b) => a - b)
 const ORRE_DEX = [...new Set([...ORRE_ZONES.flatMap(z => z.pools.walk.filter(e => e[4] === "shadow").map(e => e[0])), ...ORRE_GYMS.flatMap(g => g.snag || []),
 	...ORRE_FINALE.flatMap(t => t.snag || []), ...ORRE_SPECIALS.map(s => s.species), 196, 197])].sort((a, b) => a - b)
 const SEVII_DEX = [...new Set([...SEVII_ZONES.flatMap(z => Object.values(z.pools).flat().map(e => e[0])), ...SEVII_SPECIALS.map(s => s.species), 152, 155, 158])].sort((a, b) => a - b)
@@ -2218,6 +2265,21 @@ const REGIONS = {
 		storyIntro: "Rui, who can see the Shadow auras no one else can, travels with you; Cipher's peons wait in every town, and Orre's colosseums keep champions of their own.",
 		rules: { keyItems: {}, levelCaps: [37, 42, 47, 50, 62, 100], stoneBadges: JOHTO_STONES, tradeBadges: 0 },
 	},
+	// Orre five years on (Pokémon XD): a side journey after Colosseum. Eevee at Lv. 10, Cipher's admins
+	// as trials, XD001 (Shadow Lugia) and Greevil at Citadark Isle as the finale, and Poké Spots.
+	xd: {
+		name: "Orre (XD)", professor: "Krane", starters: [133], startLevel: 10, home: "Pokémon HQ Lab",
+		starterLog: (id, zone) => `Professor Krane sends you off with ${speciesName(id)} and the lab's new Snag Machine. Your journey begins at ${zone}!`,
+		zones: XD_ZONES, gyms: XD_GYMS, eliteFour: XD_FINALE.slice(0, 1), champion: () => XD_FINALE[1],
+		gymStrength: [2.9, 3.55, 4, 4.5, 5.2], eliteFourStrength: 5.4, championStrength: 5.6,
+		trialLabel: gym => `Cipher Admin ${gym.name}`, badgeImage: 38, dex: XD_DEX, zoneCost: 1, pace: 40, maxSpecies: 386, fame: 3.5,
+		opens: { after: "orre", entries: 3 },
+		journey: { button: 81, intro: "Five years after Cipher's fall, Shadow Lugia sinks the S.S. Libra. At Pokémon HQ, Professor Krane has an Eevee and a new Snag Machine for whoever will look into it." },
+		league: { name: "Citadark Isle", survey: "Citadark Isle and its tower", trainers: "XD001, Shadow Lugia, then Grand Master Greevil and his Shadow birds, in a row" },
+		safari: false,
+		storyIntro: "Cipher is back with XD001, the Shadow Lugia no Snag Machine can hold. Its peons guard every lab and lair, and Orre's colosseums are as rough as ever.",
+		rules: { keyItems: {}, levelCaps: [21, 29, 37, 45, 51, 56, 100], stoneBadges: JOHTO_STONES, tradeBadges: 0 },
+	},
 	// Hoenn (Emerald): a journey of its own, opened by Johto's Hall of Fame entries. `journey` puts
 	// a region on the starter screen: its professor's starters (clickables from `button`) and intro.
 	hoenn: {
@@ -2238,6 +2300,9 @@ function currentRegion() { return player.t?.region || "kanto" }
  * in the simulator, which plays perfectly; later runs speed up through Fame.
  */
 function pace() { return region().pace }
+// The Poké Spots other regions get with the `pokeSpots` mechanic (after their Pokédex lists are built).
+for (const z of XD_CARRIED_SPOTS) REGIONS[z.region].zones.push(z)
+
 function region() { return REGIONS[currentRegion()] }
 /** Points the engine at the current region's rules (call when the region may have changed). */
 function syncRegionRules() {

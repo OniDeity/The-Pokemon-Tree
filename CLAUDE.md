@@ -227,6 +227,17 @@ Sister project: OniDeity/idle-pokemon (its data is the source of ours).
   (first branch not owned), `canLevelEvolve`/`levelEvolve` and the box card's branch buttons. Pacing:
   `SIM_START=orre SIM_FAME=1000` (a player arrives with ~1300-1500) 4.5-7.2 h; at 600 Fame it walls
   for 15 h. Dakim and Venus wall above 3.8 / 4.35.
+- Orre (XD) and Poké Spots (v0.29, side games phase 4): `js/data/xd.js` (`buildData.py`'s 9th argument;
+  xd.json from xd.ts: XD_ZONES with `trainerBattles` or `pokeSpot`, XD_GYMS/XD_FINALE with `snag`,
+  `XD_SHADOW_TRAINERS` (read by `orreTrainer` in XD), `XD_CARRIED_SPOTS`). `REGIONS.xd` (Eevee at Lv. 10;
+  opens after 3 Orre entries; button 81; badges 38-42; caps [21, 29, 37, 45, 51, 56, 100]; pace 40;
+  Fame ×3.5; visits Hoenn 9 / Orre 9 with `REVISITS.orre`: Realgam's finale, every Orre place closed).
+  Poké Spots cost a Poké Snack per encounter (`pokeSnackCost()`: 10×3^badges RP, free with Fame
+  upgrade 81; no RP, no encounter). Mechanic `pokeSpots` (Lovrina, `winGymBattle`): carried spots
+  join `REGIONS[r].zones` after the Pokédex lists are built; zones with `mechanic` are open only with
+  it and stay out of `frontierZones`, `revisitZones` and the zone list until then. Fame: buyable 71,
+  upgrades 81/82 (Shadow Monitor ×2 snag). Pacing: `SIM_START=xd SIM_FAME=2000` 4.8-5.6 h; 1200 Fame
+  ~12 h (Snattle walls at 3.7+).
 - Challenge highlights: `challengeStatus(key)`; hatching or a Safari catch marks an owned entry's
   `origin`, and `canEvolveInto` lets an entry with an origin evolve into one without.
 - Regions and the run's Pokédex (v0.12): `REGIONS` (`regionDex`, `currentRegion`, `dexRegions`)
@@ -395,7 +406,7 @@ The owner wants every Hall of Fame to feel like a proper reset:
   that had none; done in v0.27); (3)
   Shadow Pokémon and Colosseum (trainer-battle places, snagging, hearts, Relic Stone, sprites; done in
   v0.28 with the branching evolutions below);
-  (4) XD (Poké Spots, carried mechanics); (5) post-game visits and pacing for each.
+  (4) XD (Poké Spots, carried mechanics; done in v0.29); (5) post-game visits and pacing for each.
 - Bundled with phase 3 (the owner's call; done in v0.28): branching level evolutions. Before, `levelEvolution` took
   the first listed branch (Wurmple → Silcoon, Tyrogue → Hitmonlee, Eevee's friendship → Espeon)
   and a Pokémon whose first branch was owned never evolved. Now level branches get choice

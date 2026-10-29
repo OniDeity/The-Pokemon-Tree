@@ -14,7 +14,7 @@ const vm = require("vm")
 
 const root = path.join(__dirname, "..")
 const ctx = vm.createContext({ console, Math, JSON, Object, Array, Set, Number, String })
-for (const file of ["js/technical/break_eternity.js", "js/data/kanto.js", "js/data/johto.js", "js/data/hoenn.js", "js/data/orange.js", "js/data/sevii.js", "js/data/orre.js", "js/engine.js", "js/logic.js"])
+for (const file of ["js/technical/break_eternity.js", "js/data/kanto.js", "js/data/johto.js", "js/data/hoenn.js", "js/data/orange.js", "js/data/sevii.js", "js/data/orre.js", "js/data/xd.js", "js/engine.js", "js/logic.js"])
 	vm.runInContext(fs.readFileSync(path.join(root, file), "utf8"), ctx, { filename: file })
 
 const starter = Number(process.argv[2] || 1)

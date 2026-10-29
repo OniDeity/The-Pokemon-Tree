@@ -7,6 +7,8 @@
 - Orre's Cipher admins beaten (34-37): Pyrite Town freed (a sun over the desert), Mt. Battle saved (a
   mountain), The Under's broadcasts stopped (a broken antenna) and the Shadow Pokémon Lab shut down (a
   shattered purple crystal).
+- Orre's admins in XD (38-42): Lovrina's lab (a flask), Snattle's Phenac (a fountain), Gorigan's Key
+  Lair (a key in blue), Ardos's and Eldes's Citadark Isle (a dark tower, and Shadow Lugia's eye).
 
 Usage: python3 scripts/drawSideBadges.py  (needs Pillow)
 """
@@ -175,6 +177,53 @@ def shard():
     save(im, 37)
 
 
+def flask():
+    im, d = canvas()
+    c = SIZE * S / 2
+    d.polygon([(c - 25, c - 110), (c + 25, c - 110), (c + 25, c - 30), (c + 95, c + 100), (c - 95, c + 100), (c - 25, c - 30)], fill=(220, 235, 245, 255), outline=(40, 60, 90, 255), width=8)
+    d.polygon([(c - 55, c + 35), (c + 55, c + 35), (c + 85, c + 92), (c - 85, c + 92)], fill=(240, 90, 170, 255))
+    save(im, 38)
+
+
+def fountain():
+    im, d = canvas()
+    c = SIZE * S / 2
+    d.ellipse([c - 115, c + 20, c + 115, c + 100], fill=(230, 220, 200, 255), outline=(110, 90, 60, 255), width=8)
+    d.ellipse([c - 90, c + 35, c + 90, c + 80], fill=(70, 160, 230, 255))
+    d.rectangle([c - 12, c - 60, c + 12, c + 55], fill=(230, 220, 200, 255), outline=(110, 90, 60, 255), width=6)
+    for dx in (-60, 0, 60):
+        d.arc([c + dx - 50, c - 110, c + dx + 50, c - 10], 200, 340, fill=(120, 200, 250, 255), width=10)
+    save(im, 39)
+
+
+def blue_key():
+    im, d = canvas()
+    c = SIZE * S / 2
+    d.ellipse([c - 100, c - 100, c - 10, c - 10], outline=(30, 70, 160, 255), width=26)
+    d.line([(c - 25, c - 25), (c + 100, c + 100)], fill=(30, 70, 160, 255), width=26)
+    d.line([(c + 55, c + 55), (c + 85, c + 25)], fill=(30, 70, 160, 255), width=22)
+    d.line([(c + 80, c + 80), (c + 105, c + 55)], fill=(30, 70, 160, 255), width=22)
+    save(im, 40)
+
+
+def dark_tower():
+    im, d = canvas()
+    c = SIZE * S / 2
+    d.polygon([(c - 45, c + 110), (c - 30, c - 70), (c, c - 120), (c + 30, c - 70), (c + 45, c + 110)], fill=(60, 50, 80, 255), outline=(20, 10, 30, 255), width=8)
+    d.rectangle([c - 12, c - 40, c + 12, c - 10], fill=(200, 60, 220, 255))
+    d.rectangle([c - 12, c + 20, c + 12, c + 50], fill=(200, 60, 220, 255))
+    save(im, 41)
+
+
+def lugia_eye():
+    im, d = canvas()
+    c = SIZE * S / 2
+    d.ellipse([c - 115, c - 70, c + 115, c + 70], fill=(70, 40, 110, 255), outline=(20, 5, 40, 255), width=8)
+    d.ellipse([c - 50, c - 50, c + 50, c + 50], fill=(240, 60, 90, 255))
+    d.ellipse([c - 18, c - 40, c + 18, c + 40], fill=(20, 5, 30, 255))
+    save(im, 42)
+
+
 if __name__ == "__main__":
     coral_eye()
     sea_ruby()
@@ -189,3 +238,8 @@ if __name__ == "__main__":
     mountain()
     antenna()
     shard()
+    flask()
+    fountain()
+    blue_key()
+    dark_tower()
+    lugia_eye()

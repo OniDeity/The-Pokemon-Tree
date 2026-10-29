@@ -8,6 +8,10 @@
 //   SIM_BEATEN=orange,sevii counts those regions as beaten (their post-game visits open).
 //   SIM_HOURS=n stops after n hours. SIM_RUNS=n enters the Hall of Fame and replays n runs in all,
 //   buying Fame upgrades; SIM_CHALLENGE=id plays the runs after the first under that challenge.
+//   Before each Hall of Fame entry the simulator completes the run's Pokédex (the owner's baseline:
+//   every species open at the time, any form): it searches where an uncaught species is likeliest
+//   until none is left in an open place, or SIM_DEX_WAIT hours (default 2) pass without a new one.
+//   SIM_COMPLETE=0 skips that (the pacing before v0.33).
 //   SIM_PACE_<region>=x and SIM_SCALE_<region>=x (Gyms, Elite Four, Champion) are tuning knobs.
 //   SIM_SAVE=file enters the Hall of Fame at the end and saves what lasts (the Hall of Fame and the
 //   Pokédex's records); SIM_LOAD=file starts from such a save (its Fame spent first) instead of the
@@ -151,8 +155,32 @@ function zoneValue(zone) {
 	})()`)
 }
 
+// Completing the Pokédex: the open place where an encounter is likeliest to be an uncaught species the
+// party beats (Orre's trainers only give up their Shadow Pokémon), or null when none is left.
+const COMPLETE = process.env.SIM_COMPLETE !== "0"
+const DEX_WAIT = 3600 * Number(process.env.SIM_DEX_WAIT || 2)
+let completing = false, dexCaught = 0, dexAt = 0, dexZone = null
+function completionZone() {
+	return run(`(() => {
+		const team = partyBattlers()
+		let best = null, bestValue = 0
+		for (const z0 of ALL_ZONES.filter(zoneOpen)) {
+			const z = withSnagged(z0)
+			let need = 0, all = 0
+			for (const p of zonePools(z, badges())) for (const [id, w, min, max, form] of z.pools[p]) {
+				all += w
+				if (z.trainerBattles && form !== "shadow") continue
+				if (!player.d.caught[id] && battle(team, [battler(id, Math.round((min + max) / 2))]).win) need += w
+			}
+			if (all && need / all > bestValue) { bestValue = need / all; best = z0.id }
+		}
+		return best
+	})()`)
+}
+
 function chooseZone() {
 	if (run(`!canChooseRoute()`)) return
+	if (completing) return
 	const open = run(`ALL_ZONES.filter(zoneOpen).map(z => z.id)`)
 	// Survey first: the frontier zone with unseen species, if the team can win there.
 	const unseen = run(`frontierZones().filter(z => zoneOpen(z) && zoneSpecies(z, badges()).some(id => !player.d.seen[id])).map(z => z.id)`)
@@ -169,6 +197,15 @@ function chooseZone() {
 // The party: the box Pokémon that do best against the next opponent, else the strongest (the Team
 // Coach's bestParty). Locked Party only fills empty slots after the first badge.
 function chooseParty() {
+	// Completing the Pokédex: the stronger half wins the battles while box Pokémon still waiting to
+	// evolve by level fill the rest and catch up through the Exp. Share (like Box Training).
+	if (completing && run(`!inChallenge(42)`)) {
+		run(`(() => {
+			const best = bestParty(), core = best.slice(0, Math.ceil(best.length / 2))
+			player.t.party = [...core, ...trainees(core), ...best.slice(core.length)].slice(0, partySize())
+		})()`)
+		return
+	}
 	if (run(`inChallenge(42)`)) {
 		run(`(() => { for (const k of bestParty()) if (player.t.party.length < partySize() && !player.t.party.includes(k)) player.t.party.push(k) })()`)
 		return
@@ -265,7 +302,17 @@ while (t < LIMIT) {
 			}
 			if (t - last < 3600 * Number(process.env.SIM_RED || 2)) continue
 		}
+		// Completing the Pokédex before the Hall.
+		if (COMPLETE && run(`isChampion()`)) {
+			if (!completing) { completing = true; dexCaught = run(`caughtCount()`); dexAt = t; dexZone = completionZone(); if (dexZone) run(`player.f.zone = "${dexZone}"`); chooseParty() }
+			const caught = run(`caughtCount()`)
+			if (caught > dexCaught) { dexCaught = caught; dexAt = t }
+			if (t % 60 === 0) { dexZone = completionZone(); if (dexZone) run(`player.f.zone = "${dexZone}"`) }
+			if (t - dexAt < DEX_WAIT && (dexZone || run(`trainees([]).length > 0`))) continue
+			console.log(`  Pokédex: ${caught} caught at ${((t - runStart) / 3600).toFixed(2)} h${dexZone || run(`trainees([]).length > 0`) ? " (gave up on the rest)" : ""}${process.env.SIM_DEX_MISSING ? `; missing ${run("regionDex().filter(id => !player.d.caught[id]).map(speciesName).join(', ')")}` : ""}`)
+		}
 		if (run(`isChampion()`)) {
+			completing = false
 			console.log(`Run ${runNumber}${run("anyChallenge() ? ' (' + CHALLENGES[player.h.activeChallenge].name + ')' : ''")}: Champion after ${((t - runStart) / 3600).toFixed(2)} h`)
 			if (runNumber >= RUNS) break
 			console.log(`  Hall of Fame: +${run(`hallOfFameReset(${JSON.stringify(CHALLENGE)})`)} Fame`)

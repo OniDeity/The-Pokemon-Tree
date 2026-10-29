@@ -17,11 +17,14 @@ let modInfo = {
 
 // Set your version in num and name
 let VERSION = {
-	num: "0.30",
-	name: "Side journey visits",
+	num: "0.31",
+	name: "The Hall's honours",
 }
 
 let changelog = `<h1>Changelog:</h1><br>
+	<h3>v0.31 The Hall's honours</h3><br>
+		- Enshrined Pokémon now count for good: every species that has entered the Hall of Fame in a Champion team gives +0.5% Research Points and +0.2% Fame, with milestones at 25, 50, 100, 151, 251 and all 386 species (Fame ×1.1 each). The bonuses are tuned for the normal species; Shiny, Albino and Melanistic Pokémon and forms enshrined count again on top, with milestones of their own (Research Points ×1.1 each at 5, 15, 30 and 60). See the Hall of Fame page.<br>
+		- A new challenge once Johto is beaten, Light Traveller (a party of three), rewards Bill's Transfer: box Pokémon come along into your next run at the starter's level, so a Chikorita or a Mewtwo can enter Kanto's Hall of Fame. One slot, one more for each of Hoenn, the Orange and Sevii Islands, Orre and Orre (XD) beaten, up to six. Choose them on the Hall of Fame's Bill's Transfer page; empty slots take your strongest species never enshrined.<br><br>
 	<h3>v0.30 Side journey visits</h3><br>
 		- Once you've beaten a side journey, other journeys' Champions can visit it after their League: the Orange Islands (Drake at Pummelo Stadium), the Sevii Islands (the Trainer Tower), and Orre (XD) at Citadark Isle. Each visit beaten is Fame ×1.3 for that Hall of Fame entry, like the visits to Kanto, Johto, Hoenn and Orre, and its routes open on the Map.<br>
 		- Who goes where: Johto's Champion can visit the Orange and Sevii Islands (alongside Red); Hoenn's, all four side journeys; the Orange and Sevii Islands each other; Colosseum's Orre, XD's. A first journey never waits on a side journey you haven't beaten.<br>

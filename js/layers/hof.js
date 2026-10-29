@@ -8,6 +8,32 @@ function hallHtml() {
 		${e.team.map(([id, level, shiny, form]) => `<span class="pk-mon">${pkSprite(id, shiny, 64, "", form)}<br><small>${formName(id, form)}<br>Lv. ${level}</small></span>`).join("")}</div>`).reverse().join("")
 }
 
+function enshrineHtml() {
+	const species = enshrinedSpecies(), looks = enshrinedLooks()
+	const tier = (list, n) => list.map(m => `<span class="${n >= m ? "" : "pk-done"}">${m}${n >= m ? " ✓" : ""}</span>`).join(" · ")
+	return `<div class="pk-trainer"><b>Enshrined: ${species}/386 species</b>, plus ${looks} Shiny, Albino, Melanistic or form Pokémon<br>
+		<small>Each one: +${ENSHRINE_RP * 100}% Research Points and +${ENSHRINE_FAME * 100}% Fame (now ×${format(enshrineRpMult())} RP, ×${format(enshrineFameMult())} Fame).<br>
+		Species milestones, Fame ×1.1 each: ${tier(ENSHRINE_MILESTONES, species)}<br>
+		Special looks, Research Points ×1.1 each: ${tier(LOOK_MILESTONES, looks)}</small></div>`
+}
+function toggleCarryAuto() { player.h.carryAuto = player.h.carryAuto === false }
+/** Bill's Transfer: pick the box Pokémon that come along into the next run. */
+function carryHtml() {
+	const slots = carrySlots()
+	const chosen = (player.h.carry || []).filter(k => player.t.box[k])
+	return `<div class="pk-trainer"><b>Bill's Transfer</b>: ${chosen.length}/${slots} chosen to come along into your next run, at the starter's level.<br>
+		<button class="pk-button ${player.h.carryAuto !== false ? "pk-on" : ""}" onclick="toggleCarryAuto()">Fill empty slots: ${player.h.carryAuto !== false ? "On" : "Off"}</button>
+		<small>with your strongest species never enshrined (★), so they can enter the next Hall of Fame as new faces.</small>
+		${carryPicks().length ? `<br><small>Coming along if you entered the Hall now: ${carryPicks().map(keyName).join(", ")}.</small>` : ""}</div>`
+}
+function carryPickerHtml() {
+	const chosen = (player.h.carry || []).filter(k => player.t.box[k])
+	const keys = Object.keys(player.t.box).filter(k => searchMatches(player.h.carrySearch, speciesOf(k)))
+		.sort((a, b) => (!!player.h.enshrined[speciesOf(a)] - !!player.h.enshrined[speciesOf(b)]) || player.t.box[b].level - player.t.box[a].level)
+	const card = k => `<button class="pk-dex-entry pk-button ${chosen.includes(k) ? "pk-on" : ""}" onclick="toggleCarry('${k}')" title="${keyName(k)}${player.h.enshrined[speciesOf(k)] ? "" : " (never enshrined)"}">${pkSprite(speciesOf(k), colorOf(k), 48, "", formOf(k))}<br><small>${player.h.enshrined[speciesOf(k)] ? "" : "★ "}${keyName(k)}</small></button>`
+	return `<div class="pk-dex">${keys.slice(0, 48).map(card).join("")}</div>${keys.length > 48 ? `<small>${keys.length - 48} more: search by name.</small>` : ""}`
+}
+
 function automationHtml() {
 	return `Automations are rewards of the automation challenges (Shoestring Budget, Hatchling Run, Poacher's Net). Once earned, they're yours for good; switch them off here any time.<br><br>` +
 		Object.entries(AUTOMATIONS).map(([id, a]) => {
@@ -57,6 +83,7 @@ function challengeDef(id) {
 		challengeDescription: def.rules,
 		goalDescription: "Become Champion, then enter the Hall of Fame (Fame ×2). Gym Leaders and the League go a little easier on challengers.",
 		rewardDescription: def.reward,
+		unlocked() { return !def.unlocked || def.unlocked() },
 		canComplete() { return isChampion() },
 		onEnter() { resetRunPokedex(); showTab("t") },
 		onExit() { resetRunPokedex() },
@@ -81,6 +108,11 @@ addLayer("h", {
 		total: new Decimal(0),
 		hall: [],
 		enshrined: {},
+		enshrinedLooks: {},
+		carry: [],
+		carried: [],
+		carryAuto: true,
+		carrySearch: "",
 		auto: {},
 		mechanics: {},
 		regionsBeaten: {},
@@ -119,12 +151,18 @@ addLayer("h", {
 				"main-display",
 				"prestige-button",
 				"blank",
-				["display-text", () => `Fame per entry: 20, +5 per party member never enshrined before, +1 per 10 species caught. Enshrined species: ${Object.keys(player.h.enshrined).length}.`],
+				["display-text", () => `Fame per entry: 20, +5 per party member never enshrined before, +1 per 10 species caught.`],
+				"blank",
+				["display-text", () => enshrineHtml()],
 				"blank",
 				"milestones",
 				"blank",
 				["display-text", () => hallHtml()],
 			],
+		},
+		"Bill's Transfer": {
+			content: [["display-text", () => carryHtml()], "blank", ["pk-search", "carrySearch"], ["display-text", () => carryPickerHtml()]],
+			unlocked() { return carrySlots() > 0 },
 		},
 		"Fame shop": {
 			content: ["main-display", ["display-text", () => fameShopHtml()], "blank", "buyables", "blank", "upgrades"],

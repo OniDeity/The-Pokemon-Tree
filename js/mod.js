@@ -17,11 +17,13 @@ let modInfo = {
 
 // Set your version in num and name
 let VERSION = {
-	num: "0.29",
+	num: "0.29.1",
 	name: "Orre (XD) and Poké Spots",
 }
 
 let changelog = `<h1>Changelog:</h1><br>
+	<h3>v0.29.1 New faces</h3><br>
+		- Team Coach: before the Champion, the party brings in as many species never enshrined in the Hall of Fame as can still win (+5 Fame each). Against the Gyms, the Elite Four and the story it still fields the strongest team.<br><br>
 	<h3>v0.29 Orre (XD) and Poké Spots</h3><br>
 		- A side journey from Pokémon XD: after 3 Orre Hall of Fame entries, Professor Krane sends you off with an Eevee (Lv. 10) and the Snag Machine.<br>
 		- Cipher is back: snag Shadow Pokémon from trainers across Orre, beat Lovrina, Snattle, Gorigan, Ardos and Eldes, then XD001 (Shadow Lugia) and Greevil at Citadark Isle.<br>

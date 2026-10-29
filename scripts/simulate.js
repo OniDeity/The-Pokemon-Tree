@@ -14,7 +14,7 @@ const vm = require("vm")
 
 const root = path.join(__dirname, "..")
 const ctx = vm.createContext({ console, Math, JSON, Object, Array, Set, Number, String })
-for (const file of ["js/technical/break_eternity.js", "js/data/kanto.js", "js/data/johto.js", "js/data/hoenn.js", "js/data/orange.js", "js/data/sevii.js", "js/engine.js", "js/logic.js"])
+for (const file of ["js/technical/break_eternity.js", "js/data/kanto.js", "js/data/johto.js", "js/data/hoenn.js", "js/data/orange.js", "js/data/sevii.js", "js/data/orre.js", "js/engine.js", "js/logic.js"])
 	vm.runInContext(fs.readFileSync(path.join(root, file), "utf8"), ctx, { filename: file })
 
 const starter = Number(process.argv[2] || 1)
@@ -105,7 +105,7 @@ if (START) run(`(() => {
 	player.h.hall = hall; player.h.regionsBeaten = beaten; startInRegion("${START}")
 })()`)
 if (process.env.SIM_FAME) run(`player.h.points = new Decimal(${Number(process.env.SIM_FAME)}); fameShop()`)
-run(`startRun(${START ? `REGIONS["${START}"].starters[Math.max(0, STARTERS.indexOf(${starter}))]` : starter})`)
+run(`startRun(${START ? `REGIONS["${START}"].starters[Math.max(0, STARTERS.indexOf(${starter})) % REGIONS["${START}"].starters.length]` : starter})`)
 
 // Average Research Points per second in a zone with the current team (sampled battles).
 function zoneValue(zone) {
@@ -207,6 +207,8 @@ while (t < LIMIT) {
 		// Kanto's story: battle on whenever the forecast wins.
 		const cleared = run(`STORY_CHAPTERS.filter(ch => chapterCleared(ch.id)).map(ch => ch.id).join()`)
 		run(`rematchTick()`)
+		// The Relic Stone, as the Item Kit would use it.
+		run(`purifyAll()`)
 		if (run(`storyTick()`)) {
 			const now = run(`STORY_CHAPTERS.filter(ch => chapterCleared(ch.id)).map(ch => ch.id)`)
 			for (const id of now) if (!cleared.split(",").includes(id)) console.log(`  ${id} cleared at ${(t / 3600).toFixed(2)} h (badges ${run("badges()")})`)

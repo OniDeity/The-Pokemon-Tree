@@ -76,6 +76,7 @@ function rpMult() {
 	if (storyMilestone(10)) m *= 1.1
 	if (storyMilestone(500)) m *= 1.25
 	m *= 1 + 0.005 * ribbonCount()
+	if (purifyMilestone(10)) m *= 1.1
 	if (ribbonMilestone(60)) m *= 1.25
 	return m
 }
@@ -85,7 +86,7 @@ function passiveRp() {
 	return caughtCount() * 0.05 * rpMult() * (hasFieldUpgrade(23) ? 5 : 1) * (hofUpgrade(22) ? 3 : 1) * (1 + 0.25 * hofBuyable(41)) / pace()
 }
 function xpMult() {
-	let m = (1 + fieldBuyableStep(14, 0.25) * fieldBuyable(14)) * (1 + 0.25 * hofBuyable(12))
+	let m = (1 + fieldBuyableStep(14, 0.25) * fieldBuyable(14)) * (1 + 0.25 * hofBuyable(12)) * (1 + 0.2 * hofBuyable(61))
 	if (dexMilestone(60)) m *= 2
 	if (formMilestone(ALL_FORMS.length)) m *= 1.5
 	m *= 1 + 0.1 * gameCornerBuyable(13)
@@ -297,7 +298,8 @@ function addToBox(id, level, variant = "normal", origin = null) {
 	if (old && origin && !old.origin) old.origin = origin
 	if (old && old.level >= level) return false
 	// origin: "egg" or "safari" where it matters (the Hatchling Run and Poacher's Net exempt them).
-	player.t.box[key] = { level, xp: xpForLevel(SPECIES[id].growth, level), variant, ...(origin || old?.origin ? { origin: origin || old.origin } : {}), ...(old?.condition ? { condition: old.condition } : {}) }
+	player.t.box[key] = { level, xp: xpForLevel(SPECIES[id].growth, level), variant, ...(origin || old?.origin ? { origin: origin || old.origin } : {}), ...(old?.condition ? { condition: old.condition } : {}),
+		...(formOf(key) === "shadow" ? { heart: old?.heart ?? HEART_BATTLES } : {}) }
 	if (!old && player.t.party.length < partySize() && canJoinParty(key)) player.t.party.push(key)
 	return true
 }
@@ -335,16 +337,34 @@ function evolve(key, into) {
 	player.t.evolved = (player.t.evolved || 0) + 1
 	pkLog(`${keyName(key)} evolved into ${speciesName(into)}!`, "evolve", { id: into }, colorOf(key))
 	// It might already be high enough for its next stage.
-	const next = levelEvolution(into, player.t.box[newKey].level)
-	if (next && canEvolveInto(newKey, next)) evolve(newKey, next)
+	const next = autoLevelEvolution(newKey)
+	if (next) evolve(newKey, next)
 }
+
+/**
+ * Branching level evolutions (Wurmple, Tyrogue, Eevee by friendship): automatic evolution takes the
+ * first branch whose look you don't own yet, and waits when you own them all. The box card offers
+ * every branch as a button.
+ */
+function autoLevelEvolution(key) {
+	const entry = player.t.box[key]
+	if (!entry || formOf(key)) return null
+	return levelEvolutions(speciesOf(key), entry.level).find(into => canEvolveInto(key, into)) ?? null
+}
+/** Evolving by level by hand: any branch the Pokémon has reached and whose look you don't own. */
+function canLevelEvolve(key, into) {
+	const entry = player.t.box[key]
+	return !!entry && !formOf(key) && !(entry.heart > 0) && levelEvolutions(speciesOf(key), entry.level).includes(Number(into)) && canEvolveInto(key, Number(into))
+}
+function levelEvolve(key, into) { if (canLevelEvolve(key, into)) evolve(key, Number(into)) }
 
 function giveXp(key, xp) {
 	const entry = player.t.box[key]
-	if (!entry) return
+	// A Shadow Pokémon's closed heart: no experience until it opens and is purified.
+	if (!entry || entry.heart > 0) return
 	gainXp(entry, speciesOf(key), xp, currentCap())
-	const into = levelEvolution(speciesOf(key), entry.level)
-	if (into && canEvolveInto(key, into) && player.t.autoEvolve !== false) evolve(key, into)
+	const into = autoLevelEvolution(key)
+	if (into && player.t.autoEvolve !== false) evolve(key, into)
 }
 
 function partyBattlers(party = player.t.party) {
@@ -375,7 +395,9 @@ function currentZone() { return zoneById(player.f.zone) || regionZones()[0] }
 
 function doEncounter(rng) {
 	const zone = currentZone()
-	const enc = rollEncounter(withSwarm(zone), badges(), rng, huntLure())
+	const enc = rollEncounter(withSnagged(withSwarm(zone)), badges(), rng, huntLure())
+	// The Snag Machine (for good): Cipher Peons send out Shadow versions of Pokémon everywhere else.
+	if (mechanicOn("snagMachine") && !zone.trainerBattles && !enc.form && rand(rng) < cipherPeonChance()) enc.form = "shadow"
 	const shiny = rollColor(rng, 1 / encounterShinyOdds(enc), 1 / encounterAlbinoOdds(enc))
 	const look = makeLook(enc.form, shiny)
 	dexSee(enc.id)
@@ -385,7 +407,8 @@ function doEncounter(rng) {
 	mirageStep(rng)
 	const team = partyBattlers()
 	const result = battle(team, [battler(enc.id, enc.level)])
-	const name = `${colorMark(shiny)}${formName(enc.id, enc.form)} (Lv. ${enc.level})`
+	const trainers = !!zone.trainerBattles
+	const name = `${trainers ? `${orreTrainer(enc)}'s ` : ""}${colorMark(shiny)}${formName(enc.id, enc.form)} (Lv. ${enc.level})`
 	huntStep(enc, result.win)
 	// Nuzlocke: only the first new species met on each route may be caught (shinies always can).
 	const nuzlocke = inChallenge(11)
@@ -393,7 +416,7 @@ function doEncounter(rng) {
 	if (firstHere) player.t.nuzlocke[zone.id] = enc.id
 	if (!result.win) {
 		// Nuzlocke runs flee from battles they'd lose rather than lose the party.
-		pkLog(nuzlocke ? `You fled from a wild ${name}.` : `A wild ${name} was too strong and got away.`, "lose", enc, shiny)
+		pkLog(trainers ? `${name[0].toUpperCase()}${name.slice(1)} was too strong.` : nuzlocke ? `You fled from a wild ${name}.` : `A wild ${name} was too strong and got away.`, "lose", enc, shiny)
 		return { ...enc, shiny, win: false }
 	}
 	player.f.wins++
@@ -408,11 +431,18 @@ function doEncounter(rng) {
 		if (fought.has(id)) giveXp(id, xp)
 		else if (hasFieldUpgrade(14)) giveXp(id, hofUpgrade(61) ? xp : xp / 2)
 	}
+	openHearts()
+	// Orre's trainers' own Pokémon can't be caught; only their Shadow Pokémon can be snagged.
+	if (trainers && enc.form !== "shadow") {
+		pkLog(`Beat ${name}.`, "win", enc, shiny, true)
+		return { ...enc, shiny, win: true, caught: false, rp }
+	}
 	if (nuzlocke && !firstHere && !shiny) {
 		pkLog(`Beat a wild ${name}.`, "win", enc, shiny)
 		return { ...enc, shiny, win: true, caught: false, rp }
 	}
-	let caught = rand(rng) < catchChance(enc.id, catchMult() * speciesCatchMult(enc.id) * ballMult(enc) * (enc.form && hofUpgrade(42) ? 2 : 1), enc.form)
+	const snag = enc.form === "shadow" ? SNAG_BONUS * (purifyMilestone(25) ? 2 : 1) : 1
+	let caught = rand(rng) < catchChance(enc.id, catchMult() * speciesCatchMult(enc.id) * ballMult(enc) * (enc.form && hofUpgrade(42) ? 2 : 1) * snag, enc.form)
 	// Silph Co.'s Master Ball: the next new Pokémon beaten is caught for sure.
 	if (!caught && player.q?.masterBall && !player.d.caught[enc.id]) {
 		caught = true
@@ -423,11 +453,16 @@ function doEncounter(rng) {
 		const wasCaught = !!player.d.caught[enc.id]
 		const isNew = !wasCaught || (enc.form && !player.d.forms[`${enc.id}-${enc.form}`])
 		addToBox(enc.id, enc.level, look)
+		if (trainers) player.t.snagged = { ...player.t.snagged, [enc.id]: true }
+		if (enc.form === "shadow") {
+			pkLog(`You snagged ${trainers ? `${orreTrainer(enc)}'s ` : "a Cipher Peon's "}Shadow ${speciesName(enc.id)}!`, "new", enc, shiny)
+			return { ...enc, shiny, win: true, caught, rp }
+		}
 		// New Unown letters after the first Unown go to the log without a popup each.
 		const quiet = !!enc.form && !!FORMS[enc.form]?.suffix && !!wasCaught
 		pkLog(`Caught ${name}!${isNew ? " New in the Pokédex!" : ""}`, isNew || shiny ? "new" : "catch", enc, shiny, quiet && !shiny)
 	} else {
-		pkLog(`Beat a wild ${name}, but it broke free.`, "win", enc, shiny)
+		pkLog(trainers ? `Beat ${name}, but the snag missed.` : `Beat a wild ${name}, but it broke free.`, "win", enc, shiny)
 	}
 	return { ...enc, shiny, win: true, caught, rp }
 }
@@ -475,6 +510,8 @@ function winGymBattle() {
 	releaseFainted(gymPrediction())
 	// Emerald's first double battle waits on Route 104, just after Roxanne.
 	if (currentRegion() === "hoenn" && badges() === 0) unlockMechanic("doubleBattles", "Double battles! From now on your lead's partner (the next Pokémon in the party) fights beside it, in every region.")
+	if (currentRegion() === "orre") snagFrom(regionGyms()[badges()])
+	if (currentRegion() === "orre" && badges() === 0) unlockMechanic("relicStone", "The Relic Stone! In Agate Village, Eagun shows you how to purify a Shadow Pokémon whose heart has opened, in every region from now on.")
 	if (currentRegion() === "hoenn" && badges() === 2) unlockMechanic("contests", "Pokémon Contests! Verdanturf's Contest Hall opens the Contests node: raise your Pokémon's condition with Pokéblocks and win ribbons, in every region.")
 }
 
@@ -489,6 +526,73 @@ function unlockMechanic(id, text) {
 	pkLog(text, "story")
 }
 partnerDamage = () => mechanicOn("doubleBattles") ? PARTNER_DAMAGE : 0
+
+// ---- Shadow Pokémon (Orre; Idle Pokémon's rules) ----
+// Cipher's Shadow Pokémon are a `shadow` look (box key "153-shadow"; colours still apply). Orre's
+// trainers hand them out to be snagged, once each per journey (player.t.snagged); the Cipher admins
+// and Realgam Tower's trainers give theirs up when beaten (`snag`). A Shadow Pokémon can't gain
+// experience or evolve while its heart is closed (entry.heart: wild battles won in the party, from
+// HEART_BATTLES down), then the Relic Stone purifies it into its species. Mechanics kept for good:
+// the Snag Machine (Cipher Peons make CIPHER_PEON_CHANCE of encounters elsewhere Shadow) and the
+// Relic Stone. Purified species are a lifetime record (player.d.purified).
+const HEART_BATTLES = 100
+const CIPHER_PEON_CHANCE = 0.02
+/** Snagging uses the Snag Machine: twice a Poké Ball's catch chance. */
+const SNAG_BONUS = 2
+const PURIFY_MILESTONES = [
+	[3, "Shadow Pokémon's hearts open twice as fast."],
+	[10, "+10% Research Points."],
+	[25, "Snagging twice as likely."],
+]
+function isShadow(key) { return formOf(key) === "shadow" }
+function purifiedSpecies() { return Object.keys(player.d?.purified || {}).length }
+function purifyMilestone(n) { return purifiedSpecies() >= n }
+/** Orre's places without the Shadow Pokémon already snagged this journey. */
+function withSnagged(zone) {
+	if (!zone.trainerBattles) return zone
+	const snagged = player.t.snagged || {}
+	return { ...zone, pools: { walk: zone.pools.walk.filter(e => e[4] !== "shadow" || !snagged[e[0]]) } }
+}
+/** Who sends a Pokémon out in Orre's trainer battles. */
+function orreTrainer(enc) { return enc.form === "shadow" ? ORRE_SHADOW_TRAINERS[enc.id] || "a Cipher Peon" : "a trainer" }
+function cipherPeonChance() { return CIPHER_PEON_CHANCE * (hofUpgrade(72) ? 2 : 1) }
+function heartStep() { return (purifyMilestone(3) ? 2 : 1) * (hofUpgrade(71) ? 2 : 1) }
+/** Each wild battle won, the Shadow Pokémon in the party open their hearts a little. */
+function openHearts() {
+	for (const key of player.t.party) {
+		const entry = player.t.box[key]
+		if (!entry?.heart) continue
+		entry.heart = Math.max(0, entry.heart - heartStep())
+		if (entry.heart === 0) pkLog(mechanicOn("relicStone") ? `${keyName(key)}'s heart has opened! Purify it at the Relic Stone (on its card in the box).` : `${keyName(key)}'s heart has opened! Agate Village's Relic Stone can purify it.`, "evolve", { id: speciesOf(key), form: "shadow" }, colorOf(key))
+	}
+}
+function canPurify(key) { return isShadow(key) && player.t.box[key]?.heart === 0 && mechanicOn("relicStone") && !inDayCare(key) }
+/** The Relic Stone: an opened Shadow Pokémon becomes its species again, at its level and colour. */
+function purify(key) {
+	if (!canPurify(key)) return false
+	const entry = player.t.box[key], id = speciesOf(key), color = colorOf(key)
+	delete player.t.box[key]
+	const slot = player.t.party.indexOf(key)
+	addToBox(id, entry.level, color || "normal")
+	const newKey = boxKey(id, makeLook(null, color))
+	if (slot >= 0) {
+		const at = player.t.party.indexOf(newKey)
+		if (at >= 0 && at !== slot) player.t.party.splice(slot, 1)
+		else player.t.party[slot] = newKey
+	}
+	player.d.purified = { ...player.d.purified, [id]: (player.d.purified?.[id] || 0) + 1 }
+	pkLog(`${keyName(newKey)}'s heart is purified! It's a normal Pokémon again.`, "evolve", { id }, color)
+	return true
+}
+function purifyAll() { for (const key of Object.keys(player.t.box)) if (canPurify(key)) purify(key) }
+/** A trainer's `snag` list: their Shadow Pokémon, handed over when they're beaten. */
+function snagFrom(t) {
+	for (const id of t?.snag || []) {
+		const level = (t.team.find(([s]) => s === id) || [id, 30])[1]
+		addToBox(id, level, "shadow")
+		pkLog(`You snagged ${t.name}'s Shadow ${speciesName(id)}!`, "new", { id, form: "shadow" })
+	}
+}
 
 // ---- Pokémon Contests (the "n" node; Idle Pokémon's contests.ts) ----
 // A mechanic unlocked in Hoenn with the Dynamo Badge (Verdanturf's Contest Hall) and kept for good:
@@ -631,6 +735,7 @@ function challengeLeague(k) {
 	releaseFainted(leaguePrediction(k))
 	player.l.beaten = k + 1
 	const t = leagueTrainers()[k]
+	snagFrom(t)
 	if (k === leagueTrainers().length - 1) {
 		player.l.champion = true
 		player.l.team = player.t.party.map(key => [speciesOf(key), player.t.box[key].level, colorOf(key), formOf(key)])
@@ -722,6 +827,7 @@ const HOF_BUYABLES = {
 	31: { region: "orange", title: "Tracey's Sketchbook", base: 15, growth: 1.8, text: "+10% Research Points from wild battles per level." },
 	41: { region: "sevii", title: "Berry Forest", base: 15, growth: 1.8, text: "+25% passive Research Points per level." },
 	51: { region: "hoenn", title: "Secret Power", base: 25, growth: 1.9, text: "+5% Attack and Defense per level (beside Champion's Might)." },
+	61: { region: "orre", title: "Mt. Battle Training", base: 30, growth: 1.9, text: "+20% experience per level (beside the Trainer School)." },
 }
 const HOF_UPGRADES = {
 	11: { title: "Head Start", cost: 15, text: "Start each run with 200 Research Points and your starter at Lv. 10." },
@@ -739,12 +845,14 @@ const HOF_UPGRADES = {
 	52: { region: "sevii", title: "Rainbow Pass", cost: 200, text: "The Old and Good Rods from the start of every run, in every region." },
 	61: { region: "hoenn", title: "Devon Exp. Share", cost: 250, text: "The Exp. Share gives the whole party full experience." },
 	62: { region: "hoenn", title: "Match Call", cost: 200, text: "Two more rematch lines on your phone." },
+	71: { region: "orre", title: "Purification Chamber", cost: 250, text: "Shadow Pokémon's hearts open twice as fast." },
+	72: { region: "orre", title: "Cipher Key Lair", cost: 300, text: "Cipher Peons turn up twice as often." },
 }
 // A ceiling on the Fame shop before moving on: buyables stop at FAME_CAP levels, FAME_CAP_STEP more
 // for each region beaten, and each beaten region's own items open (levels bought before a cap stay).
 const FAME_CAP = 8
 const FAME_CAP_STEP = 4
-const FAME_REGIONS = ["johto", "orange", "sevii", "hoenn"]
+const FAME_REGIONS = ["johto", "orange", "sevii", "hoenn", "orre"]
 function fameRegionsBeaten() { return FAME_REGIONS.filter(regionBeaten).length }
 function hofBuyableCap() { return FAME_CAP + FAME_CAP_STEP * fameRegionsBeaten() }
 /** Whether a Fame item's region (if it has one) has been beaten. */
@@ -888,7 +996,7 @@ function animeOpen(zone) {
 
 /** Every form Kanto has: "id-form" keys from the anime places and events. */
 const ALL_FORMS = [...new Set([
-	...[...ZONES, ...JOHTO_ZONES, ...HOENN_ZONES, ...ORANGE_ZONES, ...SEVII_ZONES].flatMap(z => Object.values(z.pools).flat().filter(e => e[4]).map(e => `${e[0]}-${e[4]}`)),
+	...[...ZONES, ...JOHTO_ZONES, ...HOENN_ZONES, ...ORANGE_ZONES, ...SEVII_ZONES].flatMap(z => Object.values(z.pools).flat().filter(e => e[4] && e[4] !== "shadow").map(e => `${e[0]}-${e[4]}`)),
 	...[...SPECIALS, ...JOHTO_SPECIALS, ...HOENN_SPECIALS, ...ORANGE_SPECIALS, ...SEVII_SPECIALS].filter(s => s.form).map(s => `${s.species}-${s.form}`),
 	...Object.values(CONTEST_CATEGORIES).map(c => `25-${c.pikachu}`),
 ])].sort((a, b) => parseInt(a) - parseInt(b))
@@ -1161,7 +1269,7 @@ const AUTOMATIONS = {
 	route: { challenge: 41, name: "Route Planner", text: "The Field moves itself to an open route with species you haven't seen, else one with Pokémon your box is missing." },
 	coach: { challenge: 42, name: "Team Coach", text: "Your party rebuilds itself with the Pokémon that do best against the next Gym, League or story battle." },
 	train: { challenge: 42, name: "Box Training", text: "With Team Coach and the Exp. Share, the party keeps only as many as it needs to win the next battle and fills the other slots with box Pokémon still waiting to evolve by level, so they catch up and evolve." },
-	items: { challenge: 43, name: "Item Kit", text: "Evolution stones and trades are used, and gifts, trades, prizes and legendaries taken, as soon as you can." },
+	items: { challenge: 43, name: "Item Kit", text: "Evolution stones and trades are used, gifts, trades, prizes and legendaries taken, and opened Shadow Pokémon purified, as soon as you can." },
 	notes: { challenge: 51, name: "Professor's Notes", text: "Each run starts having seen every species your last run saw, so surveys go faster." },
 	journal: { challenge: 52, name: "Breeder's Journal", text: "Eggs of species you've hatched in any run hatch after one battle." },
 	hunter: { challenge: 53, name: "Hunter's Instinct", text: "Shiny hunting targets a species on your route with no shiny yet." },
@@ -1546,11 +1654,14 @@ const REVISITS = {
 		trainers: [...ELITE_FOUR.map(t => ({ name: t.name, team: t.team })), { name: "Blue", team: () => (CHAMPIONS[VISIT_KANTO_CHAMPION[player.t.starter]] || CHAMPIONS[1]).team, quote: "Smell ya later... Hoenn's Champion, huh?" }] },
 	johto: { name: "Johto", place: "Johto's Pokémon League", chapter: "visitJohto", closed: [], via: "by the S.S. Aqua to Olivine",
 		trainers: [...JOHTO_ELITE_FOUR, JOHTO_CHAMPION].map(t => ({ name: t.name, team: t.team })) },
+	hoenn: { name: "Hoenn", place: "Ever Grande City", chapter: "visitHoenn", closed: ["mirageIsland"], via: "by boat to Slateport",
+		trainers: [...HOENN_ELITE_FOUR, HOENN_CHAMPION].map(t => ({ name: t.name, team: t.team })) },
 }
 const VISITS = {
 	johto: { kanto: null },
 	orange: { kanto: 11 },
 	sevii: { kanto: 9 },
+	orre: { kanto: 9, johto: 11, hoenn: 9 },
 	hoenn: { kanto: 22, johto: 26 },
 }
 /** A visit's Story chapter: Hoenn's keep their first ids ("visitKanto"); later hosts prefix theirs. */
@@ -1641,6 +1752,24 @@ const SIDE_CHAPTERS = [
 		trainers: [GRUNT([[24, 44], [42, 44]]), GRUNT([[89, 45], [110, 45]]), GRUNT([[20, 44], [41, 45], [42, 45]], { quote: "The Network Machine? You'll never get near it!" })] },
 	{ id: "tanobyRuins", region: "sevii", name: "Tanoby Ruins", badges: 5, strength: 5.6, arc: "challenger", reward: "The Ruin Maniac shares his notes on the chambers' Unown: Research Points.",
 		trainers: [{ name: "Ruin Maniac", team: [[74, 50], [95, 51], [111, 51]] }, { name: "Painter", team: [[235, 52]] }] },
+	// Orre (Colosseum): Rui, who sees the Shadow auras; Orre's colosseums; Cipher's peons.
+	{ id: "outskirtWillie", region: "orre", name: "Outskirt Stand", badges: 0, strength: 2.8, arc: "challenger", reward: "Willie's Zigzagoon are no match: Research Points.",
+		trainers: [{ name: "Willie", team: [[263, 25], [263, 25], [264, 27]], quote: "My Zigzagoon are the toughest in the desert!" }] },
+	{ id: "phenacStadium", region: "orre", name: "Phenac Stadium", badges: 0, strength: 3.2, arc: "challenger", reward: "Rui tells you which Pokémon around Phenac carry Shadow auras: Research Points.",
+		trainers: [{ name: "Bodybuilder", team: [[296, 28], [66, 28]] }, { name: "Cooltrainer", team: [[287, 29], [288, 30]] }, { name: "Ruin Maniac", team: [[328, 29], [74, 29]] }] },
+	{ id: "pyriteColosseum", region: "orre", name: "Pyrite Colosseum", badges: 1, strength: 3.8, arc: "challenger", reward: "Pyrite Colosseum's trophy: Research Points.",
+		trainers: [{ name: "Hunter", team: [[262, 34], [302, 34]] }, { name: "Rider", team: [[22, 35], [227, 35]] }, { name: "Chaser", team: [[262, 35], [294, 36]] },
+			{ name: "Pyrite's champion", team: [[357, 37], [310, 38]] }] },
+	{ id: "mtBattleAreas", region: "orre", name: "Mt. Battle", badges: 1, strength: 4.5, gate: 1, reward: "Vander lets you through Mt. Battle's areas: Dakim waits at the top.",
+		trainers: [{ name: "Area 1 Leader", team: [[305, 37], [297, 38]] }, { name: "Area 2 Leader", team: [[332, 38], [330, 39]] }, { name: "Area 3 Leader", team: [[365, 39], [306, 40]] }] },
+	{ id: "underColosseum", region: "orre", name: "The Under", badges: 2, strength: 4.6, arc: "challenger", reward: "The Under Colosseum's trophy: Research Points.",
+		trainers: [{ name: "Thug", team: [[262, 42], [24, 43]] }, { name: "Punk", team: [[342, 43], [319, 43]] }, { name: "Under's champion", team: [[248, 44], [229, 45]] }] },
+	{ id: "realgamPeons", arc: "villain", region: "orre", name: "Realgam Tower", badges: 4, strength: 5.6, gateLeague: true, reward: "Cipher's peons fall back: Realgam Tower's Colosseum opens.",
+		trainers: [{ name: "Cipher Peon", rocket: true, team: [[302, 48], [319, 48]] }, { name: "Cipher Peon", rocket: true, team: [[262, 49], [335, 49]] },
+			{ name: "Cipher Peon", rocket: true, team: [[336, 50], [354, 50]], quote: "Lord Evice won't be disturbed!" }] },
+	{ id: "mtBattle100", region: "orre", name: "Mt. Battle, 100 straight wins", badges: 4, champion: true, strength: 6, arc: "challenger", reward: "A hundred straight wins: Ho-Oh descends on Mt. Battle.",
+		trainers: [{ name: "Area 7 Leader", team: [[376, 58], [350, 58]] }, { name: "Area 8 Leader", team: [[373, 59], [334, 59]] }, { name: "Area 9 Leader", team: [[248, 60], [289, 60]] },
+			{ name: "Area 10 Leader", team: [[149, 62], [306, 62], [365, 62]] }] },
 ]
 const KANTO_GYM = (id, name, badge, leader, strength, team, quote, needs = "kantoSurge") => ({
 	id, region: "johto", kantoGym: true, name, badges: 8, champion: true, needs, strength, badge,
@@ -1782,7 +1911,7 @@ function kantoBadges() { return KANTO_GYM_CHAPTERS.filter(ch => chapterCleared(c
 // Gift rules from the story: the Dojo's choice and Silph Co.'s Lapras, Snorlax's Poké Flute.
 const SPECIAL_STORY = { hitmonlee: "dojo", hitmonchan: "dojo", lapras: "silphCo", snorlax: "pokemonTower", whirlLugia: "radioTower", bellTowerHoOh: "bellTower",
 	weatherInstituteCastform: "weatherInstitute", hoennKyogre: "seafloorCavern", hoennGroudon: "seafloorCavern", hoennRayquaza: "seafloorCavern", stevensBeldum: "stevenMeteorFalls",
-	pinkanPikachu: "pinkanRocket", shamoutiLugia: "shamoutiRocket" }
+	pinkanPikachu: "pinkanRocket", shamoutiLugia: "shamoutiRocket", mtBattleHoOh: "mtBattle100" }
 const DOJO_CHOICE = ["hitmonlee", "hitmonchan"]
 for (const s of SPECIALS) if (s.id === "hitmonchan") s.text = "...or the punching fiend. You may choose only one."
 
@@ -1910,7 +2039,10 @@ function storyTick() {
 }
 
 /** How a region's trial is named: "Brock's Gym", or Sevii's "the Rocket Warehouse quest". */
-function trialName(gym, r = currentRegion()) { return REGIONS[r].trialNoun ? `the ${gym.name} ${REGIONS[r].trialNoun}` : `${gym.name}'s Gym` }
+function trialName(gym, r = currentRegion()) {
+	if (REGIONS[r].trialLabel) return REGIONS[r].trialLabel(gym)
+	return REGIONS[r].trialNoun ? `the ${gym.name} ${REGIONS[r].trialNoun}` : `${gym.name}'s Gym`
+}
 /** The chapter that must be cleared before Gym `index`, if any isn't. */
 function gymStoryGate(index) { return STORY_CHAPTERS.find(ch => chapterRegion(ch) === currentRegion() && ch.gate === index && !chapterCleared(ch.id)) || null }
 function leagueStoryGate() { return STORY_CHAPTERS.find(ch => chapterRegion(ch) === currentRegion() && ch.gateLeague && !chapterCleared(ch.id)) || null }
@@ -1985,9 +2117,11 @@ for (const z of ORANGE_ZONES) z.region = "orange"
 for (const s of ORANGE_SPECIALS) s.region = "orange"
 for (const z of SEVII_ZONES) z.region = "sevii"
 for (const s of SEVII_SPECIALS) s.region = "sevii"
+for (const z of ORRE_ZONES) z.region = "orre"
+for (const s of ORRE_SPECIALS) s.region = "orre"
 for (const z of HOENN_ZONES) if (z.id === "mirageIsland") z.mirage = true
-const ALL_ZONES = [...ZONES, ...JOHTO_ZONES, ...HOENN_ZONES, ...ORANGE_ZONES, ...SEVII_ZONES]
-const ALL_SPECIALS = [...SPECIALS, ...JOHTO_SPECIALS, ...HOENN_SPECIALS, ...ORANGE_SPECIALS, ...SEVII_SPECIALS]
+const ALL_ZONES = [...ZONES, ...JOHTO_ZONES, ...HOENN_ZONES, ...ORANGE_ZONES, ...SEVII_ZONES, ...ORRE_ZONES]
+const ALL_SPECIALS = [...SPECIALS, ...JOHTO_SPECIALS, ...HOENN_SPECIALS, ...ORANGE_SPECIALS, ...SEVII_SPECIALS, ...ORRE_SPECIALS]
 
 const KEY_ITEM_NAMES = {
 	oldRod: "Old Rod", goodRod: "Good Rod", superRod: "Super Rod", surf: "Surf", bicycle: "Bicycle", pokeFlute: "Poké Flute",
@@ -2000,6 +2134,9 @@ function keyItemsFromGyms(gyms) {
 	return items
 }
 const JOHTO_STONES = Object.fromEntries(["moonStone", "fireStone", "waterStone", "thunderStone", "leafStone", "sunStone"].map(s => [s, 3]))
+/** Orre's Pokédex: what can be snagged or received (its trainers' own Pokémon can only be seen). */
+const ORRE_DEX = [...new Set([...ORRE_ZONES.flatMap(z => z.pools.walk.filter(e => e[4] === "shadow").map(e => e[0])), ...ORRE_GYMS.flatMap(g => g.snag || []),
+	...ORRE_FINALE.flatMap(t => t.snag || []), ...ORRE_SPECIALS.map(s => s.species), 196, 197])].sort((a, b) => a - b)
 const SEVII_DEX = [...new Set([...SEVII_ZONES.flatMap(z => Object.values(z.pools).flat().map(e => e[0])), ...SEVII_SPECIALS.map(s => s.species), 152, 155, 158])].sort((a, b) => a - b)
 const ORANGE_DEX = [...new Set([...ORANGE_ZONES.flatMap(z => Object.values(z.pools).flat().map(e => e[0])), ...ORANGE_SPECIALS.map(s => s.species), 25, 175, 131])].sort((a, b) => a - b)
 const JOHTO_DEX = [...new Set([
@@ -2063,6 +2200,23 @@ const REGIONS = {
 		storyIntro: "Team Rocket's last cells dig for the Ruby and the Sapphire across the islands, while Lorelei rests at home on Four Island and the islands' trainers wait on every road.",
 		rules: { keyItems: Object.fromEntries(["oldRod", "goodRod", "superRod", "surf", "bicycle", "rockSmash"].map(id => [id, { badges: 0, name: KEY_ITEM_NAMES[id] || id }])),
 			levelCaps: [38, 44, 48, 52, 56, 64, 100], stoneBadges: JOHTO_STONES, tradeBadges: 0 },
+	},
+	// Orre (Pokémon Colosseum): a side journey after Hoenn. No wild Pokémon: its places are trainer
+	// battles (`trainerBattles`), and Cipher's Shadow Pokémon are snagged; the Cipher admins are the
+	// trials and Realgam Tower's Gonzap, Nascour and Evice the finale. Espeon or Umbreon at Lv. 25.
+	orre: {
+		name: "Orre", professor: "Snagem", starters: [196, 197], startLevel: 25, home: "Team Snagem's hideout",
+		starterLog: (id, zone) => `You leave Team Snagem with ${speciesName(id)} and the Snag Machine. Your journey begins at ${zone}!`,
+		zones: ORRE_ZONES, gyms: ORRE_GYMS, eliteFour: ORRE_FINALE.slice(0, 2), champion: () => ORRE_FINALE[2],
+		gymStrength: [3.4, 3.8, 4.35, 4.8], eliteFourStrength: 4.8, championStrength: 5,
+		trialLabel: gym => `Cipher Admin ${gym.name}`, badgeImage: 34, dex: ORRE_DEX, zoneCost: 1, pace: 28, maxSpecies: 386, fame: 3,
+		opens: { after: "hoenn", entries: 3 },
+		journey: { button: 71, intro: "Wes walks out of Team Snagem with the Snag Machine and his old partners, Espeon and Umbreon. In Orre there are no wild Pokémon: only trainers, and the Shadow Pokémon Cipher hands out.",
+			mechanics: [["snagMachine", "The Snag Machine! From now on Cipher Peons turn up in every region with Shadow Pokémon to snag."]] },
+		league: { name: "Realgam Tower", survey: "Realgam Tower and the Snagem Hideout", trainers: "Gonzap, Nascour and Cipher's head Evice in a row" },
+		safari: false,
+		storyIntro: "Rui, who can see the Shadow auras no one else can, travels with you; Cipher's peons wait in every town, and Orre's colosseums keep champions of their own.",
+		rules: { keyItems: {}, levelCaps: [37, 42, 47, 50, 62, 100], stoneBadges: JOHTO_STONES, tradeBadges: 0 },
 	},
 	// Hoenn (Emerald): a journey of its own, opened by Johto's Hall of Fame entries. `journey` puts
 	// a region on the starter screen: its professor's starters (clickables from `button`) and intro.
@@ -2217,6 +2371,7 @@ function autoRouteTick() {
 /** The Item Kit: stones and trades, then gifts, trades, prizes and legendaries, whenever possible. */
 function autoItemTick() {
 	if (!automationOn("items") || !player.t.starter) return
+	purifyAll()
 	for (const key of Object.keys(player.t.box)) for (const e of itemEvolutions(speciesOf(key), badges()))
 		if (canItemEvolve(key, e)) { itemEvolve(key, e.into); return }
 	for (const s of ALL_SPECIALS) {
@@ -2288,6 +2443,7 @@ function journeyRegions() { return Object.keys(REGIONS).filter(r => REGIONS[r].j
 /** Starts this run in a region (before the starter is chosen). */
 function startInRegion(region) {
 	if (player.t.starter || !REGIONS[region]?.journey || !regionOpen(region)) return false
+	for (const [id, text] of REGIONS[region].journey.mechanics || []) unlockMechanic(id, text)
 	player.t.region = region
 	syncRegionRules()
 	return true

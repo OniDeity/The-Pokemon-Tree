@@ -68,6 +68,7 @@ function rpMult() {
 	m *= 1 + 0.1 * gameCornerBuyable(12)
 	if (jackpotMilestone(5)) m *= 1.1
 	m *= 1 + 0.01 * shinySpecies() + 0.02 * melanisticSpecies()
+	m *= enshrineRpMult()
 	if (rocketMilestone(10)) m *= 1.1
 	if (rivalMilestone(15)) m *= 1.1
 	if (rocketMilestone(75)) m *= 1.15
@@ -148,7 +149,7 @@ function shinyOdds() {
 }
 function partySize() {
 	if (inChallenge(13)) return 1
-	return Math.min(6, 3 + Math.floor(badges() / 2) + (hofUpgrade(14) ? 1 : 0))
+	return Math.min(inChallenge(61) ? 3 : 6, 3 + Math.floor(badges() / 2) + (hofUpgrade(14) ? 1 : 0))
 }
 /** The types of this run's starter (its original species, even after it evolves). */
 function starterTypes() { return SPECIES[player.t.starter]?.types ?? [] }
@@ -945,6 +946,12 @@ const CHALLENGES = {
 		rules: "Shiny Pokémon are four times rarer, and your Pokémon fight at 75% strength, except shiny ones.",
 		reward: "Hunter's Instinct: shiny hunting targets your route's species with no shiny yet.",
 	},
+	61: {
+		name: "Light Traveller",
+		rules: "Your party has three slots.",
+		reward: "Bill's Transfer: bring box Pokémon into your next run (one slot, more for each later region beaten).",
+		unlocked: () => regionBeaten("johto"),
+	},
 	22: {
 		name: "Underleveled",
 		rules: "Level caps are 5 lower.",
@@ -984,15 +991,72 @@ function fameGain() {
 	fame *= regionFame(currentRegion())
 	if (chapterCleared("mtSilver")) fame *= 1.5
 	fame *= Math.pow(VISIT_FAME, visitsCleared())
+	fame *= enshrineFameMult()
 	return Math.floor(fame)
 }
 /** Records the run in the Hall of Fame and starts the Pokédex over (the rest of the reset is TMT's). */
 function enterHallOfFame() {
 	const team = player.l.team || []
-	for (const [id] of team) player.h.enshrined[id] = true
+	for (const [id, , color, form] of team) {
+		player.h.enshrined[id] = true
+		const look = makeLook(form, color)
+		if (look) player.h.enshrinedLooks = { ...player.h.enshrinedLooks, [boxKey(id, look)]: true }
+	}
+	// Bill's Transfer: the Pokémon chosen (or picked) to come along into the next run.
+	player.h.carried = carryPicks()
+	player.h.carry = []
 	player.h.hall.push({ team, time: player.h.resetTime || 0, challenge: player.h.activeChallenge || null, region: currentRegion() })
 	if (currentRegion() !== "kanto") player.h.regionsBeaten = { ...player.h.regionsBeaten, [currentRegion()]: true }
 	resetRunPokedex()
+}
+
+// ---- Enshrinement ----
+// Every species that has entered the Hall of Fame in a Champion team counts for good: a little
+// Research Points and Fame each, and milestones up to all 386. The bonuses are tuned for the normal
+// species (100%); Shiny, Albino and Melanistic Pokémon and forms enshrined are extra on top.
+const ENSHRINE_RP = 0.005
+const ENSHRINE_FAME = 0.002
+/** Species enshrined: each milestone is Fame ×1.1 for every Hall of Fame entry. */
+const ENSHRINE_MILESTONES = [25, 50, 100, 151, 251, 386]
+/** Shiny, Albino, Melanistic Pokémon and forms enshrined: each milestone is Research Points ×1.1. */
+const LOOK_MILESTONES = [5, 15, 30, 60]
+function enshrinedSpecies() { return Object.keys(player.h?.enshrined || {}).length }
+function enshrinedLooks() { return Object.keys(player.h?.enshrinedLooks || {}).length }
+function enshrineRpMult() {
+	return (1 + ENSHRINE_RP * (enshrinedSpecies() + enshrinedLooks())) * Math.pow(1.1, LOOK_MILESTONES.filter(n => enshrinedLooks() >= n).length)
+}
+function enshrineFameMult() {
+	return (1 + ENSHRINE_FAME * (enshrinedSpecies() + enshrinedLooks())) * Math.pow(1.1, ENSHRINE_MILESTONES.filter(n => enshrinedSpecies() >= n).length)
+}
+
+// ---- Bill's Transfer ----
+// The reward of Light Traveller (a challenge that opens once Johto is beaten): box Pokémon come
+// along into the next run at the starter's level, so a Chikorita or a Mewtwo can enter Kanto's Hall.
+// One slot, and one more for each later region beaten, up to six.
+const CARRY_REGIONS = ["hoenn", "orange", "sevii", "orre", "xd"]
+function carrySlots() { return automationOn("carry") ? Math.min(6, 1 + CARRY_REGIONS.filter(regionBeaten).length) : 0 }
+function toggleCarry(key) {
+	const carry = player.h.carry || []
+	player.h.carry = carry.includes(key) ? carry.filter(k => k !== key) : carry.length < carrySlots() ? [...carry, key] : carry
+}
+/** The chosen Pokémon still in the box, then (with auto-pick on) the strongest species never enshrined. */
+function carryPicks() {
+	const slots = carrySlots()
+	if (!slots) return []
+	const picks = (player.h.carry || []).filter(k => player.t.box[k]).slice(0, slots)
+	if (player.h.carryAuto !== false) {
+		const fresh = Object.keys(player.t.box).filter(k => !player.h.enshrined[speciesOf(k)] && !picks.some(p => speciesOf(p) === speciesOf(k)))
+			.sort((a, b) => battlerScore(speciesOf(b), player.t.box[b].level) - battlerScore(speciesOf(a), player.t.box[a].level))
+		for (const k of fresh) if (picks.length < slots && !picks.some(p => speciesOf(p) === speciesOf(k))) picks.push(k)
+	}
+	return picks
+}
+/** At the start of a run (after the starter): the carried Pokémon join the box at the starter's level. */
+function unpackCarried(level) {
+	const carried = player.h?.carried || []
+	for (const key of carried) addToBox(speciesOf(key), level, lookOf(key) || "normal")
+	if (carried.length) pkLog(`Bill's Transfer: ${carried.map(keyName).join(", ")} join${carried.length === 1 ? "s" : ""} you at Lv. ${level}.`, "new", { id: speciesOf(carried[0]) })
+	if (player.h) player.h.carried = []
 }
 
 function starterChoices() { return hofEntries() >= 3 ? [...STARTERS, 25, 133] : STARTERS }
@@ -1292,6 +1356,7 @@ const AUTOMATIONS = {
 	notes: { challenge: 51, name: "Professor's Notes", text: "Each run starts having seen every species your last run saw, so surveys go faster." },
 	journal: { challenge: 52, name: "Breeder's Journal", text: "Eggs of species you've hatched in any run hatch after one battle." },
 	hunter: { challenge: 53, name: "Hunter's Instinct", text: "Shiny hunting targets a species on your route with no shiny yet." },
+	carry: { challenge: 61, name: "Bill's Transfer", text: "Box Pokémon come along into your next run at the starter's level (pick them on the Hall of Fame page; empty slots take your strongest species never enshrined). One slot, one more for each of Hoenn, the Orange and Sevii Islands, Orre and Orre (XD) beaten, up to six." },
 }
 /** Hatchling Run and Poacher's Net weaken your Pokémon, except those hatched or caught in the Safari. */
 function challengeHandicap(entry, key = "") {

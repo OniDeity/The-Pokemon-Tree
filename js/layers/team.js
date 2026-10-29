@@ -10,7 +10,8 @@ function chooseStarter(id) {
 	// With the Auto-Search Drone kept from the start, the search starts on its own.
 	if (hasFieldUpgrade(11)) player.f.searching = true
 	player.f.zone = regionZones()[0].id
-	pkLog(`${region().giver || `Professor ${region().professor}`} gives you ${speciesName(id)}. Your research begins on ${regionZones()[0].name}!`, "new", { id })
+	const first = regionZones()[0].name
+	pkLog(region().starterLog ? region().starterLog(id, first) : `${region().giver || `Professor ${region().professor}`} gives you ${speciesName(id)}. Your research begins on ${first}!`, "new", { id })
 	showTab("f")
 }
 /** A journey region's starters (Birch's, and the side games') begin the run there. */
@@ -41,6 +42,8 @@ function moveToLead(key) {
 	if (i > 0) { party.splice(i, 1); party.unshift(key) }
 }
 function itemEvolveByKey(key, into) { itemEvolve(key, Number(into)) }
+function levelEvolveByKey(key, into) { levelEvolve(key, Number(into)) }
+function purifyByKey(key) { purify(key) }
 
 function xpBar(key, entry) {
 	const growth = SPECIES[speciesOf(key)].growth
@@ -50,9 +53,31 @@ function xpBar(key, entry) {
 	return `<div class="pk-xp"><div style="width:${pct}%;background:${capped ? "#F08030" : "#6890F0"}"></div></div>`
 }
 
+/** A Shadow Pokémon's heart, and the Relic Stone's button once it has opened. */
+function heartHtml(key) {
+	const entry = player.t.box[key]
+	if (!isShadow(key)) return ""
+	if (entry.heart > 0) return `<small>Heart closed: ${entry.heart} more wild battles won in the party.</small><br>`
+	if (!mechanicOn("relicStone")) return `<small>Its heart has opened: Agate Village's Relic Stone can purify it.</small><br>`
+	return `<button class="pk-button" ${canPurify(key) ? `onclick="purifyByKey('${key}')"` : "disabled"}>Purify at the Relic Stone</button><br>`
+}
+
+/** Branching level evolutions it has reached: a button for each (shown when there's a choice to make). */
+function levelEvolutionButtons(key) {
+	const entry = player.t.box[key], s = SPECIES[speciesOf(key)]
+	const branches = s.evolutions.filter(e => e.method === "level" && e.level != null)
+	if (formOf(key) || branches.length < 2) return ""
+	return branches.filter(e => entry.level >= e.level && evolutionOpen(speciesOf(key), e.into)).map(e => {
+		const label = `Lv. ${e.level} → ${speciesName(e.into)}`
+		return canLevelEvolve(key, e.into)
+			? `<button class="pk-button" onclick="levelEvolveByKey('${key}', ${e.into})">${label}</button>`
+			: `<button class="pk-button" disabled>${label}<br><small>(you have ${keyName(boxKey(e.into, variantOf(key)))})</small></button>`
+	}).join("")
+}
+
 function evolutionButtons(key) {
 	if (formOf(key)) return ""
-	return itemEvolutions(speciesOf(key), badges()).map(e => {
+	return levelEvolutionButtons(key) + itemEvolutions(speciesOf(key), badges()).map(e => {
 		const cost = itemEvolutionCost(e)
 		const label = `${evolutionLabel(e)} → ${speciesName(e.into)}`
 		// Say why a button is locked: tooltips don't show on phones.
@@ -68,7 +93,11 @@ function evolutionButtons(key) {
 function monCard(key, inParty) {
 	const entry = player.t.box[key]
 	const s = SPECIES[speciesOf(key)]
-	const lvEvo = s.evolutions.find(e => e.method === "level" && e.level)
+	const lvEvos = s.evolutions.filter(e => e.method === "level" && e.level)
+	const lvEvo = lvEvos.find(e => canEvolveInto(key, e.into)) || lvEvos[0]
+	const lvText = !lvEvo ? "" : lvEvos.some(e => canEvolveInto(key, e.into))
+		? `Evolves at Lv. ${lvEvo.level}${lvEvos.length > 1 ? ` (${lvEvos.map(e => speciesName(e.into)).join(" or ")})` : ""}`
+		: `Won't evolve: you have ${lvEvos.map(e => keyName(boxKey(e.into, variantOf(key)))).join(" and ")}`
 	const ch = challengeStatus(key)
 	return `<div class="pk-card ${inParty ? "pk-card-party" : ""} ${ch ? (ch.ok ? "pk-card-exempt" : "pk-card-handicap") : ""}">
 		${ch ? `<small class="${ch.ok ? "pk-exempt" : "pk-handicap"}">${ch.text}</small><br>` : ""}
@@ -76,7 +105,7 @@ function monCard(key, inParty) {
 		<b>${keyName(key)}</b> Lv. ${entry.level}<br>
 		<small>${s.types.map(t => `<span class="pk-type pk-type-${t}">${t}</span>`).join(" ")}</small>
 		${xpBar(key, entry)}
-		${formOf(key) ? `<small>${FORMS[formOf(key)].text}</small><br>` : lvEvo ? `<small>${canEvolveInto(key, lvEvo.into) ? `Evolves at Lv. ${lvEvo.level}` : `Won't evolve: you have ${keyName(boxKey(lvEvo.into, variantOf(key)))}`}</small><br>` : ""}
+		${formOf(key) ? `<small>${FORMS[formOf(key)].text}</small><br>${heartHtml(key)}` : lvEvo ? `<small>${lvText}</small><br>` : ""}
 		${inParty
 			? `${player.t.party[0] === key ? "<small><b>Lead</b></small>" : `<button class="pk-button" onclick="moveToLead('${key}')">Lead</button>`}
 			   <button class="pk-button" ${player.t.party.length > 1 && canLeaveParty(key) ? `onclick="togglePartyMember('${key}')"` : "disabled"}>To box</button>`

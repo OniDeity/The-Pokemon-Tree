@@ -13,6 +13,12 @@ function dexMatches(id) {
 	if (mode === "hatched") return !!d.hatched[id]
 	return true
 }
+/** Shadow Pokémon purified at the Relic Stone (for good), and their milestones. */
+function purifiedHtml() {
+	if (!mechanicOn("snagMachine") && !purifiedSpecies()) return ""
+	return `<h3>Purified Shadow Pokémon</h3><br>Species purified (for good): <b>${purifiedSpecies()}</b><br>${PURIFY_MILESTONES.map(([n, text]) => `<span class="${purifyMilestone(n) ? "" : "pk-done"}">${n}: ${text}${purifyMilestone(n) ? " ✓" : ""}</span>`).join("<br>")}`
+}
+
 function dexHtml() {
 	let html = `<div class="pk-dex">`
 	for (const id of regionDex(viewedDexRegion())) {
@@ -99,7 +105,7 @@ addLayer("d", {
 				["display-text", () => dexHtml()],
 			],
 		},
-		Milestones: { content: ["milestones"] },
+		Milestones: { content: ["milestones", "blank", ["display-text", () => purifiedHtml()]] },
 		Forms: {
 			content: [["display-text", () => formsHtml()]],
 			unlocked() { return hofEntries() >= 1 || formsCaught() > 0 },

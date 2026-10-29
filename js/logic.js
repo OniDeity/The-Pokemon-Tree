@@ -1286,7 +1286,7 @@ const AUTOMATIONS = {
 	eggs: { challenge: 32, name: "Day Care Lady", text: "Keeps the Day Care's pair laying Eggs, choosing pairs whose Eggs hatch into species you haven't hatched yet." },
 	safari: { challenge: 33, name: "Warden's Pass", text: "Safari trips are free and start on their own, and each Pokémon gets the strategy most likely to catch it." },
 	route: { challenge: 41, name: "Route Planner", text: "The Field moves itself to an open route with species you haven't seen, else one with Pokémon your box is missing." },
-	coach: { challenge: 42, name: "Team Coach", text: "Your party rebuilds itself with the Pokémon that do best against the next Gym, League or story battle." },
+	coach: { challenge: 42, name: "Team Coach", text: "Your party rebuilds itself with the Pokémon that do best against the next Gym, League or story battle. Before the Champion, it brings in as many species never enshrined as still win (+5 Fame each)." },
 	train: { challenge: 42, name: "Box Training", text: "With Team Coach and the Exp. Share, the party keeps only as many as it needs to win the next battle and fills the other slots with box Pokémon still waiting to evolve by level, so they catch up and evolve." },
 	items: { challenge: 43, name: "Item Kit", text: "Evolution stones and trades are used, gifts, trades, prizes and legendaries taken, and opened Shadow Pokémon purified, as soon as you can." },
 	notes: { challenge: 51, name: "Professor's Notes", text: "Each run starts having seen every species your last run saw, so surveys go faster." },
@@ -2412,10 +2412,37 @@ function trainingParty(best) {
 	const train = trainees(best.slice(0, core)).slice(0, best.length - core)
 	return [...best.slice(0, core), ...train, ...best.slice(core)].slice(0, best.length)
 }
+/** True while the next battle is the Champion's, whose win records the party in the Hall of Fame. */
+function facingChampion() {
+	return badges() >= allBadges() && !isChampion() && !leagueStoryGate() && player.l.beaten === leagueTrainers().length - 1
+}
+/**
+ * New faces for the Hall of Fame (+5 Fame each): before the Champion, the Team Coach swaps the
+ * weakest already-enshrined (or repeated) species in the party for the strongest species never
+ * enshrined, one at a time, keeping each swap only while the forecast still wins.
+ */
+function newFacesParty(best) {
+	const foes = nextOpponent()
+	if (!foes || !battle(partyBattlers(best), foes).win) return best
+	const team = [...best]
+	const fresh = k => !player.h.enshrined[speciesOf(k)]
+	const candidates = Object.keys(player.t.box).filter(k => fresh(k) && !team.includes(k) && canJoinParty(k) && !inDayCare(k))
+		.sort((a, b) => battlerScore(speciesOf(b), player.t.box[b].level) - battlerScore(speciesOf(a), player.t.box[a].level))
+	for (const k of candidates) {
+		if (team.some(t => speciesOf(t) === speciesOf(k))) continue
+		// The weakest slot not already a new face (the list is strongest first); a repeated new species counts once.
+		const slot = team.map((t, i) => i).reverse().find(i => !fresh(team[i]) || team.findIndex(t => speciesOf(t) === speciesOf(team[i])) !== i)
+		if (slot === undefined) break
+		const old = team[slot]
+		team[slot] = k
+		if (!battle(partyBattlers(team), foes).win) team[slot] = old
+	}
+	return team
+}
 function autoPartyTick() {
 	if (!automationOn("coach") || !player.t.starter) return
 	if (inChallenge(42)) return
-	const best = trainingParty(bestParty())
+	const best = facingChampion() ? newFacesParty(bestParty()) : trainingParty(bestParty())
 	if (best.length && best.join() !== player.t.party.join()) player.t.party = best
 }
 

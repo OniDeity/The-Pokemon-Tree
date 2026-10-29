@@ -238,6 +238,10 @@ Sister project: OniDeity/idle-pokemon (its data is the source of ours).
   it and stay out of `frontierZones`, `revisitZones` and the zone list until then. Fame: buyable 71,
   upgrades 81/82 (Shadow Monitor ×2 snag). Pacing: `SIM_START=xd SIM_FAME=2000` 4.8-5.6 h; 1200 Fame
   ~12 h (Snattle walls at 3.7+).
+- New faces (v0.29.1): Team Coach's `autoPartyTick` uses `newFacesParty(bestParty())` while
+  `facingChampion()` (the Champion's win records `player.l.team`): the weakest enshrined or repeated
+  species swap for the strongest never-enshrined ones, each kept only if the forecast still wins.
+  The simulator still fields `bestParty()`, so its Fame is unchanged.
 - Challenge highlights: `challengeStatus(key)`; hatching or a Safari catch marks an owned entry's
   `origin`, and `canEvolveInto` lets an entry with an origin evolve into one without.
 - Regions and the run's Pokédex (v0.12): `REGIONS` (`regionDex`, `currentRegion`, `dexRegions`)

@@ -43,7 +43,7 @@ const KANTO_BADGE_TEXT = [
 function badgeMilestoneText(i) {
 	if (currentRegion() === "kanto") return KANTO_BADGE_TEXT[i]
 	const items = (regionGyms()[i]?.keyItems || []).map(id => REGION_RULES.keyItems[id]?.name || KEY_ITEM_NAMES[id] || id)
-	const always = i === allBadges() - 1 ? "The Pokémon League." : ["Keep the Auto-Search Drone. Training Weights are for sale. (Every two badges also add a party slot.)", "", "Keep Running Shoes. Evolution stones and trades."][i] || ""
+	const always = i === allBadges() - 1 ? `${region().league?.name || "The Pokémon League"}.` : ["Keep the Auto-Search Drone. Training Weights are for sale. (Every two badges also add a party slot.)", "", "Keep Running Shoes. Evolution stones and trades."][i] || ""
 	return [always, items.length ? `${items.join(", ")}.` : ""].filter(Boolean).join(" ") || "The way on to the next Gym."
 }
 

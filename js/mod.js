@@ -17,11 +17,16 @@ let modInfo = {
 
 // Set your version in num and name
 let VERSION = {
-	num: "0.29.1",
-	name: "Orre (XD) and Poké Spots",
+	num: "0.30",
+	name: "Side journey visits",
 }
 
 let changelog = `<h1>Changelog:</h1><br>
+	<h3>v0.30 Side journey visits</h3><br>
+		- Once you've beaten a side journey, other journeys' Champions can visit it after their League: the Orange Islands (Drake at Pummelo Stadium), the Sevii Islands (the Trainer Tower), and Orre (XD) at Citadark Isle. Each visit beaten is Fame ×1.3 for that Hall of Fame entry, like the visits to Kanto, Johto, Hoenn and Orre, and its routes open on the Map.<br>
+		- Who goes where: Johto's Champion can visit the Orange and Sevii Islands (alongside Red); Hoenn's, all four side journeys; the Orange and Sevii Islands each other; Colosseum's Orre, XD's. A first journey never waits on a side journey you haven't beaten.<br>
+		- Pacing: the Orange Islands and Orre (XD) take a little longer (about 4.5-8 h and 5.5-6.5 h for a first journey, from 2.5-7 and 5-5.5).<br>
+		- Poké Spots in other regions keep to that region's species (Kanto's draws Sandshrew and Zubat). The last badge's milestone names the region's finale.<br><br>
 	<h3>v0.29.1 New faces</h3><br>
 		- Team Coach: before the Champion, the party brings in as many species never enshrined in the Hall of Fame as can still win (+5 Fame each). Against the Gyms, the Elite Four and the story it still fields the strongest team.<br><br>
 	<h3>v0.29 Orre (XD) and Poké Spots</h3><br>

@@ -1666,6 +1666,16 @@ const MAGMA = (team, extra = {}) => ({ name: "Team Magma Grunt", rocket: true, t
 // where each journey's Champion can go, and how strong that region's League is then (null: its
 // routes only, like Kanto in Johto's post-game, whose Leaders are KANTO_GYM_CHAPTERS).
 const VISIT_FAME = 1.3
+/** League strengths of the visits to side journeys, by host. */
+// Just under where each host's post-League team first beats them (`SIM_BEATEN`): like the other
+// visits, a step above walls for hours.
+const VISIT_SIDE = {
+	johto: { orange: 31, sevii: 20 },
+	orange: { sevii: 8.5 },
+	sevii: { orange: 15 },
+	orre: { xd: 12.5 },
+	hoenn: { orange: 37, sevii: 18.5, orre: 22.5, xd: 32 },
+}
 /** Kanto's Champion answers the Hoenn starter's type like the rival answers Oak's (Treecko → Charizard). */
 const VISIT_KANTO_CHAMPION = { 252: 1, 255: 4, 258: 7 }
 const REVISITS = {
@@ -1679,26 +1689,39 @@ const REVISITS = {
 	// Colosseum is the visit.
 	orre: { name: "Orre", place: "Realgam Tower", chapter: "visitOrre", closed: ORRE_ZONES.map(z => z.id), via: "by motorbike across the desert",
 		trainers: ORRE_FINALE.map(t => ({ name: t.name, team: t.team })) },
+	// The side journeys, once beaten: the islands' routes and their finales, XD's Poké Spots and Citadark Isle.
+	orange: { name: "the Orange Islands", place: "Pummelo Stadium", chapter: "visitOrange", closed: [], via: "by ferry to Valencia Island",
+		trainers: [{ name: ORANGE_CHAMPION.name, team: ORANGE_CHAMPION.team, quote: "So you've come back to take on the Supreme Gym Leader again?" }] },
+	sevii: { name: "the Sevii Islands", place: "Trainer Tower", chapter: "visitSevii", closed: [], via: "by the Seagallop ferry",
+		trainers: SEVII_TOWER.map(t => ({ name: t.name, team: t.team })) },
+	xd: { name: "Orre (XD)", place: "Citadark Isle", chapter: "visitXd", closed: XD_ZONES.filter(z => z.trainerBattles).map(z => z.id), via: "by the S.S. Libra's sister ship",
+		trainers: XD_FINALE.map(t => ({ name: t.name, team: t.team })) },
 }
+// A side journey (Orange, Sevii, Orre, XD) can be visited only once it has been beaten
+// (`visitable`), so these never stand between a first journey and its Hall of Fame entry.
 const VISITS = {
-	johto: { kanto: null },
-	orange: { kanto: 11 },
-	sevii: { kanto: 9 },
-	orre: { kanto: 9, johto: 11, hoenn: 9 },
+	johto: { kanto: null, orange: VISIT_SIDE.johto.orange, sevii: VISIT_SIDE.johto.sevii },
+	orange: { kanto: 11, sevii: VISIT_SIDE.orange.sevii },
+	sevii: { kanto: 9, orange: VISIT_SIDE.sevii.orange },
+	orre: { kanto: 9, johto: 11, hoenn: 9, xd: VISIT_SIDE.orre.xd },
 	xd: { hoenn: 9, orre: 9 },
-	hoenn: { kanto: 22, johto: 26 },
+	hoenn: { kanto: 22, johto: 26, orange: VISIT_SIDE.hoenn.orange, sevii: VISIT_SIDE.hoenn.sevii, orre: VISIT_SIDE.hoenn.orre, xd: VISIT_SIDE.hoenn.xd },
 }
+/** "Johto's", "the Orange Islands'". */
+function possessive(name) { return name.endsWith("s") ? `${name}'` : `${name}'s` }
+/** Kanto is always there; every other region once it has been beaten. */
+function visitable(r) { return r === "kanto" || regionBeaten(r) }
 /** A visit's Story chapter: Hoenn's keep their first ids ("visitKanto"); later hosts prefix theirs. */
 function visitChapterId(host, r) { return host === "hoenn" ? REVISITS[r].chapter : `${host}${REVISITS[r].chapter[0].toUpperCase()}${REVISITS[r].chapter.slice(1)}` }
-function visitChapters(host = currentRegion()) { return Object.entries(VISITS[host] || {}).filter(([, strength]) => strength).map(([r]) => visitChapterId(host, r)) }
+function visitChapters(host = currentRegion()) { return Object.entries(VISITS[host] || {}).filter(([r, strength]) => strength && visitable(r)).map(([r]) => visitChapterId(host, r)) }
 /** The earlier regions open to this journey's Champion: Kanto in Johto's post-game, Kanto and Johto in Hoenn's. */
-function revisitRegions() { return isChampion() ? Object.keys(VISITS[currentRegion()] || {}) : [] }
+function revisitRegions() { return isChampion() ? Object.keys(VISITS[currentRegion()] || {}).filter(visitable) : [] }
 function visitsCleared() { return visitChapters().filter(chapterCleared).length }
 /** The journey's last battles before its Hall of Fame entry: Red in Johto, the visits elsewhere. */
 function journeyFinaleLeft() {
 	if (!isChampion()) return []
-	if (currentRegion() === "johto") return chapterCleared("mtSilver") ? [] : ["mtSilver"]
-	return visitChapters().filter(id => !chapterCleared(id))
+	const left = visitChapters().filter(id => !chapterCleared(id))
+	return currentRegion() === "johto" && !chapterCleared("mtSilver") ? ["mtSilver", ...left] : left
 }
 
 const HOENN_CHAPTERS = [
@@ -1743,7 +1766,7 @@ const HOENN_CHAPTERS = [
 	// Post-game visits: Hoenn's Champion travels to the earlier regions and takes on their Leagues.
 	...Object.entries(VISITS).flatMap(([host, regions]) => Object.entries(regions).filter(([, strength]) => strength).map(([r, strength]) => ({
 		id: visitChapterId(host, r), region: host, visit: r, name: REVISITS[r].place, badges: 0, champion: true, strength,
-		reward: `${REVISITS[r].name}'s League bows to ${host[0].toUpperCase()}${host.slice(1)}'s Champion: Fame ×${VISIT_FAME} for this Hall of Fame entry.`, trainers: REVISITS[r].trainers }))),
+		reward: `${REVISITS[r].place} bows to ${possessive(REVISITS[host].name)} Champion: Fame ×${VISIT_FAME} for this Hall of Fame entry.`, trainers: REVISITS[r].trainers }))),
 ]
 
 // Kanto's Gyms in Johto's post-game (HeartGold/SoulSilver's first battles, from Serebii). Lt. Surge
@@ -1966,6 +1989,7 @@ function chapterOpen(ch) {
 	if (!storyState(ch)) return false
 	if (chapterRegion(ch) !== currentRegion()) return false
 	if (ch.champion && !isChampion()) return false
+	if (ch.visit && !visitable(ch.visit)) return false
 	if (badges() < ch.badges) return false
 	if (ch.needs && ![].concat(ch.needs).every(chapterCleared)) return false
 	if (ch.needGameCorner && !gameCornerOpen()) return false
@@ -2224,7 +2248,7 @@ const REGIONS = {
 		name: "Orange Islands", professor: "Ivy", starters: [25, 175, 131], zones: ORANGE_ZONES, gyms: ORANGE_GYMS,
 		eliteFour: [], champion: () => ORANGE_CHAMPION,
 		gymStrength: [3.2, 4, 3.6, 4.8], eliteFourStrength: 4.8, championStrength: 5.4,
-		badgeImage: 25, dex: ORANGE_DEX, zoneCost: 1, pace: 12, maxSpecies: 251, fame: 1.5,
+		badgeImage: 25, dex: ORANGE_DEX, zoneCost: 1, pace: 18, maxSpecies: 251, fame: 1.5,
 		opens: { after: "kanto", entries: 3 },
 		journey: { button: 51, intro: "Professor Ivy, on Valencia Island, studies the Orange Archipelago's unusual Pokémon and has three for a researcher willing to island-hop." },
 		league: { name: "Pummelo Stadium", survey: "Pummelo Island", trainers: "Drake, alone, at the Winner's Cup" },
@@ -2272,7 +2296,7 @@ const REGIONS = {
 		starterLog: (id, zone) => `Professor Krane sends you off with ${speciesName(id)} and the lab's new Snag Machine. Your journey begins at ${zone}!`,
 		zones: XD_ZONES, gyms: XD_GYMS, eliteFour: XD_FINALE.slice(0, 1), champion: () => XD_FINALE[1],
 		gymStrength: [2.9, 3.55, 4, 4.5, 5.2], eliteFourStrength: 5.4, championStrength: 5.6,
-		trialLabel: gym => `Cipher Admin ${gym.name}`, badgeImage: 38, dex: XD_DEX, zoneCost: 1, pace: 40, maxSpecies: 386, fame: 3.5,
+		trialLabel: gym => `Cipher Admin ${gym.name}`, badgeImage: 38, dex: XD_DEX, zoneCost: 1, pace: 46, maxSpecies: 386, fame: 3.5,
 		opens: { after: "orre", entries: 3 },
 		journey: { button: 81, intro: "Five years after Cipher's fall, Shadow Lugia sinks the S.S. Libra. At Pokémon HQ, Professor Krane has an Eevee and a new Snag Machine for whoever will look into it." },
 		league: { name: "Citadark Isle", survey: "Citadark Isle and its tower", trainers: "XD001, Shadow Lugia, then Grand Master Greevil and his Shadow birds, in a row" },
@@ -2300,8 +2324,12 @@ function currentRegion() { return player.t?.region || "kanto" }
  * in the simulator, which plays perfectly; later runs speed up through Fame.
  */
 function pace() { return region().pace }
-// The Poké Spots other regions get with the `pokeSpots` mechanic (after their Pokédex lists are built).
-for (const z of XD_CARRIED_SPOTS) REGIONS[z.region].zones.push(z)
+// The Poké Spots other regions get with the `pokeSpots` mechanic (after their Pokédex lists are built),
+// keeping to the species that region has (Kanto's spot draws Sandshrew and Zubat, not Gligar).
+for (const z of XD_CARRIED_SPOTS) {
+	for (const p of Object.keys(z.pools)) z.pools[p] = z.pools[p].filter(([id]) => id <= REGIONS[z.region].maxSpecies)
+	REGIONS[z.region].zones.push(z)
+}
 
 function region() { return REGIONS[currentRegion()] }
 /** Points the engine at the current region's rules (call when the region may have changed). */

@@ -242,6 +242,16 @@ Sister project: OniDeity/idle-pokemon (its data is the source of ours).
   `facingChampion()` (the Champion's win records `player.l.team`): the weakest enshrined or repeated
   species swap for the strongest never-enshrined ones, each kept only if the forecast still wins.
   The simulator still fields `bestParty()`, so its Fame is unchanged.
+- Side journey visits (v0.30, side games phase 5): `REVISITS` orange (Drake at Pummelo Stadium), sevii
+  (Trainer Tower), xd (Citadark Isle; its trainer places closed). `visitable(r)` (Kanto, or
+  `regionBeaten`) filters `visitChapters`/`revisitRegions` and `chapterOpen`, so side visits only
+  appear once that side journey is beaten and never hold a first journey up. `VISIT_SIDE` strengths
+  by host (johto 31/20, orange→sevii 8.5, sevii→orange 15, orre→xd 12.5, hoenn 37/18.5/22.5/32): just
+  under the post-League cliff measured with `SIM_BEATEN=orange,sevii,...` (the simulator marks those
+  regions beaten); every host clears them within ~0.5 h. Johto's finale is Red plus its visits
+  (`journeyFinaleLeft`). Pacing: Orange pace 12 → 18 (4.4-8 h, median ~6.2 at 200 Fame), XD 40 → 46
+  (5.4-6.3 h at 2000); Sevii 4.3-7.4, Orre 4.5-7.4 unchanged. Carried Poké Spots keep to their
+  region's `maxSpecies`. Visit rewards read "<place> bows to <host>'s Champion" (`possessive`).
 - Challenge highlights: `challengeStatus(key)`; hatching or a Safari catch marks an owned entry's
   `origin`, and `canEvolveInto` lets an entry with an origin evolve into one without.
 - Regions and the run's Pokédex (v0.12): `REGIONS` (`regionDex`, `currentRegion`, `dexRegions`)
@@ -410,7 +420,7 @@ The owner wants every Hall of Fame to feel like a proper reset:
   that had none; done in v0.27); (3)
   Shadow Pokémon and Colosseum (trainer-battle places, snagging, hearts, Relic Stone, sprites; done in
   v0.28 with the branching evolutions below);
-  (4) XD (Poké Spots, carried mechanics; done in v0.29); (5) post-game visits and pacing for each.
+  (4) XD (Poké Spots, carried mechanics; done in v0.29); (5) post-game visits and pacing for each (done in v0.30).
 - Bundled with phase 3 (the owner's call; done in v0.28): branching level evolutions. Before, `levelEvolution` took
   the first listed branch (Wurmple → Silcoon, Tyrogue → Hitmonlee, Eevee's friendship → Espeon)
   and a Pokémon whose first branch was owned never evolved. Now level branches get choice

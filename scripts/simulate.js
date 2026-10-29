@@ -5,6 +5,7 @@
 //   SIM_START=<region> starts a journey there, after the Hall of Fame entries that open it, with its
 //   professor's starter of the same type (SIM_HOENN=1 is SIM_START=hoenn: three Kanto and three Johto
 //   entries, Birch's starter). SIM_FAME=n spends n Fame in the Hall of Fame's shop before the run.
+//   SIM_BEATEN=orange,sevii counts those regions as beaten (their post-game visits open).
 //   SIM_HOURS=n stops after n hours. SIM_RUNS=n enters the Hall of Fame and replays n runs in all,
 //   buying Fame upgrades; SIM_CHALLENGE=id plays the runs after the first under that challenge.
 // Runs js/data/kanto.js, js/engine.js and js/logic.js unchanged against a fake `player`.
@@ -104,6 +105,8 @@ if (START) run(`(() => {
 	}
 	player.h.hall = hall; player.h.regionsBeaten = beaten; startInRegion("${START}")
 })()`)
+// SIM_BEATEN=orange,sevii marks regions as beaten before (their visits open after the League).
+if (process.env.SIM_BEATEN) run(`player.h.regionsBeaten = { ...player.h.regionsBeaten, ...Object.fromEntries(${JSON.stringify(process.env.SIM_BEATEN.split(","))}.map(r => [r, true])) }`)
 if (process.env.SIM_FAME) run(`player.h.points = new Decimal(${Number(process.env.SIM_FAME)}); fameShop()`)
 run(`startRun(${START ? `REGIONS["${START}"].starters[Math.max(0, STARTERS.indexOf(${starter})) % REGIONS["${START}"].starters.length]` : starter})`)
 

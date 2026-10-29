@@ -8,6 +8,7 @@
 //   SIM_BEATEN=orange,sevii counts those regions as beaten (their post-game visits open).
 //   SIM_HOURS=n stops after n hours. SIM_RUNS=n enters the Hall of Fame and replays n runs in all,
 //   buying Fame upgrades; SIM_CHALLENGE=id plays the runs after the first under that challenge.
+//   SIM_PACE_<region>=x and SIM_SCALE_<region>=x (Gyms, Elite Four, Champion) are tuning knobs.
 //   SIM_SAVE=file enters the Hall of Fame at the end and saves what lasts (the Hall of Fame and the
 //   Pokédex's records); SIM_LOAD=file starts from such a save (its Fame spent first) instead of the
 //   made-up Hall of Fame entries, so a region can be tested after real earlier runs. saves/ holds a
@@ -98,6 +99,15 @@ function fameShop() {
 const run = code => vm.runInContext(code, ctx)
 const RUNS = Number(process.env.SIM_RUNS || 1)
 const CHALLENGE = process.env.SIM_CHALLENGE || ""
+// Tuning knobs: SIM_PACE_<region>=x sets a region's pace; SIM_SCALE_<region>=x multiplies its Gyms',
+// Elite Four's and Champion's strengths.
+for (const [k, v] of Object.entries(process.env)) {
+	const m = k.match(/^SIM_(PACE|SCALE)_(\w+)$/)
+	if (!m) continue
+	const r = m[2].toLowerCase()
+	if (m[1] === "PACE") run(`REGIONS.${r}.pace = ${Number(v)}`)
+	else run(`REGIONS.${r}.gymStrength = REGIONS.${r}.gymStrength.map(x => x * ${Number(v)}); REGIONS.${r}.eliteFourStrength *= ${Number(v)}; REGIONS.${r}.championStrength *= ${Number(v)}`)
+}
 const LOAD = process.env.SIM_LOAD
 if (LOAD) {
 	const saved = JSON.parse(fs.readFileSync(LOAD, "utf8"))

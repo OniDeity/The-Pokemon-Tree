@@ -268,6 +268,16 @@ Sister project: OniDeity/idle-pokemon (its data is the source of ours).
   `SIM_JOHTO`; repeat runs with `SIM_START` replay that region. `scripts/saveBank.sh` builds `saves/`
   (kanto-3, johto-3, orange-3, sevii-3, hoenn-3, orre-3, xd-3: three real entries each, chained), and
   `scripts/saveToImport.js` writes each as a `.txt` for the game's Import (lands on the starter screen).
+- Pacing for real journeys (v0.32, the owner's call: retune with the save bank): made-up starts
+  (`SIM_START`/`SIM_JOHTO` + `SIM_FAME`) miss the lasting records three runs leave (kanto-3 alone: 67
+  shiny and 49 albino species, 195 story wins, 87 Rockets, ~ ×2 speed on top of Fame; Fame alone took a
+  Johto journey from 9-15 h to ~4 h). Every journey is now tuned from the bank (`SIM_LOAD=saves/<prev>-3.json`,
+  knobs `SIM_PACE_<region>`/`SIM_SCALE_<region>`; time scales about linearly with pace except
+  survey luck): paces Johto 2 → 21 (journeys 9.7-10.9 h from kanto-3), Hoenn 18 → 42 (~7-12.7 h at
+  45, median ~11.5), Orange 18 → 40 (~4-7 h), Sevii 18 → 30 (3.6-8.5 h; surveys of rare species make
+  it seed-swingy), Orre 28 → 280 (5.6-7 h), XD 46 → 290 (~6-6.6 h). Kanto unchanged. After a pacing
+  change, rebuild the bank in order (scripts/saveBank.sh) and re-check the regions after it. The older
+  `SIM_FAME` figures in these notes are from before this. Players who skip records arrive slower.
 - Challenge highlights: `challengeStatus(key)`; hatching or a Safari catch marks an owned entry's
   `origin`, and `canEvolveInto` lets an entry with an origin evolve into one without.
 - Regions and the run's Pokédex (v0.12): `REGIONS` (`regionDex`, `currentRegion`, `dexRegions`)

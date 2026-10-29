@@ -17,11 +17,13 @@ let modInfo = {
 
 // Set your version in num and name
 let VERSION = {
-	num: "0.32",
-	name: "Pacing for real journeys",
+	num: "0.33",
+	name: "Pacing for completionists",
 }
 
 let changelog = `<h1>Changelog:</h1><br>
+	<h3>v0.33 Pacing for completionists</h3><br>
+		- Journeys are now tuned for a player who completes each journey's Pokédex (normal forms, whatever is open at the time) before entering the Hall of Fame, training box Pokémon to evolve them. A first run still takes about 10-12 h (Kanto, Johto, Hoenn) or 5-8 h (side journeys) with that included. Hoenn's pace is a little quicker, the Sevii Islands' a little slower.<br><br>
 	<h3>v0.32 Pacing for real journeys</h3><br>
 		- Every journey after Kanto is retuned against what a player really brings to it: the Fame, upgrades and lifetime records (shinies, story wins, enshrined Pokémon) of three runs of each region before. Tuned with made-up starts, they had grown far too quick with all that: a Johto journey took about 2.5 h, Hoenn 5, Orre under 1. Now a first Johto or Hoenn journey takes about 10-12 h of play again, and a first side journey 5-8 h. Kanto is unchanged.<br><br>
 	<h3>v0.31 The Hall's honours</h3><br>

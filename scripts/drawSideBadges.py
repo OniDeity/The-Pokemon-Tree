@@ -3,7 +3,10 @@
   round an eye), the Sea Ruby Badge (a red gem), the Spike Shell Badge (a spiral shell) and the Jade
   Star Badge (a green star);
 - the Sevii Islands' quest rewards (29-33): the Ruby, Lostelle's Thanks (a heart), Lorelei's Trust (a
-  snowflake), the Warehouse Key and the Sapphire.
+  snowflake), the Warehouse Key and the Sapphire;
+- Orre's Cipher admins beaten (34-37): Pyrite Town freed (a sun over the desert), Mt. Battle saved (a
+  mountain), The Under's broadcasts stopped (a broken antenna) and the Shadow Pokémon Lab shut down (a
+  shattered purple crystal).
 
 Usage: python3 scripts/drawSideBadges.py  (needs Pillow)
 """
@@ -134,6 +137,44 @@ def key():
     save(im, 32)
 
 
+def pyrite():
+    im, d = canvas()
+    c = SIZE * S / 2
+    d.rectangle([c - 110, c + 30, c + 110, c + 100], fill=(210, 160, 90, 255), outline=(110, 70, 30, 255), width=8)
+    d.ellipse([c - 60, c - 100, c + 60, c + 20], fill=(250, 190, 60, 255), outline=(150, 90, 20, 255), width=8)
+    for i in range(8):
+        a = i * math.pi / 4
+        d.line([(c + 70 * math.cos(a), c - 40 + 70 * math.sin(a)), (c + 95 * math.cos(a), c - 40 + 95 * math.sin(a))], fill=(250, 190, 60, 255), width=10)
+    save(im, 34)
+
+
+def mountain():
+    im, d = canvas()
+    c = SIZE * S / 2
+    d.polygon([(c - 120, c + 90), (c - 20, c - 100), (c + 120, c + 90)], fill=(140, 110, 90, 255), outline=(70, 50, 40, 255), width=8)
+    d.polygon([(c - 20, c - 100), (c - 55, c - 35), (c + 15, c - 35)], fill=(240, 240, 250, 255))
+    save(im, 35)
+
+
+def antenna():
+    im, d = canvas()
+    c = SIZE * S / 2
+    d.rectangle([c - 90, c - 10, c + 90, c + 100], fill=(90, 100, 130, 255), outline=(30, 35, 55, 255), width=8)
+    d.rectangle([c - 65, c + 10, c + 65, c + 80], fill=(40, 200, 220, 255))
+    d.line([(c, c - 10), (c - 70, c - 110)], fill=(200, 205, 225, 255), width=10)
+    d.line([(c, c - 10), (c + 40, c - 60), (c + 70, c - 50)], fill=(200, 205, 225, 255), width=10)
+    save(im, 36)
+
+
+def shard():
+    im, d = canvas()
+    c = SIZE * S / 2
+    d.polygon([(c - 20, c - 115), (c + 55, c - 20), (c + 15, c + 110), (c - 60, c + 10)], fill=(130, 60, 190, 255), outline=(50, 15, 80, 255), width=8)
+    d.polygon([(c - 20, c - 115), (c + 5, c - 20), (c - 60, c + 10)], fill=(190, 140, 240, 255))
+    d.line([(c + 30, c - 60), (c - 10, c + 30), (c + 25, c + 60)], fill=(30, 10, 50, 255), width=8)
+    save(im, 37)
+
+
 if __name__ == "__main__":
     coral_eye()
     sea_ruby()
@@ -144,3 +185,7 @@ if __name__ == "__main__":
     snowflake()
     key()
     round_gem(33, (40, 90, 220, 255), (120, 170, 250, 255), (10, 30, 110, 255))
+    pyrite()
+    mountain()
+    antenna()
+    shard()

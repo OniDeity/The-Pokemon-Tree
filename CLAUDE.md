@@ -211,6 +211,22 @@ Sister project: OniDeity/idle-pokemon (its data is the source of ours).
   is in the Hall's startData so the shop re-renders. The simulator's `fameShop` weighs regional items
   at 3× their cost (bought cheapest-first they took Fame from the core buyables: Hoenn went 11 → 19 h
   and a Sevii run walled at the Tower); with the weight, every journey's pacing is unchanged.
+- Orre and Shadow Pokémon (v0.28, side games phase 3): `js/data/orre.js` (`buildData.py`'s 8th
+  argument; colosseum.json: places with `trainerBattles`, Shadow entries as form "shadow" (Idle's
+  8000+), ORRE_GYMS/ORRE_FINALE with `snag`, `ORRE_SHADOW_TRAINERS` by species). `REGIONS.orre`
+  (Espeon/Umbreon at Lv. 25; `starterLog`; `trialLabel` "Cipher Admin X"; `journey.mechanics` unlock
+  `snagMachine` on start; caps [37, 42, 47, 50, 62, 100]; pace 28; Fame ×3; visits Kanto 9 / Johto
+  11 / Hoenn 9, with `REVISITS.hoenn`). Shadow rules in logic.js: FORMS.shadow (a CSS drop-shadow
+  aura, not generated sprites), `entry.heart` from `HEART_BATTLES` (100; set by `addToBox`, counted
+  down by `openHearts` per wild win in the party; `giveXp` skips closed hearts), `withSnagged` and
+  `player.t.snagged` (one each per journey), `snagFrom(trainer)` at Gym and League wins,
+  `purify`/`canPurify`/`purifyAll` (the Relic Stone mechanic, unlocked by Miror B.; the Item Kit and
+  the simulator purify), Cipher Peons (`cipherPeonChance`, 2%, only with `snagMachine`), records in
+  `player.d.purified` (`PURIFY_MILESTONES`). Shadow forms stay off the Forms page. Orre's Fame items
+  (buyable 61, upgrades 71/72). Branching level evolutions: `levelEvolutions`, `autoLevelEvolution`
+  (first branch not owned), `canLevelEvolve`/`levelEvolve` and the box card's branch buttons. Pacing:
+  `SIM_START=orre SIM_FAME=1000` (a player arrives with ~1300-1500) 4.5-7.2 h; at 600 Fame it walls
+  for 15 h. Dakim and Venus wall above 3.8 / 4.35.
 - Challenge highlights: `challengeStatus(key)`; hatching or a Safari catch marks an owned entry's
   `origin`, and `canEvolveInto` lets an entry with an origin evolve into one without.
 - Regions and the run's Pokédex (v0.12): `REGIONS` (`regionDex`, `currentRegion`, `dexRegions`)
@@ -377,10 +393,11 @@ The owner wants every Hall of Fame to feel like a proper reset:
 - Phases: (0) the side-journey framework (branches on the starter screen, region entries, a
   region-agnostic journey start; done in v0.25.1); (1) Orange Islands (with Pinkan/Valencian; done in v0.26); (2) Sevii (with story battles for regions
   that had none; done in v0.27); (3)
-  Shadow Pokémon and Colosseum (trainer-battle places, snagging, hearts, Relic Stone, sprites);
+  Shadow Pokémon and Colosseum (trainer-battle places, snagging, hearts, Relic Stone, sprites; done in
+  v0.28 with the branching evolutions below);
   (4) XD (Poké Spots, carried mechanics); (5) post-game visits and pacing for each.
-- Bundled with phase 3 (the owner's call): branching level evolutions. Today `levelEvolution` takes
+- Bundled with phase 3 (the owner's call; done in v0.28): branching level evolutions. Before, `levelEvolution` took
   the first listed branch (Wurmple → Silcoon, Tyrogue → Hitmonlee, Eevee's friendship → Espeon)
-  and a Pokémon whose first branch is owned never evolves. Planned: level branches get choice
+  and a Pokémon whose first branch was owned never evolved. Now level branches get choice
   buttons on the box card like stones; auto-evolve and the Item Kit take the first branch not owned
   yet (and wait when all are owned).

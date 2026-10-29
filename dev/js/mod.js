@@ -17,11 +17,13 @@ let modInfo = {
 
 // Set your version in num and name
 let VERSION = {
-	num: "0.31",
-	name: "The Hall's honours",
+	num: "0.32",
+	name: "Pacing for real journeys",
 }
 
 let changelog = `<h1>Changelog:</h1><br>
+	<h3>v0.32 Pacing for real journeys</h3><br>
+		- Every journey after Kanto is retuned against what a player really brings to it: the Fame, upgrades and lifetime records (shinies, story wins, enshrined Pokémon) of three runs of each region before. Tuned with made-up starts, they had grown far too quick with all that: a Johto journey took about 2.5 h, Hoenn 5, Orre under 1. Now a first Johto or Hoenn journey takes about 10-12 h of play again, and a first side journey 5-8 h. Kanto is unchanged.<br><br>
 	<h3>v0.31 The Hall's honours</h3><br>
 		- Enshrined Pokémon now count for good: every species that has entered the Hall of Fame in a Champion team gives +0.5% Research Points and +0.2% Fame, with milestones at 25, 50, 100, 151, 251 and all 386 species (Fame ×1.1 each). The bonuses are tuned for the normal species; Shiny, Albino and Melanistic Pokémon and forms enshrined count again on top, with milestones of their own (Research Points ×1.1 each at 5, 15, 30 and 60). See the Hall of Fame page.<br>
 		- A new challenge once Johto is beaten, Light Traveller (a party of three), rewards Bill's Transfer: box Pokémon come along into your next run at the starter's level, so a Chikorita or a Mewtwo can enter Kanto's Hall of Fame. One slot, one more for each of Hoenn, the Orange and Sevii Islands, Orre and Orre (XD) beaten, up to six. Choose them on the Hall of Fame's Bill's Transfer page; empty slots take your strongest species never enshrined.<br><br>

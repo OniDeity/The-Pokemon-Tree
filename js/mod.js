@@ -17,11 +17,13 @@ let modInfo = {
 
 // Set your version in num and name
 let VERSION = {
-	num: "0.33",
-	name: "Pacing for completionists",
+	num: "0.34",
+	name: "One of a kind",
 }
 
 let changelog = `<h1>Changelog:</h1><br>
+	<h3>v0.34 One of a kind</h3><br>
+		- Every region's Fame items now do something no other Fame item does. Johto's Elm's Incubator: Eggs come sooner. The Orange Islands' Orange Crew Training: higher level caps; Island Hopper: Surf from the start. The Sevii Islands' Berry Forest: cheaper Field equipment. Hoenn's Double Team: a stronger double-battle partner. Orre's Colosseum Purse: bigger badge boosts. XD's Krane's Research: more Fame per Hall of Fame entry. (They used to repeat the core buyables: catch chance, Attack and Defense, experience, Research Points.) Levels already bought keep counting, with the new effect.<br><br>
 	<h3>v0.33 Pacing for completionists</h3><br>
 		- Journeys are now tuned for a player who completes each journey's Pokédex (normal forms, whatever is open at the time) before entering the Hall of Fame, training box Pokémon to evolve them. A first run still takes about 10-12 h (Kanto, Johto, Hoenn) or 5-8 h (side journeys) with that included. Hoenn's pace is a little quicker, the Sevii Islands' a little slower.<br><br>
 	<h3>v0.32 Pacing for real journeys</h3><br>

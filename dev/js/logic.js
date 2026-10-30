@@ -36,7 +36,7 @@ function caughtCount() { return Object.keys(player.d.caught).length }
 function seenCount() { return Object.keys(player.d.seen).length }
 function dexMilestone(n) { return !inChallenge(51) && caughtCount() >= n }
 function currentCap() {
-	return levelCap(badges() + (isChampion() ? 1 : 0)) - (inChallenge(22) ? 5 : 0) + (beatChallenge(22) ? 2 : 0)
+	return Math.min(100, levelCap(badges() + (isChampion() ? 1 : 0)) - (inChallenge(22) ? 5 : 0) + (beatChallenge(22) ? 2 : 0) + Math.min(10, hofBuyable(31)))
 }
 
 // Pokédex milestones: species caught → reward.
@@ -53,11 +53,11 @@ const DEX_MILESTONES = [
 
 function fieldBuyableCost(id, amount = fieldBuyable(id)) {
 	const b = FIELD_BUYABLES[id]
-	return new Decimal(b.base).times(Decimal.pow(b.growth, amount)).times(inChallenge(43) ? 4 : 1)
+	return new Decimal(b.base).times(Decimal.pow(b.growth, amount)).times(inChallenge(43) ? 4 : 1).times(Math.pow(0.94, hofBuyable(41)))
 }
 
 function rpMult() {
-	let m = Math.pow(BADGE_RP_BOOST, badges() + kantoBadges()) * (1 + 0.25 * hofBuyable(11)) * (1 + 0.2 * hofBuyable(71)) * (inChallenge(31) ? 0.25 : 1)
+	let m = Math.pow(BADGE_RP_BOOST + 0.02 * hofBuyable(61), badges() + kantoBadges()) * (1 + 0.25 * hofBuyable(11)) * (inChallenge(31) ? 0.25 : 1)
 	if (hasFieldUpgrade(13)) m *= 1 + caughtCount() / 50
 	if (dexMilestone(10)) m *= 1.5
 	if (dexMilestone(80)) m *= 2
@@ -81,13 +81,13 @@ function rpMult() {
 	if (ribbonMilestone(60)) m *= 1.25
 	return m
 }
-function wildRpMult() { return rpMult() * (hasFieldUpgrade(21) ? 1.5 : 1) * (1 + 0.1 * hofBuyable(31)) * (inChallenge(52) ? 0.5 : 1) }
+function wildRpMult() { return rpMult() * (hasFieldUpgrade(21) ? 1.5 : 1) * (inChallenge(52) ? 0.5 : 1) }
 function passiveRp() {
 	if (!player.t.starter || inChallenge(51)) return 0
-	return caughtCount() * 0.05 * rpMult() * (hasFieldUpgrade(23) ? 5 : 1) * (hofUpgrade(22) ? 3 : 1) * (1 + 0.25 * hofBuyable(41)) / pace()
+	return caughtCount() * 0.05 * rpMult() * (hasFieldUpgrade(23) ? 5 : 1) * (hofUpgrade(22) ? 3 : 1) / pace()
 }
 function xpMult() {
-	let m = (1 + fieldBuyableStep(14, 0.25) * fieldBuyable(14)) * (1 + 0.25 * hofBuyable(12)) * (1 + 0.2 * hofBuyable(61))
+	let m = (1 + fieldBuyableStep(14, 0.25) * fieldBuyable(14)) * (1 + 0.25 * hofBuyable(12))
 	if (dexMilestone(60)) m *= 2
 	if (formMilestone(ALL_FORMS.length)) m *= 1.5
 	m *= 1 + 0.1 * gameCornerBuyable(13)
@@ -107,7 +107,7 @@ function searchTime() {
 	return t
 }
 function catchMult() {
-	let m = (1 + fieldBuyableStep(12, 0.15) * fieldBuyable(12)) * (1 + 0.1 * hofBuyable(15)) * (1 + 0.1 * hofBuyable(21)) * (inChallenge(33) ? 0.1 : 1)
+	let m = (1 + fieldBuyableStep(12, 0.15) * fieldBuyable(12)) * (1 + 0.1 * hofBuyable(15)) * (inChallenge(33) ? 0.1 : 1)
 	if (dexMilestone(25)) m *= 1.25
 	if (formMilestone(10)) m *= 1.25
 	if (wardenMilestone(50)) m *= 1.1
@@ -117,7 +117,7 @@ function catchMult() {
 }
 function gearMult() { return 1 + 0.15 * fieldBuyable(13) }
 function atkMult() {
-	let m = gearMult() * Math.pow(BADGE_STAT_BOOST, badges()) * (1 + 0.05 * hofBuyable(13)) * (1 + 0.05 * hofBuyable(51))
+	let m = gearMult() * Math.pow(BADGE_STAT_BOOST, badges()) * (1 + 0.05 * hofBuyable(13))
 	if (hasFieldUpgrade(22)) m *= 1.25
 	if (dexMilestone(120)) m *= 1.2
 	if (rocketMilestone(40)) m *= 1.1
@@ -128,7 +128,7 @@ function atkMult() {
 	return m
 }
 function defMult() {
-	let m = gearMult() * Math.pow(BADGE_STAT_BOOST, badges()) * (1 + 0.05 * hofBuyable(13)) * (1 + 0.05 * hofBuyable(51))
+	let m = gearMult() * Math.pow(BADGE_STAT_BOOST, badges()) * (1 + 0.05 * hofBuyable(13))
 	if (dexMilestone(120)) m *= 1.2
 	if (rivalMilestone(7)) m *= 1.1
 	if (rocketMilestone(300)) m *= 1.15
@@ -533,7 +533,7 @@ function unlockMechanic(id, text) {
 	player.h.mechanics = { ...player.h.mechanics, [id]: true }
 	pkLog(text, "story")
 }
-partnerDamage = () => mechanicOn("doubleBattles") ? PARTNER_DAMAGE : 0
+partnerDamage = () => mechanicOn("doubleBattles") ? PARTNER_DAMAGE * (1 + 0.1 * hofBuyable(51)) : 0
 
 // ---- Shadow Pokémon (Orre; Idle Pokémon's rules) ----
 // Cipher's Shadow Pokémon are a `shadow` look (box key "153-shadow"; colours still apply). Orre's
@@ -839,13 +839,14 @@ const HOF_BUYABLES = {
 	13: { title: "Champion's Might", base: 10, growth: 1.8, text: "+5% Attack and Defense for your Pokémon per level." },
 	14: { title: "Quick Feet", base: 8, growth: 1.7, text: "Search 10% faster per level." },
 	15: { title: "Ball Factory", base: 8, growth: 1.7, text: "+10% catch chance per level." },
-	// Each region beaten (its Champion in the Hall) adds a buyable and two upgrades (`region`).
-	21: { region: "johto", title: "Kurt's Apricorns", base: 20, growth: 1.8, text: "+10% catch chance per level (beside the Ball Factory's)." },
-	31: { region: "orange", title: "Tracey's Sketchbook", base: 15, growth: 1.8, text: "+10% Research Points from wild battles per level." },
-	41: { region: "sevii", title: "Berry Forest", base: 15, growth: 1.8, text: "+25% passive Research Points per level." },
-	51: { region: "hoenn", title: "Secret Power", base: 25, growth: 1.9, text: "+5% Attack and Defense per level (beside Champion's Might)." },
-	61: { region: "orre", title: "Mt. Battle Training", base: 30, growth: 1.9, text: "+20% experience per level (beside the Trainer School)." },
-	71: { region: "xd", title: "Krane's Research", base: 35, growth: 1.9, text: "+20% Research Points per level (beside the Professor's Grant)." },
+	// Each region beaten (its Champion in the Hall) adds a buyable and two upgrades (`region`). Each
+	// does something no other Fame item does (the owner's rule; see FAME_ITEM_RULE).
+	21: { region: "johto", title: "Elm's Incubator", base: 20, growth: 1.8, text: "Day Care Eggs come 10% sooner per level." },
+	31: { region: "orange", title: "Orange Crew Training", base: 15, growth: 1.8, text: "Level caps +1 per level (up to +10)." },
+	41: { region: "sevii", title: "Berry Forest", base: 15, growth: 1.8, text: "The Field's equipment costs 6% less per level." },
+	51: { region: "hoenn", title: "Double Team", base: 25, growth: 1.9, text: "Your double-battle partner hits 10% harder per level." },
+	61: { region: "orre", title: "Colosseum Purse", base: 30, growth: 1.9, text: "Each badge's Research Points boost is 2% bigger per level (×1.3 → ×1.32...)." },
+	71: { region: "xd", title: "Krane's Research", base: 35, growth: 1.9, text: "Hall of Fame entries pay 5% more Fame per level." },
 }
 const HOF_UPGRADES = {
 	11: { title: "Head Start", cost: 15, text: "Start each run with 200 Research Points and your starter at Lv. 10." },
@@ -857,7 +858,7 @@ const HOF_UPGRADES = {
 	22: { title: "Field Lab Grant", cost: 80, text: "Passive Research Points ×3." },
 	31: { region: "johto", title: "Elm's Egg Research", cost: 120, text: "Day Care Eggs hatch in half the battles." },
 	32: { region: "johto", title: "Radio Tower", cost: 150, text: "Rematch calls come twice as often." },
-	41: { region: "orange", title: "Island Hopper", cost: 100, text: "Opening routes costs a quarter less (beside Pathfinder)." },
+	41: { region: "orange", title: "Island Hopper", cost: 100, text: "Surf from the start of every run, wherever a region has it." },
 	42: { region: "orange", title: "Pinkan Berries", cost: 120, text: "Pokémon in special forms are twice as easy to catch." },
 	51: { region: "sevii", title: "Network Machine", cost: 180, text: "Story battles and rematches pay twice the Research Points." },
 	52: { region: "sevii", title: "Rainbow Pass", cost: 200, text: "The Old and Good Rods from the start of every run, in every region." },
@@ -870,6 +871,14 @@ const HOF_UPGRADES = {
 }
 // A ceiling on the Fame shop before moving on: buyables stop at FAME_CAP levels, FAME_CAP_STEP more
 // for each region beaten, and each beaten region's own items open (levels bought before a cap stay).
+/**
+ * The owner's rule for every region's Fame items, side games and fan games included: each buyable and
+ * upgrade a region adds does something no other Fame item does (a new stat, mechanic or convenience,
+ * best themed on the region). A copy of a core boost (Research Points, experience, Attack and
+ * Defense, catch chance, search speed) is allowed only when the regions after it need the boost for
+ * their pacing, and then says so beside it.
+ */
+const FAME_ITEM_RULE = true
 const FAME_CAP = 8
 const FAME_CAP_STEP = 4
 const FAME_REGIONS = ["johto", "orange", "sevii", "hoenn", "orre", "xd"]
@@ -992,6 +1001,7 @@ function fameGain() {
 	if (chapterCleared("mtSilver")) fame *= 1.5
 	fame *= Math.pow(VISIT_FAME, visitsCleared())
 	fame *= enshrineFameMult()
+	fame *= 1 + 0.05 * hofBuyable(71)
 	return Math.floor(fame)
 }
 /** Records the run in the Hall of Fame and starts the Pokédex over (the rest of the reset is TMT's). */
@@ -1119,7 +1129,7 @@ function dayCareXpRate() {
 	return 0.02 * Math.pow(currentCap(), 2.5) * xpMult() * (hasDayCareUpgrade(11) ? 3 : 1) * (1 + 0.5 * dayCareBuyable(11)) / pace()
 }
 function eggSeconds() { return EGG_SECONDS * pace() / (hasDayCareUpgrade(12) ? 2 : 1) / (1 + 0.15 * dayCareBuyable(12)) * (inChallenge(52) ? 3 : 1) }
-function eggBattles() { return Math.max(1, Math.ceil(EGG_BATTLES / (hasDayCareUpgrade(13) ? 2 : 1) / (hofUpgrade(31) ? 2 : 1) / (1 + 0.1 * dayCareBuyable(13)) * (inChallenge(52) ? 3 : 1))) }
+function eggBattles() { return Math.max(1, Math.ceil(EGG_BATTLES / (hasDayCareUpgrade(13) ? 2 : 1) / (hofUpgrade(31) ? 2 : 1) / (1 + 0.1 * hofBuyable(21)) / (1 + 0.1 * dayCareBuyable(13)) * (inChallenge(52) ? 3 : 1))) }
 /** The Breeder's Journal: Eggs of species hatched in any earlier run hatch after one battle. */
 function eggBattlesFor(species) { return automationOn("journal") && player.d.everHatched?.[species] ? 1 : eggBattles() }
 function maxEggs() { return MAX_EGGS + (hasDayCareUpgrade(14) ? 2 : 0) }
@@ -2401,7 +2411,11 @@ function region() { return REGIONS[currentRegion()] }
 function syncRegionRules() {
 	const rules = region().rules
 	// The Rainbow Pass (Fame): the Old and Good Rods from the start, wherever the region gives them later.
-	REGION_RULES = hofUpgrade(52) ? { ...rules, keyItems: { ...rules.keyItems, oldRod: { badges: 0, name: "Old Rod" }, goodRod: { badges: 0, name: "Good Rod" } } } : rules
+	let keyItems = rules.keyItems
+	if (hofUpgrade(52)) keyItems = { ...keyItems, oldRod: { badges: 0, name: "Old Rod" }, goodRod: { badges: 0, name: "Good Rod" } }
+	// Island Hopper (Fame): Surf from the start, wherever the region has it.
+	if (hofUpgrade(41) && keyItems.surf) keyItems = { ...keyItems, surf: { ...keyItems.surf, badges: 0 } }
+	REGION_RULES = keyItems === rules.keyItems ? rules : { ...rules, keyItems }
 }
 function regionZones() { return region().zones }
 function regionGyms() { return region().gyms }

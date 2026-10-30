@@ -289,6 +289,13 @@ Sister project: OniDeity/idle-pokemon (its data is the source of ours).
   Hoenn 42 → 39 (11.2-11.4 h), Sevii 30 → 40 (4.3-8.9 h); Kanto 10.8, Johto 9.8-10.9, Orange
   4.6-6.3, Orre 5.1-6.4, XD 6.2-6.5 h unchanged. Completion is quick because post-League places
   level the box fast.
+- One of a kind (v0.34, the owner's rule `FAME_ITEM_RULE` in logic.js): every region's Fame items do
+  something no other Fame item does. Buyables 21 Elm's Incubator (Eggs ÷(1+0.1/level) in
+  `eggBattles`), 31 Orange Crew Training (`currentCap` +1/level, ≤ +10), 41 Berry Forest
+  (`fieldBuyableCost` ×0.94^level), 51 Double Team (`partnerDamage` ×(1+0.1/level)), 61 Colosseum
+  Purse (`BADGE_RP_BOOST` +0.02/level in `rpMult`), 71 Krane's Research (`fameGain` +5%/level);
+  upgrade 41 Island Hopper (Surf at 0 badges in `syncRegionRules`). They replaced copies of the core
+  buyables (catch, Atk/Def, xp, RP, route cost). Re-tune after with the bank, as always.
 - Challenge highlights: `challengeStatus(key)`; hatching or a Safari catch marks an owned entry's
   `origin`, and `canEvolveInto` lets an entry with an origin evolve into one without.
 - Regions and the run's Pokédex (v0.12): `REGIONS` (`regionDex`, `currentRegion`, `dexRegions`)
@@ -424,6 +431,18 @@ The owner wants every Hall of Fame to feel like a proper reset:
   marks, and need recolored sprites (Idle Pokémon draws its own with `scripts/generate*.py`).
 - Sprites: keep them, but as the Pokédex grows split it into per-region pages, page the box,
   and consider a setting to hide sprites.
+
+## Fame items for every region to come (the owner's rule)
+
+- Every region, side game and later fan game (the owner plans fan games after Gen 7) adds a Fame
+  buyable and two upgrades (`region`, opening once that region is beaten). Each must do something no
+  other Fame item does, best themed on the region; a copy of a core boost (Research Points,
+  experience, Attack/Defense, catch chance, search speed) only when the regions after it need the
+  boost for their pacing, and then the text says so. Axes still free: Safari Balls per trip, Game
+  Corner coin price, contest condition gain, the shiny-hunting chain, Albino odds, rematch RP, gift
+  and prize costs, Day Care slots, Cipher Peon odds, Poké Snack price, survey speed (seen counts),
+  story RP, the Diploma, Mirage Island odds, swarm/outbreak odds, the Hall's new-face Fame, Bill's
+  Transfer slots, visit Fame, starting Field equipment, offline progress.
 
 ## Side games plan (agreed with the owner, not built yet)
 

@@ -296,6 +296,19 @@ Sister project: OniDeity/idle-pokemon (its data is the source of ours).
   Purse (`BADGE_RP_BOOST` +0.02/level in `rpMult`), 71 Krane's Research (`fameGain` +5%/level);
   upgrade 41 Island Hopper (Surf at 0 badges in `syncRegionRules`). They replaced copies of the core
   buyables (catch, Atk/Def, xp, RP, route cost). Re-tune after with the bank, as always.
+- Quick searches (v0.35, the owner: searches should be 5 s base): `searchTime` and `eggSeconds` use
+  `searchPace()` (`SEARCH_PACE_CAP` 1, so pace never stretches a timer); `yieldPace()` = pace divides
+  wild battles' RP and experience in `doEncounter` (passive RP and the Day Care's xp keep dividing by
+  pace). Never put a region's slowness into timers again. With quick encounters, surveys and catching
+  stop being walls; time comes from team strength vs gear (RP). Strength alone gives cliffs (one Gym
+  walls for hours, often a team stuck at its level cap), so shape a curve with no single wall first
+  (`SIM_GYMS_<region>`, trace slow seeds), then set the pace, which is smooth wherever gear matters.
+  Values: Kanto pace 4.2 (8.4-13.5 h at 3.8); Johto 38 (9.6-10 h); Orange Gyms [4.25, 5.3, 4.2 (Rudy),
+  6.4] / Drake 7.2, pace 100 (3.5-8.7 h at 80); Sevii quests [6.6, 8.4, 8.8, 7.2 (Warehouse), 9],
+  Tower floors 7 / Master 5.6 (six strong Pokémon), pace 300 (3.4-10.3 h; seed-swingy); Hoenn Gyms
+  [3.2, 4.8, 5.6, 7.6, 8, 9.4, 10.6, 13.5], pace 370 (8.5-10.9 h at 350); Orre ×2 [6.8, 7.6, 8.7, 9.6]
+  / 9.6 / 10, pace 85 (3.5-6.1 h at 65); XD ×2 [5.8, 7.1, 8, 9, 10.4] / 10.8 / 11.2, pace 150
+  (4.5-6.3 h). Orre and XD start so strong that pace barely mattered until their admins doubled.
 - Challenge highlights: `challengeStatus(key)`; hatching or a Safari catch marks an owned entry's
   `origin`, and `canEvolveInto` lets an entry with an origin evolve into one without.
 - Regions and the run's Pokédex (v0.12): `REGIONS` (`regionDex`, `currentRegion`, `dexRegions`)

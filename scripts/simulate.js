@@ -12,7 +12,8 @@
 //   every species of the journey's Pokédex open at the time, any form): it searches where an uncaught species is likeliest
 //   until none is left in an open place, or SIM_DEX_WAIT hours (default 2) pass without a new one.
 //   SIM_COMPLETE=0 skips that (the pacing before v0.33).
-//   SIM_PACE_<region>=x and SIM_SCALE_<region>=x (Gyms, Elite Four, Champion) are tuning knobs.
+//   SIM_PACE_<region>=x and SIM_SCALE_<region>=x (Gyms, Elite Four, Champion) are tuning knobs;
+//   SIM_GYMS_<region>=a,b,c sets each Gym's strength (applied before SIM_SCALE when both are given).
 //   SIM_SAVE=file enters the Hall of Fame at the end and saves what lasts (the Hall of Fame and the
 //   Pokédex's records); SIM_LOAD=file starts from such a save (its Fame spent first) instead of the
 //   made-up Hall of Fame entries, so a region can be tested after real earlier runs. saves/ holds a
@@ -106,10 +107,11 @@ const CHALLENGE = process.env.SIM_CHALLENGE || ""
 // Tuning knobs: SIM_PACE_<region>=x sets a region's pace; SIM_SCALE_<region>=x multiplies its Gyms',
 // Elite Four's and Champion's strengths.
 for (const [k, v] of Object.entries(process.env)) {
-	const m = k.match(/^SIM_(PACE|SCALE)_(\w+)$/)
+	const m = k.match(/^SIM_(PACE|SCALE|GYMS)_(\w+)$/)
 	if (!m) continue
 	const r = m[2].toLowerCase()
 	if (m[1] === "PACE") run(`REGIONS.${r}.pace = ${Number(v)}`)
+	else if (m[1] === "GYMS") run(`REGIONS.${r}.gymStrength = [${v}]`)
 	else run(`REGIONS.${r}.gymStrength = REGIONS.${r}.gymStrength.map(x => x * ${Number(v)}); REGIONS.${r}.eliteFourStrength *= ${Number(v)}; REGIONS.${r}.championStrength *= ${Number(v)}`)
 }
 const LOAD = process.env.SIM_LOAD

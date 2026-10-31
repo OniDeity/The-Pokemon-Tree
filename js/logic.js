@@ -2305,14 +2305,14 @@ const REGIONS = {
 	kanto: {
 		name: "Kanto", professor: "Oak", starters: STARTERS, zones: ZONES, gyms: GYMS, eliteFour: ELITE_FOUR,
 		champion: () => CHAMPIONS[player.t.starter] || CHAMPIONS[1], gymStrength: GYM_STRENGTH,
-		eliteFourStrength: ELITE_FOUR_STRENGTH, championStrength: CHAMPION_STRENGTH, badgeImage: 1, zoneCost: 1, pace: 3.8,
+		eliteFourStrength: ELITE_FOUR_STRENGTH, championStrength: CHAMPION_STRENGTH, badgeImage: 1, zoneCost: 1, pace: 4.2,
 		dex: Array.from({ length: 151 }, (_, i) => i + 1), rules: REGION_RULES, maxSpecies: 151,
 	},
 	johto: {
 		name: "Johto", professor: "Elm", starters: [152, 155, 158], zones: JOHTO_ZONES, gyms: JOHTO_GYMS,
 		eliteFour: JOHTO_ELITE_FOUR, champion: () => JOHTO_CHAMPION,
 		gymStrength: [3.5, 6, 8, 6.5, 11, 12.5, 13, 11], eliteFourStrength: 10, championStrength: 9.5,
-		badgeImage: 9, dex: JOHTO_DEX, zoneCost: 2, pace: 28, maxSpecies: 251, fame: 2.5,
+		badgeImage: 9, dex: JOHTO_DEX, zoneCost: 2, pace: 38, maxSpecies: 251, fame: 2.5,
 		// Reached by sailing on from Kanto's League (sailToJohto), not from the starter screen.
 		opens: { after: "kanto", entries: 3 },
 		rules: { keyItems: keyItemsFromGyms(JOHTO_GYMS), levelCaps: [16, 20, 24, 28, 33, 37, 40, 45, 55, 100], stoneBadges: JOHTO_STONES, tradeBadges: 3 },
@@ -2322,8 +2322,8 @@ const REGIONS = {
 	orange: {
 		name: "Orange Islands", professor: "Ivy", starters: [25, 175, 131], zones: ORANGE_ZONES, gyms: ORANGE_GYMS,
 		eliteFour: [], champion: () => ORANGE_CHAMPION,
-		gymStrength: [4.25, 5.3, 4.8, 6.4], eliteFourStrength: 6.4, championStrength: 7.2,
-		badgeImage: 25, dex: ORANGE_DEX, zoneCost: 1, pace: 40, maxSpecies: 251, fame: 1.5,
+		gymStrength: [4.25, 5.3, 4.2, 6.4], eliteFourStrength: 6.4, championStrength: 7.2,
+		badgeImage: 25, dex: ORANGE_DEX, zoneCost: 1, pace: 100, maxSpecies: 251, fame: 1.5,
 		opens: { after: "kanto", entries: 3 },
 		journey: { button: 51, intro: "Professor Ivy, on Valencia Island, studies the Orange Archipelago's unusual Pokémon and has three for a researcher willing to island-hop." },
 		league: { name: "Pummelo Stadium", survey: "Pummelo Island", trainers: "Drake, alone, at the Winner's Cup" },
@@ -2337,8 +2337,8 @@ const REGIONS = {
 	sevii: {
 		name: "Sevii Islands", professor: "Celio", giver: "Celio", home: "Celio's Network Center", starters: [152, 155, 158], startLevel: 25,
 		zones: SEVII_ZONES, gyms: SEVII_GYMS, eliteFour: SEVII_TOWER.slice(0, 2), champion: () => SEVII_TOWER[2],
-		gymStrength: [4.2, 5.45, 5.85, 6.4, 7.1], eliteFourStrength: 7.2, championStrength: 7.45,
-		trialNoun: "quest", badgeImage: 29, dex: SEVII_DEX, zoneCost: 1, pace: 70, maxSpecies: 251, fame: 1.75,
+		gymStrength: [6.6, 8.4, 8.8, 7.2, 9], eliteFourStrength: 7, championStrength: 5.6,
+		trialNoun: "quest", badgeImage: 29, dex: SEVII_DEX, zoneCost: 1, pace: 300, maxSpecies: 251, fame: 1.75,
 		opens: { after: "orange", entries: 3 },
 		journey: { button: 61, intro: "Bill takes you to One Island, where his friend Celio needs help linking the Network Machine. Celio has three Johto Pokémon for you, already at Lv. 25." },
 		league: { name: "Trainer Tower", survey: "Sevault Canyon and the Tanoby Ruins", trainers: "its three floors in a row" },
@@ -2355,7 +2355,7 @@ const REGIONS = {
 		starterLog: (id, zone) => `You leave Team Snagem with ${speciesName(id)} and the Snag Machine. Your journey begins at ${zone}!`,
 		zones: ORRE_ZONES, gyms: ORRE_GYMS, eliteFour: ORRE_FINALE.slice(0, 2), champion: () => ORRE_FINALE[2],
 		gymStrength: [6.8, 7.6, 8.7, 9.6], eliteFourStrength: 9.6, championStrength: 10,
-		trialLabel: gym => `Cipher Admin ${gym.name}`, badgeImage: 34, dex: ORRE_DEX, zoneCost: 1, pace: 65, maxSpecies: 386, fame: 3,
+		trialLabel: gym => `Cipher Admin ${gym.name}`, badgeImage: 34, dex: ORRE_DEX, zoneCost: 1, pace: 85, maxSpecies: 386, fame: 3,
 		opens: { after: "hoenn", entries: 3 },
 		journey: { button: 71, intro: "Wes walks out of Team Snagem with the Snag Machine and his old partners, Espeon and Umbreon. In Orre there are no wild Pokémon: only trainers, and the Shadow Pokémon Cipher hands out.",
 			mechanics: [["snagMachine", "The Snag Machine! From now on Cipher Peons turn up in every region with Shadow Pokémon to snag."]] },
@@ -2385,7 +2385,7 @@ const REGIONS = {
 		name: "Hoenn", professor: "Birch", starters: [252, 255, 258], zones: HOENN_ZONES, gyms: HOENN_GYMS,
 		eliteFour: HOENN_ELITE_FOUR, champion: () => HOENN_CHAMPION,
 		gymStrength: [3.2, 4.8, 5.6, 7.6, 8, 9.4, 10.6, 13.5], eliteFourStrength: 9, championStrength: 8.5,
-		badgeImage: 17, dex: HOENN_DEX, zoneCost: 0.25, pace: 290, maxSpecies: 386, fame: 2.5,
+		badgeImage: 17, dex: HOENN_DEX, zoneCost: 0.25, pace: 370, maxSpecies: 386, fame: 2.5,
 		opens: { after: "johto", entries: 3 },
 		journey: { button: 41, intro: "Professor Birch, in Littleroot Town, has three Pokémon of his own for a researcher willing to survey Hoenn." },
 		league: { name: "Ever Grande City", survey: "Ever Grande City and Victory Road" },
@@ -2400,11 +2400,11 @@ function currentRegion() { return player.t?.region || "kanto" }
  */
 function pace() { return region().pace }
 /**
- * Searches never get slower than Kanto's pace makes them (a later region's pace of 40 or 280 made
- * them minutes long): beyond SEARCH_PACE_CAP, a region's pace slows wild battles' Research Points
- * and experience instead, so encounters stay quick and the journey's length comes from progress.
+ * A region's pace never slows searches (the owner's call: 5 s base everywhere; a pace of 40 or 280
+ * made them minutes long): it slows wild battles' Research Points and experience instead, so
+ * encounters stay quick and the journey's length comes from progress.
  */
-const SEARCH_PACE_CAP = 3.8
+const SEARCH_PACE_CAP = 1
 function searchPace() { return Math.min(pace(), SEARCH_PACE_CAP) }
 function yieldPace() { return pace() / searchPace() }
 // The Poké Spots other regions get with the `pokeSpots` mechanic (after their Pokédex lists are built),

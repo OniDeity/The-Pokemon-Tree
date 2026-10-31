@@ -296,6 +296,18 @@ Sister project: OniDeity/idle-pokemon (its data is the source of ours).
   Purse (`BADGE_RP_BOOST` +0.02/level in `rpMult`), 71 Krane's Research (`fameGain` +5%/level);
   upgrade 41 Island Hopper (Surf at 0 badges in `syncRegionRules`). They replaced copies of the core
   buyables (catch, Atk/Def, xp, RP, route cost). Re-tune after with the bank, as always.
+- Quick searches (v0.35, the owner noticed searches getting slower each region): `searchTime` uses
+  `searchPace()` = min(pace, `SEARCH_PACE_CAP` 3.8, Kanto's), and so do Eggs (`eggSeconds`); the rest,
+  `yieldPace()` = pace / searchPace, divides wild battles' RP and experience in `doEncounter` (passive
+  RP and the Day Care's xp keep dividing by the full pace). Never put a region's slowness into
+  timers again. With quick encounters, surveys and catching stopped being walls, so time comes from
+  team strength vs gear (RP): strength alone gives cliffs (one Gym walls for hours), so shape a Gym
+  curve with no single wall first (`SIM_GYMS_<region>`), then set the pace, which is smooth. Values:
+  Johto pace 28 (strengths unchanged; 9.4-10 h at 27), Orange Gyms ×1.33 [4.25, 5.3, 4.8, 6.4] / Drake
+  7.2, pace 40 (~3.6-10 h at ×1.35); Sevii ×1.33 [4.2 ... 7.1] / 7.2 / 7.45, pace 70 (4.8-8.5 h);
+  Hoenn Gyms [3.2, 4.8, 5.6, 7.6, 8, 9.4, 10.6, 13.5] (Wattson and Tate & Liza eased), pace 290
+  (9.5-12.6 h at 300); Orre ×2 [6.8, 7.6, 8.7, 9.6] / 9.6 / 10, pace 65 (5.9-9.9 h); XD ×2
+  [5.8, 7.1, 8, 9, 10.4] / 10.8 / 11.2, pace 150 (4.9-6.2 h at 130). Kanto unchanged.
 - Challenge highlights: `challengeStatus(key)`; hatching or a Safari catch marks an owned entry's
   `origin`, and `canEvolveInto` lets an entry with an origin evolve into one without.
 - Regions and the run's Pokédex (v0.12): `REGIONS` (`regionDex`, `currentRegion`, `dexRegions`)

@@ -17,11 +17,14 @@ let modInfo = {
 
 // Set your version in num and name
 let VERSION = {
-	num: "0.34",
-	name: "One of a kind",
+	num: "0.35",
+	name: "Quick searches",
 }
 
 let changelog = `<h1>Changelog:</h1><br>
+	<h3>v0.35 Quick searches</h3><br>
+		- Searches take as long everywhere as they do in Kanto. A journey's slower pace used to stretch every search (up to 20 minutes or more in Orre); now it lowers the Research Points and experience wild battles give instead, so encounters stay quick.<br>
+		- The journeys after Kanto are retuned for it: stronger Gym Leaders and admins in the Orange and Sevii Islands, Hoenn, Orre and Orre (XD) (Hoenn's Wattson and Tate & Liza less of a wall than before), and new paces. First journeys still take about 10-12 h (Johto, Hoenn) or 5-8 h (side journeys).<br><br>
 	<h3>v0.34 One of a kind</h3><br>
 		- Every region's Fame items now do something no other Fame item does. Johto's Elm's Incubator: Eggs come sooner. The Orange Islands' Orange Crew Training: higher level caps; Island Hopper: Surf from the start. The Sevii Islands' Berry Forest: cheaper Field equipment. Hoenn's Double Team: a stronger double-battle partner. Orre's Colosseum Purse: bigger badge boosts. XD's Krane's Research: more Fame per Hall of Fame entry. (They used to repeat the core buyables: catch chance, Attack and Defense, experience, Research Points.) Levels already bought keep counting, with the new effect.<br><br>
 	<h3>v0.33 Pacing for completionists</h3><br>

@@ -34,8 +34,8 @@ Sister project: OniDeity/idle-pokemon (its data is the source of ours).
   `item`), encounter, trainer and special-encounter data (Kanto: FRLG tables, #1-151 only; Johto:
   HGSS, walk/surf/rods, time-of-day weights averaged). johto.json is dumped from Idle Pokémon's
   johto.ts with tsx (JOHTO_ZONES, JOHTO_GYMS, johtoFinale(), JOHTO_SPECIALS); hoenn.json likewise
-  from hoenn.ts (Emerald; walk/surf/rods/rockSmash/dive from encounters.json; Feebas's extra tiles
-  aren't in yet). Dump scripts live in the scratchpad's `dump/` (re-create them if gone).
+  from hoenn.ts (Emerald; walk/surf/rods/rockSmash/dive from encounters.json; Feebas's Route 119
+  tiles via `HOENN_EXTRA`). Dump scripts live in the scratchpad's `dump/` (re-create them if gone).
 - `js/engine.js`: pure rules (stats, deterministic battles, catching, experience, level caps,
   Gym/League strengths). `js/logic.js`: rules over `player` (multipliers, the Field's equipment,
   zones and surveys, encounters, box/party/evolution, trainers, specials). Neither uses TMT
@@ -309,6 +309,15 @@ Sister project: OniDeity/idle-pokemon (its data is the source of ours).
   [3.2, 4.8, 5.6, 7.6, 8, 9.4, 10.6, 13.5], pace 370 (8.5-10.9 h at 350); Orre ×2 [6.8, 7.6, 8.7, 9.6]
   / 9.6 / 10, pace 85 (3.5-6.1 h at 65); XD ×2 [5.8, 7.1, 8, 9, 10.4] / 10.8 / 11.2, pace 150
   (4.5-6.3 h). Orre and XD start so strong that pace barely mattered until their admins doubled.
+- Delta Pokémon (v0.36, the owner's design: an aura in a type colour, stacking with the colours): a
+  key part `DELTA` ("25-delta-shiny", `makeLook(form, color, delta)`, `isDelta`; `formOf` skips it),
+  `deltaType(id)` (one per species, never its own types, from `TYPE_COLORS` = Bulbapedia's), the aura
+  a drop-shadow (`deltaAura`, added to `pkSprite`'s filter; `pkSprite`'s 6th argument). Rolled apart
+  from colour (`rollDelta`, `deltaOdds()` = base shiny odds) in wild encounters, gifts and Eggs;
+  `player.d.delta` records, `DELTA_MILESTONES` (3/10/25), achievement 72, Δ marks (`DELTA_MARK`),
+  `deltaHtml` on the Pokédex's Milestones tab. League teams record delta as a 5th element, so
+  enshrined Deltas count as looks. Pacing barely moves (Kanto 8.2-14.9, Johto 9.5-10.1 h).
+- The victory screen stays off (`isEndgame()` false): the owner's call, until the last region.
 - Challenge highlights: `challengeStatus(key)`; hatching or a Safari catch marks an owned entry's
   `origin`, and `canEvolveInto` lets an entry with an origin evolve into one without.
 - Regions and the run's Pokédex (v0.12): `REGIONS` (`regionDex`, `currentRegion`, `dexRegions`)
@@ -442,8 +451,8 @@ The owner wants every Hall of Fame to feel like a proper reset:
   base odds as Shiny but its own items and hunting methods to lower them; Melanistic is Shiny
   and Albino at once. They become `VARIANTS` ("15-albino", "15-melanistic"), their own Pokédex
   marks, and need recolored sprites (Idle Pokémon draws its own with `scripts/generate*.py`).
-- Sprites: keep them, but as the Pokédex grows split it into per-region pages, page the box,
-  and consider a setting to hide sprites.
+- Sprites (done): per-region Pokédex pages (`dexRegions`/`viewedDexRegion`), box pages (`BOX_PAGE`
+  30) and a setting to hide sprites (`options.pkHideSprites`).
 
 ## Fame items for every region to come (the owner's rule)
 

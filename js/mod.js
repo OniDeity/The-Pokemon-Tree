@@ -17,11 +17,14 @@ let modInfo = {
 
 // Set your version in num and name
 let VERSION = {
-	num: "0.35",
-	name: "Quick searches",
+	num: "0.36",
+	name: "Delta Pokémon",
 }
 
 let changelog = `<h1>Changelog:</h1><br>
+	<h3>v0.36 Delta Pokémon</h3><br>
+		- Delta Pokémon (Δ): a rare look with an aura in the colour of the species' Delta type, never one of its own types. Delta rolls on its own, as rarely as a shiny, so it comes with any colour too: Shiny, Albino or Melanistic Deltas, and Deltas in special forms.<br>
+		- Delta species are a record kept for good (the Pokédex's Milestones tab), with milestones at 3 (twice as common), 10 (Delta party members 25% stronger) and 25 (+25% catch chance), an achievement, and their own marks in the Pokédex. Delta Pokémon enshrined in the Hall of Fame count as special looks.<br><br>
 	<h3>v0.35 Quick searches</h3><br>
 		- Searches take 5 seconds before equipment, in every region. A journey's pace used to stretch every search (to 20 minutes or more in Orre); now it lowers the Research Points and experience wild battles give instead, so encounters stay quick.<br>
 		- Every journey is retuned for it: Gym Leaders, quests and admins are stronger after Johto (with Rudy, the Sevii Warehouse, Wattson and Tate & Liza no longer single walls), and each region has a new pace. A first run still takes about 10-12 h (Kanto, Johto, Hoenn) or 5-8 h (side journeys).<br><br>

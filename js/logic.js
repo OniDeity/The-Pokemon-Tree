@@ -113,6 +113,7 @@ function catchMult() {
 	if (wardenMilestone(50)) m *= 1.1
 	if (rocketMilestone(20)) m *= 1.1
 	if (rocketMilestone(150)) m *= 1.15
+	if (deltaMilestone(25)) m *= 1.25
 	return m
 }
 function gearMult() { return 1 + 0.15 * fieldBuyable(13) }
@@ -210,7 +211,8 @@ function surveyStatus() {
 
 function dexSee(id) { player.d.seen[id] = (player.d.seen[id] || 0) + 1 }
 /** `color` is a look's colour (or true for shiny): Melanistic counts as both shiny and albino. */
-function dexCatch(id, color, form) {
+function dexCatch(id, color, form, delta = false) {
+	if (delta) player.d.delta = { ...player.d.delta, [id]: (player.d.delta?.[id] || 0) + 1 }
 	if (!player.d.seen[id]) player.d.seen[id] = 1
 	player.d.caught[id] = (player.d.caught[id] || 0) + 1
 	if (color === true) color = "shiny"
@@ -230,8 +232,26 @@ function dexCatch(id, color, form) {
 const COLORS = ["shiny", "albino", "melanistic"]
 const COLOR_MARKS = { shiny: "★", albino: "◇", melanistic: "✦" }
 const COLOR_NAMES = { shiny: "Shiny", albino: "Albino", melanistic: "Melanistic" }
-/** A look from a form and a colour (true means shiny). */
-function makeLook(form, color) { return [form, color === true ? "shiny" : color || null].filter(Boolean).join("-") }
+// Delta Pokémon (the owner's idea): a special look beside the colours, an aura in the colour of the
+// species' Delta type (Bulbapedia's type colours). Each species has one Delta type, never one of its
+// own; Delta stacks with Shiny, Albino and Melanistic ("25-delta-shiny") and with forms.
+const DELTA = "delta"
+const DELTA_MARK = "Δ"
+const TYPE_COLORS = {
+	normal: "#A8A878", fire: "#F08030", water: "#6890F0", grass: "#78C850", electric: "#F8D030", ice: "#98D8D8",
+	fighting: "#C03028", poison: "#A040A0", ground: "#E0C068", flying: "#A890F0", psychic: "#F85888", bug: "#A8B820",
+	rock: "#B8A038", ghost: "#705898", dragon: "#7038F8", dark: "#705848", steel: "#B8B8D0", fairy: "#EE99AC",
+}
+function deltaType(id) {
+	const own = SPECIES[id]?.types || []
+	const pool = Object.keys(TYPE_COLORS).filter(t => !own.includes(t))
+	return pool[(Number(id) * 7919) % pool.length]
+}
+/** The aura: a drop shadow in the Delta type's colour, over the sprite's own filters. */
+function deltaAura(id) { const c = TYPE_COLORS[deltaType(id)]; return `drop-shadow(0 0 3px ${c}) drop-shadow(0 0 2px ${c})` }
+function isDelta(key) { return String(key).split("-").slice(1).includes(DELTA) }
+/** A look from a form, a colour (true means shiny) and Delta. */
+function makeLook(form, color, delta = false) { return [form, delta ? DELTA : null, color === true ? "shiny" : color || null].filter(Boolean).join("-") }
 function colorMark(color) { return color ? `${COLOR_MARKS[color === true ? "shiny" : color]} ` : "" }
 /** Rolls a new Pokémon's colour: shiny and albino separately; both make it Melanistic. */
 function rollColor(rng, shinyChance, albinoChance) {
@@ -247,7 +267,7 @@ function variantOf(key) { return lookOf(key) || "normal" }
 function colorOf(key) { return String(key).split("-").slice(1).find(p => COLORS.includes(p)) || null }
 function isShiny(key) { const c = colorOf(key); return c === "shiny" || c === "melanistic" }
 function isAlbino(key) { const c = colorOf(key); return c === "albino" || c === "melanistic" }
-function formOf(key) { return String(key).split("-").slice(1).find(p => !COLORS.includes(p)) || null }
+function formOf(key) { return String(key).split("-").slice(1).find(p => !COLORS.includes(p) && p !== DELTA) || null }
 /** The (species, form) entries of a zone's open pools that aren't in the box in any look. */
 function zoneMissing(zone) {
 	const box = Object.keys(player.t.box)
@@ -258,7 +278,7 @@ function zoneMissing(zone) {
 	return missing.size
 }
 function ownsSpecies(id) { return Object.keys(player.t.box).some(key => speciesOf(key) === Number(id)) }
-function keyName(key) { return `${colorMark(colorOf(key))}${formName(speciesOf(key), formOf(key))}` }
+function keyName(key) { return `${isDelta(key) ? `${DELTA_MARK} ` : ""}${colorMark(colorOf(key))}${formName(speciesOf(key), formOf(key))}` }
 
 /**
  * Saves before v0.3 kept one box entry per species, keyed by the species with a `shiny` flag,
@@ -295,7 +315,7 @@ function migrateBox() {
 function addToBox(id, level, variant = "normal", origin = null) {
 	const key = boxKey(id, variant)
 	const old = player.t.box[key]
-	dexCatch(id, colorOf(key), formOf(key))
+	dexCatch(id, colorOf(key), formOf(key), isDelta(key))
 	// Hatching (or a Safari catch of) a species you already own marks the one you own.
 	if (old && origin && !old.origin) old.origin = origin
 	if (old && old.level >= level) return false
@@ -376,7 +396,7 @@ function partyBattlers(party = player.t.party) {
 		const lead = i === 0 ? (inChallenge(13) ? LONE_PARTNER_BOOST : 1) * (beatChallenge(13) ? 1.2 : 1) : 1
 		const typed = (inChallenge(12) ? MONOTYPE_BOOST : 1) * (beatChallenge(12) && sharesStarterType(key) ? 1.15 : 1)
 		const form = FORMS[formOf(key)] || {}
-		const handicap = challengeHandicap(player.t.box[key], key) * (shinyMilestone(25) && isShiny(key) ? 1.25 : 1) * (albinoMilestone(10) && isAlbino(key) ? 1.25 : 1)
+		const handicap = challengeHandicap(player.t.box[key], key) * (shinyMilestone(25) && isShiny(key) ? 1.25 : 1) * (albinoMilestone(10) && isAlbino(key) ? 1.25 : 1) * (deltaMilestone(10) && isDelta(key) ? 1.25 : 1)
 		return battler(speciesOf(key), player.t.box[key].level, atk * lead * typed * (form.atk || 1) * handicap, def * lead * (form.def || 1) * handicap)
 	})
 }
@@ -406,7 +426,8 @@ function doEncounter(rng) {
 	// The Snag Machine (for good): Cipher Peons send out Shadow versions of Pokémon everywhere else.
 	if (mechanicOn("snagMachine") && !zone.trainerBattles && !enc.form && rand(rng) < cipherPeonChance()) enc.form = "shadow"
 	const shiny = rollColor(rng, 1 / encounterShinyOdds(enc), 1 / encounterAlbinoOdds(enc))
-	const look = makeLook(enc.form, shiny)
+	enc.delta = rollDelta(rng)
+	const look = makeLook(enc.form, shiny, enc.delta)
 	dexSee(enc.id)
 	player.f.encounters++
 	eggStep()
@@ -415,7 +436,7 @@ function doEncounter(rng) {
 	const team = partyBattlers()
 	const result = battle(team, [battler(enc.id, enc.level)])
 	const trainers = !!zone.trainerBattles
-	const name = `${trainers ? `${orreTrainer(enc)}'s ` : ""}${colorMark(shiny)}${formName(enc.id, enc.form)} (Lv. ${enc.level})`
+	const name = `${trainers ? `${orreTrainer(enc)}'s ` : ""}${enc.delta ? `${DELTA_MARK} ` : ""}${colorMark(shiny)}${formName(enc.id, enc.form)} (Lv. ${enc.level})`
 	huntStep(enc, result.win)
 	// Nuzlocke: only the first new species met on each route may be caught (shinies always can).
 	const nuzlocke = inChallenge(11)
@@ -755,7 +776,7 @@ function challengeLeague(k) {
 	snagFrom(t)
 	if (k === leagueTrainers().length - 1) {
 		player.l.champion = true
-		player.l.team = player.t.party.map(key => [speciesOf(key), player.t.box[key].level, colorOf(key), formOf(key)])
+		player.l.team = player.t.party.map(key => [speciesOf(key), player.t.box[key].level, colorOf(key), formOf(key), isDelta(key)])
 		player.l.hallOfFame.push({ team: player.l.team, time: player.timePlayed })
 		pkLog(`You beat ${t.name} and became the Pokémon League Champion!`, "league")
 	} else pkLog(`${t.name} of the Elite Four is beaten!`, "league")
@@ -800,9 +821,10 @@ function takeSpecial(s) {
 	if (isPrize(s)) addCoins(-prizeCoins(s))
 	player.t.specials[s.id] = true
 	const shiny = s.shiny ? "shiny" : rollColor(Math.random, 1 / shinyOdds(), 1 / albinoOdds())
-	addToBox(s.species, s.level, makeLook(s.form, shiny))
+	const delta = rollDelta(Math.random)
+	addToBox(s.species, s.level, makeLook(s.form, shiny, delta))
 	const name = formName(s.species, s.form)
-	pkLog(s.kind === "legendary" ? `You caught ${name}!` : `${name} joined you!`, "new", { id: s.species, form: s.form }, shiny)
+	pkLog(s.kind === "legendary" ? `You caught ${name}!` : `${name} joined you!`, "new", { id: s.species, form: s.form, delta }, shiny)
 	return true
 }
 
@@ -1007,9 +1029,9 @@ function fameGain() {
 /** Records the run in the Hall of Fame and starts the Pokédex over (the rest of the reset is TMT's). */
 function enterHallOfFame() {
 	const team = player.l.team || []
-	for (const [id, , color, form] of team) {
+	for (const [id, , color, form, delta] of team) {
 		player.h.enshrined[id] = true
-		const look = makeLook(form, color)
+		const look = makeLook(form, color, delta)
 		if (look) player.h.enshrinedLooks = { ...player.h.enshrinedLooks, [boxKey(id, look)]: true }
 	}
 	// Bill's Transfer: the Pokémon chosen (or picked) to come along into the next run.
@@ -1184,8 +1206,9 @@ function eggStep() {
 		const isNew = !player.d.hatched[egg.species]
 		player.d.hatched[egg.species] = (player.d.hatched[egg.species] || 0) + 1
 		player.d.everHatched = { ...player.d.everHatched, [egg.species]: true }
-		addToBox(egg.species, 5, shiny || "normal", "egg")
-		pkLog(`Oh? The Egg hatched into ${colorMark(shiny)}${speciesName(egg.species)}!`, isNew || shiny ? "new" : "catch", { id: egg.species }, shiny)
+		const delta = rollDelta(Math.random)
+		addToBox(egg.species, 5, makeLook(null, shiny, delta) || "normal", "egg")
+		pkLog(`Oh? The Egg hatched into ${delta ? `${DELTA_MARK} ` : ""}${colorMark(shiny)}${speciesName(egg.species)}!`, isNew || shiny || delta ? "new" : "catch", { id: egg.species, delta }, shiny)
 	}
 	player.c.eggs = player.c.eggs.filter(e => e.battles > 0)
 }
@@ -1628,6 +1651,16 @@ function albinoOdds() {
 	odds /= 1 + 0.1 * huntBuyable(14)
 	return odds
 }
+// Delta: its own roll, at the base shiny odds, lowered by its milestones.
+const DELTA_MILESTONES = [
+	[3, "Delta Pokémon twice as common everywhere."],
+	[10, "Delta Pokémon in your party fight 25% stronger."],
+	[25, "+25% catch chance."],
+]
+function deltaSpecies() { return Object.keys(player.d?.delta || {}).length }
+function deltaMilestone(n) { return deltaSpecies() >= n }
+function deltaOdds() { return BASE_SHINY_ODDS / (deltaMilestone(3) ? 2 : 1) }
+function rollDelta(rng) { return rand(rng) < 1 / deltaOdds() }
 /** What the hunting chain raises: the target's shiny odds or its albino odds. */
 function huntMode() { return player.y?.mode === "albino" ? "albino" : "shiny" }
 function setHuntMode(mode) { if (player.y) player.y.mode = mode }

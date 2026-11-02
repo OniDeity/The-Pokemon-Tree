@@ -5,7 +5,7 @@
 function hallHtml() {
 	if (!player.h.hall.length) return "<i>No entries yet. Become Champion, then enter the Hall of Fame.</i>"
 	return player.h.hall.map((e, i) => `<div class="pk-trainer"><b>Entry ${i + 1}</b> · ${formatTime(e.time)}${e.challenge ? ` · ${CHALLENGES[e.challenge].name}` : ""}<br>
-		${e.team.map(([id, level, shiny, form]) => `<span class="pk-mon">${pkSprite(id, shiny, 64, "", form)}<br><small>${formName(id, form)}<br>Lv. ${level}</small></span>`).join("")}</div>`).reverse().join("")
+		${e.team.map(([id, level, shiny, form, delta]) => `<span class="pk-mon">${pkSprite(id, shiny, 64, "", form, delta)}<br><small>${formName(id, form)}<br>Lv. ${level}</small></span>`).join("")}</div>`).reverse().join("")
 }
 
 function enshrineHtml() {
@@ -30,7 +30,7 @@ function carryPickerHtml() {
 	const chosen = (player.h.carry || []).filter(k => player.t.box[k])
 	const keys = Object.keys(player.t.box).filter(k => searchMatches(player.h.carrySearch, speciesOf(k)))
 		.sort((a, b) => (!!player.h.enshrined[speciesOf(a)] - !!player.h.enshrined[speciesOf(b)]) || player.t.box[b].level - player.t.box[a].level)
-	const card = k => `<button class="pk-dex-entry pk-button ${chosen.includes(k) ? "pk-on" : ""}" onclick="toggleCarry('${k}')" title="${keyName(k)}${player.h.enshrined[speciesOf(k)] ? "" : " (never enshrined)"}">${pkSprite(speciesOf(k), colorOf(k), 48, "", formOf(k))}<br><small>${player.h.enshrined[speciesOf(k)] ? "" : "★ "}${keyName(k)}</small></button>`
+	const card = k => `<button class="pk-dex-entry pk-button ${chosen.includes(k) ? "pk-on" : ""}" onclick="toggleCarry('${k}')" title="${keyName(k)}${player.h.enshrined[speciesOf(k)] ? "" : " (never enshrined)"}">${pkSprite(speciesOf(k), colorOf(k), 48, "", formOf(k), isDelta(k))}<br><small>${player.h.enshrined[speciesOf(k)] ? "" : "★ "}${keyName(k)}</small></button>`
 	return `<div class="pk-dex">${keys.slice(0, 48).map(card).join("")}</div>${keys.length > 48 ? `<small>${keys.length - 48} more: search by name.</small>` : ""}`
 }
 
